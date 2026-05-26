@@ -1,4 +1,4 @@
-# RecipeTracker
+# MarksRecipeBook
 
 A personal recipe library — installable as a PWA on desktop, Android, and iOS — with AI-assisted import.
 
@@ -9,8 +9,8 @@ A personal recipe library — installable as a PWA on desktop, Android, and iOS 
 - Create a recipe from scratch
 - Import a recipe from a markdown file
 - Import a recipe from a URL (AI-assisted via Claude)
-- **Share-to-app** from the browser or another app — Android Chrome supports the Web Share Target API, so the share sheet offers RecipeTracker as a destination. *Not supported on iOS* (Safari/WebKit limitation); on iOS, copy the URL and paste it into the import screen.
-- **File-handler** registration — `.md` files offer "Open with RecipeTracker" on desktop OSes that support it
+- **Share-to-app** from the browser or another app — Android Chrome supports the Web Share Target API, so the share sheet offers MarksRecipeBook as a destination. *Not supported on iOS* (Safari/WebKit limitation); on iOS, copy the URL and paste it into the import screen.
+- **File-handler** registration — `.md` files offer "Open with MarksRecipeBook" on desktop OSes that support it
 
 **Organize**
 - Sectioned ingredients (e.g. "Cake", "Frosting", "Assembly") as a bulleted list per section

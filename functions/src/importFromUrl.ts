@@ -120,7 +120,7 @@ export const importFromUrl = onCall(
     // Fetch the URL server-side. We send a full browser-like header set
     // because many recipe sites (Kitchn, NYT Cooking, anything behind
     // Cloudflare) reject anything that doesn't look like a real browser.
-    // A bare "RecipeTracker/1.0" UA was getting 403s.
+    // A bare "MarksRecipeBook/1.0" UA was getting 403s.
     let html: string;
     try {
       const fetchResponse = await fetch(url, {

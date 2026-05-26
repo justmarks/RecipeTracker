@@ -113,7 +113,7 @@ export function Home() {
   return (
     <main className="mx-auto max-w-3xl p-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">RecipeTracker</h1>
+        <h1 className="text-3xl font-semibold">Marks Recipe Book</h1>
         {user && (
           <div className="flex items-center gap-3 text-sm">
             <span className="text-slate-600">

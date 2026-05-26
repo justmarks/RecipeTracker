@@ -4,7 +4,7 @@ Guidance for Claude when working in this repo.
 
 ## Architecture in one paragraph
 
-RecipeTracker is a **PWA** — a Vite + React + TypeScript SPA hosted on Firebase Hosting. All data lives in a single Cloud Firestore collection (`recipes/{id}`) protected by security rules that scope reads/writes to the owning user (plus users in `sharedWith`, plus users granted blanket access via the `autoShares` collection). The Claude API is **only** ever called from `functions/src/importFromUrl.ts` — never from the client, because the API key must not be shipped. Shared TypeScript types and Zod schemas live in `shared/` and are imported by both `web/` and `functions/`, so the client, server, and AI tool-use schema all agree on the shape of a `Recipe`. There is **no native Android or iOS app** — installability comes from the PWA manifest.
+MarksRecipeBook is a **PWA** — a Vite + React + TypeScript SPA hosted on Firebase Hosting. All data lives in a single Cloud Firestore collection (`recipes/{id}`) protected by security rules that scope reads/writes to the owning user (plus users in `sharedWith`, plus users granted blanket access via the `autoShares` collection). The Claude API is **only** ever called from `functions/src/importFromUrl.ts` — never from the client, because the API key must not be shipped. Shared TypeScript types and Zod schemas live in `shared/` and are imported by both `web/` and `functions/`, so the client, server, and AI tool-use schema all agree on the shape of a `Recipe`. There is **no native Android or iOS app** — installability comes from the PWA manifest.
 
 ## PWA manifest
 
@@ -12,7 +12,7 @@ Declared in `web/vite.config.ts` via `vite-plugin-pwa`'s `manifest` option. The 
 
 ```ts
 {
-  name: "RecipeTracker",
+  name: "MarksRecipeBook",
   short_name: "Recipes",
   description: "A personal recipe library with AI-assisted import",
   lang: "en",

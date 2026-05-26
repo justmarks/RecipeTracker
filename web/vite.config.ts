@@ -36,7 +36,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        name: "RecipeTracker",
+        name: "MarksRecipeBook",
         short_name: "Recipes",
         description: "A personal recipe library with AI-assisted import",
         lang: "en",
