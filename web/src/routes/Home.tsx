@@ -17,6 +17,7 @@ type RecipeSummary = {
   title: string;
   category: string;
   tags: string[];
+  searchTokens: string[];
 };
 
 export function Home() {
@@ -24,6 +25,7 @@ export function Home() {
     useAuth();
   const { chapters } = useChapters(user?.uid);
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -43,6 +45,7 @@ export function Home() {
               title: data.title,
               category: data.category,
               tags: data.tags ?? [],
+              searchTokens: data.searchTokens ?? [],
             };
           }),
         );
@@ -53,19 +56,42 @@ export function Home() {
     );
   }, [user]);
 
-  // Group recipes by chapter, in the user's chapter order. Recipes whose
-  // category isn't in the chapter list bucket under "Other".
+  // Tokenize the search query the same way recipe writes do — lowercase,
+  // drop punctuation, require at least 2 chars per token. Keeps the
+  // matching consistent with what's stored in searchTokens.
+  const queryTokens = useMemo(
+    () =>
+      search
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]+/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length >= 2),
+    [search],
+  );
+
+  // Filter: every query token must prefix-match at least one of the
+  // recipe's haystack tokens (searchTokens covers title + ingredients;
+  // we also fold in tags and the chapter name).
+  const filtered = useMemo(() => {
+    if (queryTokens.length === 0) return recipes;
+    return recipes.filter((r) => {
+      const haystack = [...r.searchTokens, ...r.tags, r.category];
+      return queryTokens.every((q) => haystack.some((h) => h.startsWith(q)));
+    });
+  }, [recipes, queryTokens]);
+
+  // Group filtered recipes by chapter, in the user's chapter order.
   const byChapter = useMemo(() => {
     const groups = new Map<string, RecipeSummary[]>();
     for (const c of chapters) groups.set(c, []);
     const orphans: RecipeSummary[] = [];
-    for (const r of recipes) {
+    for (const r of filtered) {
       const bucket = groups.get(r.category);
       if (bucket) bucket.push(r);
       else orphans.push(r);
     }
     return { groups, orphans };
-  }, [recipes, chapters]);
+  }, [filtered, chapters]);
 
   if (loading) {
     return (
@@ -74,6 +100,9 @@ export function Home() {
       </main>
     );
   }
+
+  const searching = queryTokens.length > 0;
+  const matchCount = filtered.length;
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -120,9 +149,40 @@ export function Home() {
             </div>
           </div>
 
+          {recipes.length > 0 && (
+            <div className="relative mt-4">
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by title or ingredient…"
+                className="w-full rounded border border-slate-300 px-3 py-2 pr-10 text-sm"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                  aria-label="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+              {searching && (
+                <p className="mt-1 text-xs text-slate-500">
+                  {matchCount} match{matchCount === 1 ? "" : "es"}
+                </p>
+              )}
+            </div>
+          )}
+
           {recipes.length === 0 ? (
             <p className="mt-4 text-sm text-slate-500">
               No recipes yet. Create one to get started.
+            </p>
+          ) : searching && matchCount === 0 ? (
+            <p className="mt-6 text-sm text-slate-500">
+              No recipes match &ldquo;{search}&rdquo;.
             </p>
           ) : (
             <div className="mt-6 space-y-6">
