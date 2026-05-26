@@ -75,9 +75,16 @@ export function useChapters(uid: string | undefined): {
 }
 
 function normalize(name: string): string {
-  // Trim, collapse internal whitespace, lowercase. Keeps the chapter list
-  // consistent regardless of how the user types.
-  return name.trim().replace(/\s+/g, " ").toLowerCase();
+  // Trim and collapse internal whitespace. Case is PRESERVED so users can
+  // store "BBQ" or "Pasta Night" exactly as typed. Uniqueness is enforced
+  // case-insensitively via nameKey() below.
+  return name.trim().replace(/\s+/g, " ");
+}
+
+function nameKey(name: string): string {
+  // Comparison key — chapter names are unique case-insensitively, so
+  // "BBQ" and "bbq" collide and only one can exist at a time.
+  return normalize(name).toLowerCase();
 }
 
 export async function addChapter(uid: string, name: string): Promise<string> {
@@ -89,7 +96,8 @@ export async function addChapter(uid: string, name: string): Promise<string> {
   const current: string[] = snap.exists()
     ? (snap.data().categories ?? [])
     : [];
-  if (current.includes(normalized)) {
+  const key = nameKey(normalized);
+  if (current.some((c) => nameKey(c) === key)) {
     throw new Error(`Chapter "${normalized}" already exists.`);
   }
   await setDoc(
@@ -116,13 +124,18 @@ export async function renameChapter(
 ): Promise<void> {
   const newNormalized = normalize(newName);
   if (!newNormalized) throw new Error("Chapter name cannot be empty.");
+  if (newNormalized.length > 100) throw new Error("Chapter name is too long.");
   if (newNormalized === oldName) return;
 
   const snap = await getDoc(userDocRef(uid));
   if (!snap.exists()) throw new Error("No chapter list yet.");
   const current: string[] = snap.data().categories ?? [];
   if (!current.includes(oldName)) throw new Error("Chapter not found.");
-  if (current.includes(newNormalized)) {
+  // Allow a pure case-change rename ("entree" → "Entree") even though it
+  // collides under nameKey — only block when collapsing into a *different*
+  // existing entry.
+  const newKey = nameKey(newNormalized);
+  if (current.some((c) => c !== oldName && nameKey(c) === newKey)) {
     throw new Error(`Chapter "${newNormalized}" already exists.`);
   }
 

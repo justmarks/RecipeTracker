@@ -43,12 +43,19 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
 
   // Once chapters load, settle on a sensible default:
   //  - keep an existing match (round-trip on edit, AI import that matched a seed)
+  //  - if the case differs (AI returned "entree" but chapter is "Entree"),
+  //    swap in the canonical chapter case
   //  - otherwise pick the first chapter
   useEffect(() => {
     if (chaptersLoading || chapters.length === 0) return;
-    if (!category || !chapters.includes(category)) {
+    if (!category) {
       setCategory(chapters[0]);
+      return;
     }
+    const match = chapters.find(
+      (c) => c.toLowerCase() === category.toLowerCase(),
+    );
+    setCategory(match ?? chapters[0]);
   }, [chapters, chaptersLoading, category]);
 
   async function handleAddChapter() {

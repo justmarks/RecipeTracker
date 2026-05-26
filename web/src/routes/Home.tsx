@@ -71,22 +71,28 @@ export function Home() {
 
   // Filter: every query token must prefix-match at least one of the
   // recipe's haystack tokens (searchTokens covers title + ingredients;
-  // we also fold in tags and the chapter name).
+  // we also fold in tags and the chapter name). Comparison is
+  // case-insensitive — chapter names like "BBQ" should still match a
+  // "bbq" query, and stored data may be in any case.
   const filtered = useMemo(() => {
     if (queryTokens.length === 0) return recipes;
     return recipes.filter((r) => {
-      const haystack = [...r.searchTokens, ...r.tags, r.category];
+      const haystack = [...r.searchTokens, ...r.tags, r.category].map((h) =>
+        h.toLowerCase(),
+      );
       return queryTokens.every((q) => haystack.some((h) => h.startsWith(q)));
     });
   }, [recipes, queryTokens]);
 
   // Group filtered recipes by chapter, in the user's chapter order.
+  // Map keys are lowercased so a "BBQ" chapter still buckets recipes
+  // whose category happens to be stored as "bbq" or "Bbq".
   const byChapter = useMemo(() => {
     const groups = new Map<string, RecipeSummary[]>();
-    for (const c of chapters) groups.set(c, []);
+    for (const c of chapters) groups.set(c.toLowerCase(), []);
     const orphans: RecipeSummary[] = [];
     for (const r of filtered) {
-      const bucket = groups.get(r.category);
+      const bucket = groups.get(r.category.toLowerCase());
       if (bucket) bucket.push(r);
       else orphans.push(r);
     }
@@ -187,7 +193,8 @@ export function Home() {
           ) : (
             <div className="mt-6 space-y-6">
               {chapters.map((chapter) => {
-                const items = byChapter.groups.get(chapter) ?? [];
+                const items =
+                  byChapter.groups.get(chapter.toLowerCase()) ?? [];
                 if (items.length === 0) return null;
                 return (
                   <ChapterSection

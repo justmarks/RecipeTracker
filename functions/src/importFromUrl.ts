@@ -117,29 +117,45 @@ export const importFromUrl = onCall(
       throw new HttpsError("invalid-argument", "A valid http(s) URL is required.");
     }
 
-    // Fetch the URL — server-side avoids CORS issues and keeps the user-agent
-    // consistent. Node 24 has native fetch.
+    // Fetch the URL server-side. We send a full browser-like header set
+    // because many recipe sites (Kitchn, NYT Cooking, anything behind
+    // Cloudflare) reject anything that doesn't look like a real browser.
+    // A bare "RecipeTracker/1.0" UA was getting 403s.
     let html: string;
     try {
       const fetchResponse = await fetch(url, {
         headers: {
-          "User-Agent": "RecipeTracker/1.0 (Claude-assisted recipe import)",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+          "Accept":
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Accept-Encoding": "gzip, deflate, br",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+          "Sec-Fetch-Dest": "document",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Site": "none",
+          "Sec-Fetch-User": "?1",
+          "Upgrade-Insecure-Requests": "1",
         },
-        signal: AbortSignal.timeout(15_000),
+        redirect: "follow",
+        signal: AbortSignal.timeout(20_000),
       });
       if (!fetchResponse.ok) {
-        throw new HttpsError(
-          "failed-precondition",
-          `Failed to fetch URL (HTTP ${fetchResponse.status}).`
-        );
+        const isBlocked =
+          fetchResponse.status === 403 || fetchResponse.status === 401;
+        const msg = isBlocked ?
+          `The site blocked the request (HTTP ${fetchResponse.status}). Try copying the recipe text and pasting it into the markdown importer instead.` :
+          `Failed to fetch URL (HTTP ${fetchResponse.status}).`;
+        throw new HttpsError("failed-precondition", msg);
       }
       html = await fetchResponse.text();
     } catch (err) {
       if (err instanceof HttpsError) throw err;
       throw new HttpsError(
         "internal",
-        `Could not fetch URL: ${err instanceof Error ? err.message : String(err)}`
+        `Could not fetch URL: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
 
