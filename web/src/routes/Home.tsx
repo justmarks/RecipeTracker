@@ -70,12 +70,20 @@ export function Home() {
         <div className="mt-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Your recipes</h2>
-            <Link
-              to="/recipes/new"
-              className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
-            >
-              + New recipe
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/import"
+                className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+              >
+                Import
+              </Link>
+              <Link
+                to="/recipes/new"
+                className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
+              >
+                + New recipe
+              </Link>
+            </div>
           </div>
 
           {recipes.length === 0 ? (

@@ -4,7 +4,9 @@ import { RecipeInputSchema, CATEGORIES } from "shared";
 import type { Category, RecipeInput, Section } from "shared";
 
 interface Props {
-  initial?: RecipeInput;
+  // Partial so the import flow can pre-fill whatever it managed to parse
+  // without having to invent values for fields that weren't in the source.
+  initial?: Partial<RecipeInput>;
   submitLabel: string;
   onSubmit: (input: RecipeInput) => Promise<void>;
 }
@@ -12,15 +14,15 @@ interface Props {
 export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [category, setCategory] = useState<Category>(initial?.category ?? "entree");
-  const [tags, setTags] = useState(initial?.tags.join(", ") ?? "");
+  const [tags, setTags] = useState(initial?.tags?.join(", ") ?? "");
   const [sourceUrl, setSourceUrl] = useState(
     initial?.source?.type === "url" ? initial.source.url : "",
   );
   const [ingredientsText, setIngredientsText] = useState(
-    initial ? sectionsToText(initial.ingredients) : "",
+    initial?.ingredients ? sectionsToText(initial.ingredients) : "",
   );
   const [instructionsText, setInstructionsText] = useState(
-    initial ? sectionsToText(initial.instructions) : "",
+    initial?.instructions ? sectionsToText(initial.instructions) : "",
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [yieldField, setYieldField] = useState(initial?.yield ?? "");
