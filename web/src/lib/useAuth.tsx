@@ -2,12 +2,26 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   onAuthStateChanged,
+  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   signOut as fbSignOut,
 } from "firebase/auth";
-import type { User } from "firebase/auth";
+import type { AuthProvider as FirebaseAuthProvider, User } from "firebase/auth";
 import { auth, googleProvider, microsoftProvider } from "./firebase";
+
+// Popup works on the same origin (no cross-origin storage sync needed),
+// which is much more reliable during local development. Production sticks
+// with redirect because popup breaks in installed-PWA contexts on iOS.
+const useDevPopup = import.meta.env.DEV;
+
+async function signIn(provider: FirebaseAuthProvider) {
+  if (useDevPopup) {
+    await signInWithPopup(auth, provider);
+  } else {
+    await signInWithRedirect(auth, provider);
+  }
+}
 
 type AuthContextValue = {
   user: User | null;
@@ -39,8 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthContextValue = {
     user,
     loading,
-    signInWithGoogle: () => signInWithRedirect(auth, googleProvider),
-    signInWithMicrosoft: () => signInWithRedirect(auth, microsoftProvider),
+    signInWithGoogle: () => signIn(googleProvider),
+    signInWithMicrosoft: () => signIn(microsoftProvider),
     signOut: () => fbSignOut(auth),
   };
 
