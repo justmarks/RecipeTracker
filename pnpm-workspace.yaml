@@ -1,3 +1,13 @@
 packages:
   - "web"
   - "shared"
+
+# pnpm 11+ requires explicit approval for postinstall scripts. These three
+# are all needed and trusted:
+#   esbuild         — downloads its native binary; Vite can't build without it
+#   @firebase/util  — Firebase utility postinstall
+#   protobufjs      — used by Firestore's wire-format codec
+allowBuilds:
+  "@firebase/util": true
+  esbuild: true
+  protobufjs: true
