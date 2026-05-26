@@ -12,6 +12,24 @@ export default defineConfig({
       "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split heavy third-party libs into their own chunks so the app
+        // bundle stays small and vendor chunks can be cached across
+        // deploys that don't touch them.
+        manualChunks: {
+          firebase: [
+            "firebase/app",
+            "firebase/auth",
+            "firebase/firestore",
+            "firebase/functions",
+          ],
+          react: ["react", "react-dom", "react-router"],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
