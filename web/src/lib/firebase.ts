@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, OAuthProvider, connectAuthEmulator } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { initializeFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 const config = {
@@ -14,7 +14,9 @@ const config = {
 
 export const app = initializeApp(config);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// ignoreUndefinedProperties so optional fields with no value (notes, yield,
+// prepTime, etc.) drop silently instead of throwing on addDoc/setDoc.
+export const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
 export const functions = getFunctions(app);
 
 export const googleProvider = new GoogleAuthProvider();
