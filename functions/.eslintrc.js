@@ -31,5 +31,6 @@ module.exports = {
     "import/no-unresolved": 0,
     "indent": ["error", 2],
     "linebreak-style": "off", // Windows-friendly; git handles normalization via .gitattributes.
+    "max-len": "off", // Embedded prompt template literals exceed 80 chars by design.
   },
 };
