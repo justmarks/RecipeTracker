@@ -7,6 +7,7 @@ import { useAuth } from "../lib/useAuth";
 import type { RecipeSource, Section } from "shared";
 
 type StoredRecipe = {
+  ownerId: string;
   title: string;
   source?: RecipeSource;
   ingredients: Section[];
@@ -67,7 +68,17 @@ export function RecipeDetail() {
         ← Back
       </Link>
 
-      <h1 className="mt-2 text-3xl font-semibold">{recipe.title}</h1>
+      <div className="mt-2 flex items-start justify-between gap-4">
+        <h1 className="text-3xl font-semibold">{recipe.title}</h1>
+        {recipe.ownerId === user.uid && (
+          <Link
+            to={`/recipes/${id}/edit`}
+            className="shrink-0 rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+          >
+            Edit
+          </Link>
+        )}
+      </div>
       <p className="mt-1 text-sm text-slate-500">
         {recipe.category}
         {recipe.tags.length > 0 && ` · ${recipe.tags.join(", ")}`}
