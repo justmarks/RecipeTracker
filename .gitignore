@@ -67,3 +67,14 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Vite build output
+dist/
+.vite/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Local env files
+*.local
+
