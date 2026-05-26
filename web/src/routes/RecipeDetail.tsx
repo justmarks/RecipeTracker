@@ -4,6 +4,7 @@ import { doc, getDoc } from "firebase/firestore";
 import type { DocumentData } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
+import { renderInlineMarkdown } from "../lib/inlineMarkdown";
 import type { RecipeSource, Section } from "shared";
 
 type StoredRecipe = {
@@ -122,7 +123,7 @@ export function RecipeDetail() {
           )}
           <ul className="ml-5 list-disc">
             {section.items.map((item, j) => (
-              <li key={j}>{item}</li>
+              <li key={j}>{renderInlineMarkdown(item)}</li>
             ))}
           </ul>
         </div>
@@ -137,7 +138,7 @@ export function RecipeDetail() {
           <ol className="ml-5 list-decimal">
             {section.items.map((item, j) => (
               <li key={j} className="mt-1">
-                {item}
+                {renderInlineMarkdown(item)}
               </li>
             ))}
           </ol>
@@ -147,7 +148,9 @@ export function RecipeDetail() {
       {recipe.notes && (
         <>
           <h2 className="mt-8 text-xl font-semibold">Notes</h2>
-          <p className="mt-2 whitespace-pre-wrap text-slate-700">{recipe.notes}</p>
+          <p className="mt-2 whitespace-pre-wrap text-slate-700">
+            {renderInlineMarkdown(recipe.notes)}
+          </p>
         </>
       )}
     </main>
