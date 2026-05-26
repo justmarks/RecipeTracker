@@ -158,7 +158,7 @@ Merge and dedupe by recipe id. This logic lives in `web/src/lib/queryRecipes.ts`
 | A new screen / route | `web/src/routes/<route>.tsx` |
 | Recipe form / parser UI | `web/src/components/recipe/` |
 | Firebase init | `web/src/lib/firebase.ts` |
-| Auth hook | `web/src/lib/useAuth.ts` |
+| Auth provider + hook | `web/src/lib/useAuth.tsx` (exports `AuthProvider` + `useAuth`) |
 | Recipe list query (owned + shared + auto-shared) | `web/src/lib/queryRecipes.ts` |
 | Markdown import | `web/src/lib/importMarkdown.ts` (client-side, no network) |
 | Share-target landing | `web/src/routes/import.tsx` — reads `?url=` / `?text=` / `?title=` from URL, calls the URL importer or markdown importer |

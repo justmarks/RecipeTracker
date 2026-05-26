@@ -2,8 +2,85 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+
+    // ---------- Helpers ----------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Auto-share grants are stored at autoShares/{ownerId}_{granteeUid}.
+    // Deterministic doc ids let us check access in O(1) via exists().
+    function autoShareExists(ownerId) {
+      return isSignedIn() && exists(
+        /databases/$(database)/documents/autoShares/$(ownerId + '_' + request.auth.uid)
+      );
+    }
+
+    // Required fields and type checks for recipe writes.
+    // Optional fields (source, notes, yield, prepTime, cookTime, totalTime)
+    // are intentionally not validated here — let the client own optional shape.
+    function isValidRecipe(data) {
+      return data.ownerId is string
+        && data.title is string
+        && data.title.size() > 0
+        && data.title.size() <= 500
+        && data.ingredients is list
+        && data.instructions is list
+        && data.category in ['appetizer', 'side', 'sauce', 'soup', 'salad', 'entree']
+        && data.tags is list
+        && data.sharedWith is list
+        && data.searchTokens is list
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // ---------- Recipes ----------
+
+    match /recipes/{recipeId} {
+      allow read: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid
+        || request.auth.uid in resource.data.sharedWith
+        || autoShareExists(resource.data.ownerId)
+      );
+
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && isValidRecipe(request.resource.data);
+
+      // Update: must remain owned by the same user, no ownership transfer.
+      allow update: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
+        && isValidRecipe(request.resource.data);
+
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // ---------- Auto-shares ----------
+
+    match /autoShares/{shareId} {
+      // Owner can manage their grants; grantee can read grants targeting them
+      // (needed for the recipe-list query that fans out across granted owners).
+      allow read: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid
+        || resource.data.granteeUid == request.auth.uid
+      );
+
+      // Create: owner-initiated, doc id must match the deterministic pattern,
+      // and you can't grant access to yourself.
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && shareId == request.auth.uid + '_' + request.resource.data.granteeUid
+        && request.resource.data.granteeUid is string
+        && request.resource.data.granteeUid != request.auth.uid
+        && request.resource.data.granteeEmail is string
+        && request.resource.data.createdAt is timestamp;
+
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+
+      // Grants are create + delete only — no mutation.
+      allow update: if false;
     }
   }
 }
