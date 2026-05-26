@@ -32,13 +32,13 @@ export function Home() {
         <div className="mt-8 space-y-3">
           <p className="text-slate-600">Sign in to start saving recipes.</p>
           <button
-            onClick={() => signInWithGoogle()}
+            onClick={() => signInWithGoogle().catch((err) => console.error("Google sign-in:", err))}
             className="block w-full max-w-xs rounded border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
           >
             Continue with Google
           </button>
           <button
-            onClick={() => signInWithMicrosoft()}
+            onClick={() => signInWithMicrosoft().catch((err) => console.error("Microsoft sign-in:", err))}
             className="block w-full max-w-xs rounded border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
           >
             Continue with Microsoft
