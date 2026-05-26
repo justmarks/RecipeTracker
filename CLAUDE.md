@@ -101,7 +101,7 @@ type Recipe = {
   prepTime?: string;                  // free text — "20 min", "1 hr 15 min"
   cookTime?: string;
   totalTime?: string;
-  category: "appetizer" | "side" | "sauce" | "soup" | "salad" | "entree";
+  category: string;                   // chapter name, free-form per-user — see users/{uid}.categories
   tags: string[];                     // lowercase, e.g. ["vegetarian", "gluten-free"]
   sharedWith: string[];               // uids granted EXPLICIT per-recipe access
   searchTokens: string[];             // lowercase tokens from title + ingredients (for array-contains queries)
@@ -111,6 +111,20 @@ type Recipe = {
 ```
 
 **Why `searchTokens`:** Firestore has no native full-text search. Normalize title + ingredient text into a deduped lowercase token array and query with `array-contains-any`. If this hits limits later, swap in Typesense or Algolia — don't pre-optimize.
+
+**User preferences** live in `users/{uid}` — currently just the ordered chapter list that acts as the cookbook's table of contents:
+
+```ts
+// users/{uid}
+type UserDoc = {
+  ownerId: string;
+  categories: string[];       // ordered chapter names; recipes reference these by string
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+```
+
+The first time the user signs in, `web/src/lib/categories.ts` seeds this with the default chapters (appetizer, side, sauce, soup, salad, entree, dessert). Renaming a chapter atomically updates the user doc + every recipe with that category via a Firestore batched write (max 500 ops per batch). Chapter strings are normalized to lowercase on write; display uses CSS `text-transform: capitalize`.
 
 **Auto-share** lives in its own top-level collection so it doesn't have to mutate every recipe doc:
 
@@ -136,6 +150,9 @@ For `recipes/{recipeId}`:
 
 For `autoShares/{shareId}`:
 - **Read/Write**: only when `shareId` starts with `{request.auth.uid}_`
+
+For `users/{userId}`:
+- **Read/Write**: `request.auth.uid == userId` only
 
 When adding fields to `Recipe`, update the validation block in `firestore.rules` too.
 
@@ -168,6 +185,8 @@ Merge and dedupe by recipe id. This logic lives in `web/src/lib/queryRecipes.ts`
 | Share single recipe with user | `functions/src/shareRecipe.ts` (resolves email → uid, appends to `sharedWith`) |
 | Auto-share grant / revoke | `functions/src/autoShare.ts` — writes/deletes `autoShares/{ownerId}_{granteeUid}` |
 | Auto-share management UI | `web/src/routes/settings/sharing.tsx` |
+| Chapter list (users.categories) + CRUD | `web/src/lib/categories.ts` — `useChapters`, `addChapter`, `renameChapter` (batches recipe updates), `deleteChapter`, `moveChapter` |
+| Chapter management UI | `web/src/routes/Chapters.tsx` |
 | PWA manifest + service worker config | `web/vite.config.ts` (vite-plugin-pwa `manifest` and `workbox` options) |
 | Apple `<link>` / `<meta>` tags | `web/index.html` |
 

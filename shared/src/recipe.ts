@@ -1,7 +1,17 @@
 import { z } from "zod";
 
-export const CATEGORIES = ["appetizer", "side", "sauce", "soup", "salad", "entree"] as const;
-export type Category = (typeof CATEGORIES)[number];
+// Default chapter list seeded for every new user. Stored lowercase; displayed
+// with CSS capitalization. Users can rename, reorder, add, and delete via the
+// chapter management UI — the schema accepts any non-empty string here.
+export const DEFAULT_CHAPTERS = [
+  "appetizer",
+  "side",
+  "sauce",
+  "soup",
+  "salad",
+  "entree",
+  "dessert"
+] as const;
 
 export const RecipeSourceSchema = z.discriminatedUnion("type", [
   z.object({
@@ -35,7 +45,7 @@ export const RecipeInputSchema = z.object({
   prepTime: z.string().optional(),
   cookTime: z.string().optional(),
   totalTime: z.string().optional(),
-  category: z.enum(CATEGORIES),
+  category: z.string().min(1).max(100),
   tags: z.array(z.string()),
 });
 export type RecipeInput = z.infer<typeof RecipeInputSchema>;

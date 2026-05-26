@@ -1,9 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 import type { DocumentData } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
+import { useChapters } from "../lib/categories";
 
 type RecipeSummary = {
   id: string;
@@ -13,7 +20,9 @@ type RecipeSummary = {
 };
 
 export function Home() {
-  const { user, loading, signInWithGoogle, signInWithMicrosoft, signOut } = useAuth();
+  const { user, loading, signInWithGoogle, signInWithMicrosoft, signOut } =
+    useAuth();
+  const { chapters } = useChapters(user?.uid);
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
 
   useEffect(() => {
@@ -44,6 +53,20 @@ export function Home() {
     );
   }, [user]);
 
+  // Group recipes by chapter, in the user's chapter order. Recipes whose
+  // category isn't in the chapter list bucket under "Other".
+  const byChapter = useMemo(() => {
+    const groups = new Map<string, RecipeSummary[]>();
+    for (const c of chapters) groups.set(c, []);
+    const orphans: RecipeSummary[] = [];
+    for (const r of recipes) {
+      const bucket = groups.get(r.category);
+      if (bucket) bucket.push(r);
+      else orphans.push(r);
+    }
+    return { groups, orphans };
+  }, [recipes, chapters]);
+
   if (loading) {
     return (
       <main className="mx-auto max-w-3xl p-6">
@@ -58,8 +81,13 @@ export function Home() {
         <h1 className="text-3xl font-semibold">RecipeTracker</h1>
         {user && (
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-slate-600">{user.email ?? user.displayName}</span>
-            <button onClick={() => signOut()} className="text-blue-600 hover:underline">
+            <span className="text-slate-600">
+              {user.email ?? user.displayName}
+            </span>
+            <button
+              onClick={() => signOut()}
+              className="text-blue-600 hover:underline"
+            >
               Sign out
             </button>
           </div>
@@ -71,6 +99,12 @@ export function Home() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Your recipes</h2>
             <div className="flex items-center gap-2">
+              <Link
+                to="/chapters"
+                className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+              >
+                Chapters
+              </Link>
               <Link
                 to="/import"
                 className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
@@ -91,22 +125,26 @@ export function Home() {
               No recipes yet. Create one to get started.
             </p>
           ) : (
-            <ul className="mt-4 divide-y divide-slate-200">
-              {recipes.map((r) => (
-                <li key={r.id}>
-                  <Link
-                    to={`/recipes/${r.id}`}
-                    className="block py-3 hover:bg-slate-50"
-                  >
-                    <div className="font-medium">{r.title}</div>
-                    <div className="text-xs text-slate-500">
-                      {r.category}
-                      {r.tags.length > 0 && ` · ${r.tags.join(", ")}`}
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-6 space-y-6">
+              {chapters.map((chapter) => {
+                const items = byChapter.groups.get(chapter) ?? [];
+                if (items.length === 0) return null;
+                return (
+                  <ChapterSection
+                    key={chapter}
+                    name={chapter}
+                    recipes={items}
+                  />
+                );
+              })}
+              {byChapter.orphans.length > 0 && (
+                <ChapterSection
+                  name="Other"
+                  recipes={byChapter.orphans}
+                  italic
+                />
+              )}
+            </div>
           )}
         </div>
       ) : (
@@ -114,7 +152,9 @@ export function Home() {
           <p className="text-slate-600">Sign in to start saving recipes.</p>
           <button
             onClick={() =>
-              signInWithGoogle().catch((err) => console.error("Google sign-in:", err))
+              signInWithGoogle().catch((err) =>
+                console.error("Google sign-in:", err),
+              )
             }
             className="block w-full max-w-xs rounded border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
           >
@@ -122,7 +162,9 @@ export function Home() {
           </button>
           <button
             onClick={() =>
-              signInWithMicrosoft().catch((err) => console.error("Microsoft sign-in:", err))
+              signInWithMicrosoft().catch((err) =>
+                console.error("Microsoft sign-in:", err),
+              )
             }
             className="block w-full max-w-xs rounded border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
           >
@@ -131,5 +173,47 @@ export function Home() {
         </div>
       )}
     </main>
+  );
+}
+
+function ChapterSection({
+  name,
+  recipes,
+  italic = false,
+}: {
+  name: string;
+  recipes: RecipeSummary[];
+  italic?: boolean;
+}) {
+  return (
+    <section>
+      <h3
+        className={`flex items-baseline gap-2 border-b border-slate-200 pb-1 text-base font-semibold ${
+          italic ? "italic text-slate-500" : "capitalize text-slate-700"
+        }`}
+      >
+        <span>{name}</span>
+        <span className="text-xs font-normal text-slate-400">
+          ({recipes.length})
+        </span>
+      </h3>
+      <ul className="mt-2 divide-y divide-slate-200">
+        {recipes.map((r) => (
+          <li key={r.id}>
+            <Link
+              to={`/recipes/${r.id}`}
+              className="block py-2 hover:bg-slate-50"
+            >
+              <div className="font-medium">{r.title}</div>
+              {r.tags.length > 0 && (
+                <div className="text-xs text-slate-500">
+                  {r.tags.join(", ")}
+                </div>
+              )}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

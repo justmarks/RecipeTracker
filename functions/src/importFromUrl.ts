@@ -13,7 +13,7 @@ Given the HTML content of a webpage that contains a recipe, extract the recipe's
 Guidelines:
 - Extract title, ingredients, instructions, and any metadata (yield, prep/cook/total time, notes).
 - For ingredients and instructions, identify section headings (e.g. "Cake", "Frosting", "Avocado Goddess Sauce") and group items beneath them. If the recipe has only one section, use a single section with heading set to null.
-- Choose the closest category from: appetizer, side, sauce, soup, salad, entree.
+- Choose a short, lowercase chapter name like 'entree', 'dessert', 'side'. Prefer the closest of: appetizer, side, sauce, soup, salad, entree, dessert. One or two words only. The user can re-categorize after import.
 - Identify relevant tags only if clearly indicated by the recipe content. Use lowercase kebab-case (e.g. "gluten-free", "vegetarian", "dairy-free").
 - Strip leading bullets ("•", "-", "*") and numbered markers ("1.", "1)") from individual ingredient and instruction items — the items should be clean text without list-marker characters.
 - Set source to {type: "url", url: <the URL provided>}.
@@ -74,7 +74,9 @@ const RECIPE_TOOL_SCHEMA = {
     totalTime: {type: "string"},
     category: {
       type: "string",
-      enum: ["appetizer", "side", "sauce", "soup", "salad", "entree"],
+      minLength: 1,
+      maxLength: 100,
+      description: "A short lowercase chapter name like 'entree', 'dessert', 'side'. Prefer the closest of: appetizer, side, sauce, soup, salad, entree, dessert. Use one or two words only.",
     },
     tags: {type: "array", items: {type: "string"}},
   },

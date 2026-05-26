@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { RecipeInputSchema, CATEGORIES } from "shared";
-import type { Category, RecipeInput, Section } from "shared";
+import { RecipeInputSchema } from "shared";
+import type { RecipeInput, Section } from "shared";
+import { useAuth } from "../lib/useAuth";
+import { addChapter, useChapters } from "../lib/categories";
 
 interface Props {
   // Partial so the import flow can pre-fill whatever it managed to parse
@@ -12,8 +14,11 @@ interface Props {
 }
 
 export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
+  const { user } = useAuth();
+  const { chapters, loading: chaptersLoading } = useChapters(user?.uid);
+
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [category, setCategory] = useState<Category>(initial?.category ?? "entree");
+  const [category, setCategory] = useState<string>(initial?.category ?? "");
   const [tags, setTags] = useState(initial?.tags?.join(", ") ?? "");
   const [sourceUrl, setSourceUrl] = useState(
     initial?.source?.type === "url" ? initial.source.url : "",
@@ -31,6 +36,38 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   const [totalTime, setTotalTime] = useState(initial?.totalTime ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [showAddChapter, setShowAddChapter] = useState(false);
+  const [newChapterName, setNewChapterName] = useState("");
+  const [addingChapter, setAddingChapter] = useState(false);
+
+  // Once chapters load, settle on a sensible default:
+  //  - keep an existing match (round-trip on edit, AI import that matched a seed)
+  //  - otherwise pick the first chapter
+  useEffect(() => {
+    if (chaptersLoading || chapters.length === 0) return;
+    if (!category || !chapters.includes(category)) {
+      setCategory(chapters[0]);
+    }
+  }, [chapters, chaptersLoading, category]);
+
+  async function handleAddChapter() {
+    if (!user) return;
+    const name = newChapterName.trim();
+    if (!name) return;
+    setAddingChapter(true);
+    setError(null);
+    try {
+      const normalized = await addChapter(user.uid, name);
+      setCategory(normalized);
+      setNewChapterName("");
+      setShowAddChapter(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add chapter.");
+    } finally {
+      setAddingChapter(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -85,18 +122,59 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Category">
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as Category)}
-            className="w-full rounded border border-slate-300 px-3 py-2"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+        <Field label="Chapter">
+          <div className="space-y-1">
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              disabled={chaptersLoading || chapters.length === 0}
+              className="w-full rounded border border-slate-300 px-3 py-2 capitalize"
+            >
+              {chapters.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            {showAddChapter ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newChapterName}
+                  onChange={(e) => setNewChapterName(e.target.value)}
+                  placeholder="e.g. dessert"
+                  className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleAddChapter}
+                  disabled={addingChapter || !newChapterName.trim()}
+                  className="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddChapter(false);
+                    setNewChapterName("");
+                  }}
+                  className="text-xs text-slate-500 hover:underline"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowAddChapter(true)}
+                className="text-xs text-blue-600 hover:underline"
+              >
+                + Add new chapter
+              </button>
+            )}
+          </div>
         </Field>
 
         <Field label="Tags (comma-separated)">
@@ -193,7 +271,7 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
       <div className="flex gap-3">
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || chaptersLoading || chapters.length === 0}
           className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
         >
           {saving ? "Saving…" : submitLabel}

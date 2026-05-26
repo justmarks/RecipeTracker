@@ -1,5 +1,4 @@
-import { CATEGORIES } from "shared";
-import type { Category, RecipeInput, RecipeSource, Section } from "shared";
+import type { RecipeInput, RecipeSource, Section } from "shared";
 
 /**
  * Best-effort markdown → Partial<RecipeInput> parser. Convention:
@@ -121,8 +120,11 @@ function applyMetadata(out: Partial<RecipeInput>, key: string, value: string): v
       return;
     }
     case "category": {
-      const c = value.toLowerCase() as Category;
-      if ((CATEGORIES as readonly string[]).includes(c)) out.category = c;
+      // Category is now a free-form per-user chapter name. Normalize to
+      // lowercase + trim and let the form resolve against the user's
+      // current chapter list (falling back to the first chapter if no match).
+      const c = value.trim().toLowerCase();
+      if (c) out.category = c;
       return;
     }
   }

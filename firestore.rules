@@ -27,7 +27,9 @@ service cloud.firestore {
         && data.title.size() <= 500
         && data.ingredients is list
         && data.instructions is list
-        && data.category in ['appetizer', 'side', 'sauce', 'soup', 'salad', 'entree']
+        && data.category is string
+        && data.category.size() > 0
+        && data.category.size() <= 100
         && data.tags is list
         && data.sharedWith is list
         && data.searchTokens is list
@@ -55,6 +57,14 @@ service cloud.firestore {
         && isValidRecipe(request.resource.data);
 
       allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // ---------- User preferences (chapters etc.) ----------
+
+    // users/{uid} stores per-user settings — currently the ordered list of
+    // chapter names that act as the recipe-book's table of contents.
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
     // ---------- Auto-shares ----------
