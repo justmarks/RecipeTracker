@@ -10,14 +10,31 @@ const SYSTEM_PROMPT = `You are a recipe extraction assistant.
 
 Given the HTML content of a webpage that contains a recipe, extract the recipe's structured data using the extract_recipe tool. Always use the tool — do not return free-form text.
 
-Guidelines:
-- Extract title, ingredients, instructions, and any metadata (yield, prep/cook/total time, notes).
-- For ingredients and instructions, identify section headings (e.g. "Cake", "Frosting", "Avocado Goddess Sauce") and group items beneath them. If the recipe has only one section, use a single section with heading set to null.
-- Choose a short, lowercase chapter name like 'entree', 'dessert', 'side'. Prefer the closest of: appetizer, side, sauce, soup, salad, entree, dessert. One or two words only. The user can re-categorize after import.
-- Identify relevant tags only if clearly indicated by the recipe content. Use lowercase kebab-case (e.g. "gluten-free", "vegetarian", "dairy-free").
-- Strip leading bullets ("•", "-", "*") and numbered markers ("1.", "1)") from individual ingredient and instruction items — the items should be clean text without list-marker characters.
-- Set source to {type: "url", url: <the URL provided>}.
-- If the HTML does not contain a recipe (e.g. it's a landing page or article without ingredients/instructions), return a single section in ingredients with heading null and one item explaining what was found, and the same for instructions. Use the page title as the recipe title.`;
+Extract every field that appears in the HTML. None of these are "nice to have" — pull them whenever the page has them.
+
+Field guide:
+- title (required) — the recipe's name
+- ingredients with section headings (e.g. "Cake", "Frosting"). Use a single section with heading: null if the recipe has only one group.
+- instructions with section headings, same rules as ingredients
+- yield — servings or yield (e.g. "4 servings", "12 cookies", "1 loaf")
+- prepTime — active preparation time (e.g. "20 min")
+- cookTime — passive cook/bake/rest time (e.g. "40 min")
+- totalTime — total elapsed time start to finish (e.g. "1 hr")
+- notes — tips, variations, or supplementary commentary
+- category — short lowercase chapter name. Prefer the closest of: appetizer, side, sauce, soup, salad, entree, dessert. One or two words.
+- tags — lowercase kebab-case attributes like "gluten-free", "vegetarian", "dairy-free" — only if clearly indicated.
+
+Time fields are critical and frequently missed. Most modern recipe sites embed prepTime/cookTime/totalTime/recipeYield in a <script type="application/ld+json"> schema.org/Recipe block — search for that block first. Convert ISO 8601 durations:
+  PT20M    → "20 min"
+  PT1H     → "1 hr"
+  PT1H30M  → "1 hr 30 min"
+  PT2H15M  → "2 hr 15 min"
+
+Strip leading bullets ("•", "-", "*") and numbered markers ("1.", "1)") from ingredient and instruction items — return clean text.
+
+The server overrides source after extraction, so do not worry about emitting source — it will be set to {type: "url", url: <the URL>} automatically.
+
+If the HTML does not contain a recipe, return a single section in ingredients with heading null and one item describing what was found. Use the page title as the recipe title.`;
 
 const RECIPE_TOOL_SCHEMA = {
   type: "object",
@@ -172,6 +189,13 @@ export const importFromUrl = onCall(
       );
     }
 
-    return {recipe: toolUse.input as Record<string, unknown>};
+    // Override source.url with the URL the caller actually submitted.
+    // The AI sometimes omits the source field or invents a slightly
+    // different URL (canonical vs share link, missing fragment, etc.) —
+    // we already know the right value, no need to trust the model.
+    const recipe = toolUse.input as Record<string, unknown>;
+    recipe.source = {type: "url", url};
+
+    return {recipe};
   }
 );
