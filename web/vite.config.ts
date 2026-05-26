@@ -4,6 +4,14 @@ import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  server: {
+    headers: {
+      // Allow Firebase Auth popups to communicate back across origins.
+      // Without this, Chrome warns that COOP "would block" window.closed
+      // polling that Firebase uses to detect the popup closing.
+      "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
