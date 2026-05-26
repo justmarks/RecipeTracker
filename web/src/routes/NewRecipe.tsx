@@ -35,9 +35,21 @@ export function NewRecipe() {
   function parseSections(text: string): Section[] {
     const items = text
       .split(/\n+/)
-      .map((s) => s.trim())
+      .map(stripListMarker)
       .filter(Boolean);
     return items.length === 0 ? [] : [{ heading: null, items }];
+  }
+
+  function stripListMarker(line: string): string {
+    // Strip a leading bullet or numbered marker so the UI's <ul>/<ol> is the
+    // only source of bullets. Requires whitespace after the marker so we
+    // don't mangle ingredient quantities like "1-1/2 lbs" or "1.5 cups".
+    return line
+      .trim()
+      .replace(/^[•\-*–—·]\s+/, "")
+      .trim()
+      .replace(/^\(?\d+[.)]\s+/, "")
+      .trim();
   }
 
   async function handleSubmit(e: FormEvent) {
