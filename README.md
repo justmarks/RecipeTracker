@@ -129,6 +129,36 @@ pnpm --filter web build && firebase deploy --only hosting
 firebase deploy --only functions
 ```
 
+## Bulk import
+
+See [scripts/README.md](scripts/README.md) for a Node script that imports
+a whole folder tree of `.md` files at once (folder name → chapter).
+Uses the Firebase Admin SDK; requires a service-account key.
+
+## Roadmap
+
+Tracked here so they don't get lost:
+
+- **Favorites** — flag recipes you want to surface quickly
+- **Grocery list generation** — multi-select recipes → consolidated list
+- **Meal plan** — pick N recipes and produce a plan for the week
+- **Import from photo** — phone share-sheet → OCR + AI extraction
+- **Unit conversion** — cups / tsp ↔ grams
+- **Photo upload** (currently URL only; Storage-backed upload pending)
+
+## Known issues
+
+- **`marksrecipebook.web.app` sign-in fails; `.firebaseapp.com` works.**
+  The `.web.app` domain isn't in Firebase Auth's authorized-domains list
+  by default. Fix: Firebase Console → Authentication → Settings →
+  Authorized domains → Add domain → `marksrecipebook.web.app`. (Pure
+  Console fix, nothing to deploy.)
+- **Some recipe sites still 403 the URL importer** (`allrecipes.com`
+  has been observed). The function sends real-browser headers, which
+  gets past most basic anti-bot checks, but sites behind aggressive
+  Cloudflare/DataDome filtering can still refuse. Fall back to copying
+  the recipe text and using the markdown import path.
+
 ## License
 
 See [LICENSE](LICENSE).

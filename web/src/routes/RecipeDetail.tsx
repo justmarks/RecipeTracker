@@ -4,7 +4,7 @@ import { doc, getDoc } from "firebase/firestore";
 import type { DocumentData } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
-import { renderInlineMarkdown } from "../lib/inlineMarkdown";
+import { renderInlineMarkdown, renderMarkdownBlock } from "../lib/inlineMarkdown";
 import type { RecipeSource, Section } from "shared";
 
 type StoredRecipe = {
@@ -20,6 +20,9 @@ type StoredRecipe = {
   totalTime?: string;
   category: string;
   tags: string[];
+  photoUrl?: string;
+  rating?: number;
+  lastMadeDate?: string;
 };
 
 export function RecipeDetail() {
@@ -81,9 +84,34 @@ export function RecipeDetail() {
         )}
       </div>
       <p className="mt-1 text-sm text-slate-500">
-        {recipe.category}
+        <span className="capitalize">{recipe.category}</span>
         {recipe.tags.length > 0 && ` · ${recipe.tags.join(", ")}`}
       </p>
+
+      {recipe.photoUrl && (
+        <img
+          src={recipe.photoUrl}
+          alt={recipe.title}
+          className="mt-4 max-h-96 w-full rounded object-cover"
+          loading="lazy"
+        />
+      )}
+
+      {(recipe.rating || recipe.lastMadeDate) && (
+        <p className="mt-3 flex items-center gap-3 text-sm text-slate-600">
+          {recipe.rating && (
+            <span title={`${recipe.rating}/5`} className="text-amber-500">
+              {"★".repeat(recipe.rating)}
+              <span className="text-slate-300">
+                {"★".repeat(5 - recipe.rating)}
+              </span>
+            </span>
+          )}
+          {recipe.lastMadeDate && (
+            <span>Last made: {recipe.lastMadeDate}</span>
+          )}
+        </p>
+      )}
 
       {recipe.source && (
         <p className="mt-2 text-sm">
@@ -148,9 +176,9 @@ export function RecipeDetail() {
       {recipe.notes && (
         <>
           <h2 className="mt-8 text-xl font-semibold">Notes</h2>
-          <p className="mt-2 whitespace-pre-wrap text-slate-700">
-            {renderInlineMarkdown(recipe.notes)}
-          </p>
+          <div className="mt-2 text-slate-700">
+            {renderMarkdownBlock(recipe.notes)}
+          </div>
         </>
       )}
     </main>

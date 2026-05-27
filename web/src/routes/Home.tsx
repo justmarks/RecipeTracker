@@ -7,7 +7,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import type { DocumentData } from "firebase/firestore";
+import type { DocumentData, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
@@ -18,7 +18,10 @@ type RecipeSummary = {
   category: string;
   tags: string[];
   searchTokens: string[];
+  createdAt?: Timestamp;
 };
+
+type SortOrder = "alpha" | "recent";
 
 export function Home() {
   const { user, loading, signInWithGoogle, signInWithMicrosoft, signOut } =
@@ -26,6 +29,7 @@ export function Home() {
   const { chapters } = useChapters(user?.uid);
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
   const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("alpha");
 
   useEffect(() => {
     if (!user) return;
@@ -46,6 +50,7 @@ export function Home() {
               category: data.category,
               tags: data.tags ?? [],
               searchTokens: data.searchTokens ?? [],
+              createdAt: data.createdAt as Timestamp | undefined,
             };
           }),
         );
@@ -84,20 +89,37 @@ export function Home() {
     });
   }, [recipes, queryTokens]);
 
-  // Group filtered recipes by chapter, in the user's chapter order.
+  // Sort BEFORE grouping so each chapter section displays in the chosen order.
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    if (sortOrder === "alpha") {
+      arr.sort((a, b) =>
+        a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),
+      );
+    } else {
+      // Recent: createdAt desc; recipes missing createdAt sort to the end.
+      arr.sort(
+        (a, b) =>
+          (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0),
+      );
+    }
+    return arr;
+  }, [filtered, sortOrder]);
+
+  // Group sorted recipes by chapter, in the user's chapter order.
   // Map keys are lowercased so a "BBQ" chapter still buckets recipes
   // whose category happens to be stored as "bbq" or "Bbq".
   const byChapter = useMemo(() => {
     const groups = new Map<string, RecipeSummary[]>();
     for (const c of chapters) groups.set(c.toLowerCase(), []);
     const orphans: RecipeSummary[] = [];
-    for (const r of filtered) {
+    for (const r of sorted) {
       const bucket = groups.get(r.category.toLowerCase());
       if (bucket) bucket.push(r);
       else orphans.push(r);
     }
     return { groups, orphans };
-  }, [filtered, chapters]);
+  }, [sorted, chapters]);
 
   if (loading) {
     return (
@@ -156,29 +178,40 @@ export function Home() {
           </div>
 
           {recipes.length > 0 && (
-            <div className="relative mt-4">
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by title or ingredient…"
-                className="w-full rounded border border-slate-300 px-3 py-2 pr-10 text-sm"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                  aria-label="Clear search"
-                >
-                  ✕
-                </button>
-              )}
-              {searching && (
-                <p className="mt-1 text-xs text-slate-500">
-                  {matchCount} match{matchCount === 1 ? "" : "es"}
-                </p>
-              )}
+            <div className="mt-4 flex items-start gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search by title or ingredient…"
+                  className="w-full rounded border border-slate-300 px-3 py-2 pr-10 text-sm"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                    aria-label="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+                {searching && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    {matchCount} match{matchCount === 1 ? "" : "es"}
+                  </p>
+                )}
+              </div>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                className="rounded border border-slate-300 px-3 py-2 text-sm"
+                aria-label="Sort order"
+              >
+                <option value="alpha">A → Z</option>
+                <option value="recent">Recent first</option>
+              </select>
             </div>
           )}
 

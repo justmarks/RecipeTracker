@@ -34,6 +34,11 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   const [prepTime, setPrepTime] = useState(initial?.prepTime ?? "");
   const [cookTime, setCookTime] = useState(initial?.cookTime ?? "");
   const [totalTime, setTotalTime] = useState(initial?.totalTime ?? "");
+  const [photoUrl, setPhotoUrl] = useState(initial?.photoUrl ?? "");
+  const [rating, setRating] = useState<number | "">(initial?.rating ?? "");
+  const [lastMadeDate, setLastMadeDate] = useState(
+    initial?.lastMadeDate ?? "",
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,6 +102,9 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
         .split(",")
         .map((t) => t.trim().toLowerCase())
         .filter(Boolean),
+      photoUrl: photoUrl.trim() || undefined,
+      rating: rating === "" ? undefined : Number(rating),
+      lastMadeDate: lastMadeDate || undefined,
     };
 
     const parsed = RecipeInputSchema.safeParse(input);
@@ -205,6 +213,16 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
         />
       </Field>
 
+      <Field label="Photo URL (optional)">
+        <input
+          type="url"
+          value={photoUrl}
+          onChange={(e) => setPhotoUrl(e.target.value)}
+          placeholder="https://...jpg"
+          className="w-full rounded border border-slate-300 px-3 py-2"
+        />
+      </Field>
+
       <Field label="Ingredients (one per line; use ## Heading for sections)">
         <textarea
           required
@@ -264,9 +282,36 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
         </Field>
       </div>
 
-      <Field label="Notes">
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Rating">
+          <select
+            value={rating}
+            onChange={(e) =>
+              setRating(e.target.value === "" ? "" : Number(e.target.value))
+            }
+            className="w-full rounded border border-slate-300 px-3 py-2"
+          >
+            <option value="">—</option>
+            <option value="1">★</option>
+            <option value="2">★★</option>
+            <option value="3">★★★</option>
+            <option value="4">★★★★</option>
+            <option value="5">★★★★★</option>
+          </select>
+        </Field>
+        <Field label="Last made">
+          <input
+            type="date"
+            value={lastMadeDate}
+            onChange={(e) => setLastMadeDate(e.target.value)}
+            className="w-full rounded border border-slate-300 px-3 py-2"
+          />
+        </Field>
+      </div>
+
+      <Field label="Notes (markdown — **bold**, [links](url), paragraphs)">
         <textarea
-          rows={3}
+          rows={4}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="w-full rounded border border-slate-300 px-3 py-2 text-sm"

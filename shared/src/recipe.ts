@@ -47,5 +47,11 @@ export const RecipeInputSchema = z.object({
   totalTime: z.string().optional(),
   category: z.string().min(1).max(100),
   tags: z.array(z.string()),
+  photoUrl: z.string().url().optional(),
+  rating: z.number().int().min(1).max(5).optional(),
+  lastMadeDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD")
+    .optional(),
 });
 export type RecipeInput = z.infer<typeof RecipeInputSchema>;

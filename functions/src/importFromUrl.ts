@@ -23,6 +23,9 @@ Field guide:
 - notes — tips, variations, or supplementary commentary
 - category — short lowercase chapter name. Prefer the closest of: appetizer, side, sauce, soup, salad, entree, dessert. One or two words.
 - tags — lowercase kebab-case attributes like "gluten-free", "vegetarian", "dairy-free" — only if clearly indicated.
+- photoUrl — absolute https URL to the main recipe photo. Check <meta property="og:image">, <meta name="twitter:image">, and the schema.org/Recipe "image" field (which may be a string, an array, or an object with "url"). Omit if none are present.
+
+All extracted text must be PLAIN TEXT, not JSON-encoded. If you copy a string from a <script type="application/ld+json"> block, decode JSON escape sequences yourself: write real newlines instead of \\n, real quotes instead of \\", real ampersands instead of &amp;. The downstream renderer treats the values as plaintext — escape sequences will display literally.
 
 Time fields are critical and frequently missed. Most modern recipe sites embed prepTime/cookTime/totalTime/recipeYield in a <script type="application/ld+json"> schema.org/Recipe block — search for that block first. Convert ISO 8601 durations:
   PT20M    → "20 min"
@@ -96,6 +99,10 @@ const RECIPE_TOOL_SCHEMA = {
       description: "A short lowercase chapter name like 'entree', 'dessert', 'side'. Prefer the closest of: appetizer, side, sauce, soup, salad, entree, dessert. Use one or two words only.",
     },
     tags: {type: "array", items: {type: "string"}},
+    photoUrl: {
+      type: "string",
+      description: "URL to the main recipe photo. Extract from <meta property=\"og:image\">, <meta name=\"twitter:image\">, or the schema.org/Recipe `image` field. Use an absolute https URL.",
+    },
   },
   required: ["title", "ingredients", "instructions", "category", "tags"],
 } as const;
@@ -205,13 +212,51 @@ export const importFromUrl = onCall(
       );
     }
 
-    // Override source.url with the URL the caller actually submitted.
-    // The AI sometimes omits the source field or invents a slightly
-    // different URL (canonical vs share link, missing fragment, etc.) —
-    // we already know the right value, no need to trust the model.
-    const recipe = toolUse.input as Record<string, unknown>;
+    // Unescape JSON-encoded escape sequences (\n, \", \\, etc.) that
+    // sometimes survive the AI's extraction when it copies verbatim from
+    // a <script type="application/ld+json"> block. Without this pass,
+    // notes can render as literal "\n" backslash-n in the UI.
+    const recipe = deepUnescape(toolUse.input) as Record<string, unknown>;
+
+    // Override source.url with the URL the caller actually submitted —
+    // we know the right value, no need to trust the model.
     recipe.source = {type: "url", url};
 
     return {recipe};
   }
 );
+
+/**
+ * Recursively unescape JSON-style escape sequences in every string value.
+ * Uses a placeholder swap so literal backslashes survive intact while
+ * \n / \r / \t / \" / \' become their actual characters. Defensive against
+ * AI extractions that copy verbatim from JSON-LD payloads.
+ *
+ * @param {unknown} value Recipe shape from the AI (object | array | string)
+ * @return {unknown} Same shape with strings unescaped in place
+ */
+function deepUnescape(value: unknown): unknown {
+  if (typeof value === "string") {
+    // Two-char placeholder unlikely to appear in real text; replaceAll
+    // with a literal string sidesteps the no-control-regex lint rule.
+    const PH = "";
+    return value
+      .replaceAll("\\\\", PH)
+      .replaceAll("\\n", "\n")
+      .replaceAll("\\r", "")
+      .replaceAll("\\t", "\t")
+      .replaceAll("\\\"", "\"")
+      .replaceAll("\\'", "'")
+      .replaceAll(PH, "\\");
+  }
+  if (Array.isArray(value)) return value.map(deepUnescape);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+        k,
+        deepUnescape(v),
+      ]),
+    );
+  }
+  return value;
+}

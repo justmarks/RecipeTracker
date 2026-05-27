@@ -189,6 +189,24 @@ function applyMetadata(
       if (c) out.category = c;
       return true;
     }
+    case "photo":
+    case "photourl":
+    case "image": {
+      if (/^https?:\/\//i.test(value)) out.photoUrl = value;
+      return true;
+    }
+    case "rating": {
+      const n = Number.parseInt(value, 10);
+      if (n >= 1 && n <= 5) out.rating = n;
+      return true;
+    }
+    case "lastmade":
+    case "last made":
+    case "last made date": {
+      // Accept YYYY-MM-DD verbatim; let Zod reject anything else on save.
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) out.lastMadeDate = value;
+      return true;
+    }
     default:
       return false;
   }
