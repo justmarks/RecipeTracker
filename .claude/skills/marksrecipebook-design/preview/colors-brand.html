@@ -1,0 +1,44 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Colors" -->
+<link rel="stylesheet" href="_card.css">
+<style>
+  body { padding: 0; }
+  .stage { width: 700px; padding: 28px 32px; background: #FBF6EE; }
+  .group { margin-bottom: 18px; }
+  .group:last-child { margin-bottom: 0; }
+  .grp-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #7B6655; margin-bottom: 8px; }
+  .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .swatch {
+    aspect-ratio: 1.4 / 1;
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  .name { font-size: 11px; font-weight: 600; color: var(--fg); }
+  .hex { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--fg); opacity: 0.7; }
+</style>
+</head><body>
+<div class="stage">
+  <div class="group">
+    <div class="grp-label">Tomato — primary</div>
+    <div class="row">
+      <div class="swatch" style="background:#FBEDE8;--fg:#5E2218"><div class="name">tomato-50</div><div class="hex">#FBEDE8</div></div>
+      <div class="swatch" style="background:#F5D2C7;--fg:#5E2218"><div class="name">tomato-100</div><div class="hex">#F5D2C7</div></div>
+      <div class="swatch" style="background:#E89683;--fg:#5E2218"><div class="name">tomato-300</div><div class="hex">#E89683</div></div>
+      <div class="swatch" style="background:#C8553D;--fg:#FBF6EE"><div class="name">tomato-500</div><div class="hex">#C8553D</div></div>
+      <div class="swatch" style="background:#903525;--fg:#FBF6EE"><div class="name">tomato-700</div><div class="hex">#903525</div></div>
+    </div>
+  </div>
+  <div class="group">
+    <div class="grp-label">Olive — secondary</div>
+    <div class="row">
+      <div class="swatch" style="background:#F2F3EA;--fg:#38421F"><div class="name">olive-50</div><div class="hex">#F2F3EA</div></div>
+      <div class="swatch" style="background:#E1E5D0;--fg:#38421F"><div class="name">olive-100</div><div class="hex">#E1E5D0</div></div>
+      <div class="swatch" style="background:#B6C094;--fg:#38421F"><div class="name">olive-300</div><div class="hex">#B6C094</div></div>
+      <div class="swatch" style="background:#7C8F5B;--fg:#FBF6EE"><div class="name">olive-500</div><div class="hex">#7C8F5B</div></div>
+      <div class="swatch" style="background:#5A6A3F;--fg:#FBF6EE"><div class="name">olive-700</div><div class="hex">#5A6A3F</div></div>
+    </div>
+  </div>
+</div>
+</body></html>

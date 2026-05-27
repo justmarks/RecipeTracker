@@ -1,0 +1,53 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  .stage { width: 700px; padding: 28px 32px; display:flex; flex-direction:column; gap:18px; }
+  .row { display:flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .lbl { font-family:"JetBrains Mono",monospace; font-size:10px; color:#7B6655; width:96px; flex: 0 0 96px; }
+  .tag {
+    font-family: Manrope, sans-serif; font-size: 12px; font-weight: 500;
+    padding: 3px 8px; border-radius: 4px; line-height: 1.4;
+  }
+  .tag.veg { background:#E1E5D0; color:#5A6A3F; }
+  .tag.gf  { background:#FBEED0; color:#A87A22; }
+  .tag.dessert { background:#EBDDE3; color:#5A2C3D; }
+  .tag.urgent  { background:#FBEDE8; color:#903525; }
+  .tag.muted   { background:#F4ECDD; color:#7B6655; }
+  .chip {
+    font-family: Manrope, sans-serif; font-size:12px; font-weight:500;
+    padding: 4px 10px; border-radius: 999px;
+    background: #FBF6EE; border:1px solid #EADFC9; color:#463528;
+  }
+  .count {
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    color: #B0A08D; margin-left: 4px;
+  }
+</style>
+</head><body>
+<div class="stage">
+  <div class="row">
+    <span class="lbl">tags</span>
+    <span class="tag veg">vegetarian</span>
+    <span class="tag gf">gluten-free</span>
+    <span class="tag dessert">birthday</span>
+    <span class="tag urgent">spicy</span>
+    <span class="tag muted">comfort</span>
+  </div>
+  <div class="row">
+    <span class="lbl">chapters</span>
+    <span class="chip">Appetizer<span class="count">12</span></span>
+    <span class="chip">Soup<span class="count">7</span></span>
+    <span class="chip" style="background:#F5D2C7;border-color:#E89683;color:#903525">Entrée<span class="count" style="color:#B0432D">23</span></span>
+    <span class="chip">Side<span class="count">9</span></span>
+    <span class="chip">Dessert<span class="count">15</span></span>
+  </div>
+  <div class="row">
+    <span class="lbl">section</span>
+    <span style="font-family:Manrope,sans-serif;font-weight:600;font-size:13px;color:#463528">Appetizer</span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B0A08D">(12)</span>
+  </div>
+</div>
+</body></html>

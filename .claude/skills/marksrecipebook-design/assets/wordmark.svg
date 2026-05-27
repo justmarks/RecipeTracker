@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 120" fill="none">
+  
+  <text x="0" y="58" font-family="&#39;Newsreader&#39;, &#39;Georgia&#39;, serif" font-weight="600" font-size="44" fill="#2A1F18" letter-spacing="-1.2">Marks Family</text>
+  <text x="0" y="100" font-family="&#39;Newsreader&#39;, &#39;Georgia&#39;, serif" font-style="italic" font-weight="400" font-size="40" fill="#C8553D" letter-spacing="-0.5">Recipe Book</text>
+
+  
+  <g transform="translate(338 78)">
+    <path d="M 0 0 Q 24 -6 50 -2 Q 78 4 110 -4" stroke="#5A6A3F" stroke-width="1.6" fill="none" stroke-linecap="round"></path>
+    <ellipse cx="14" cy="-5" rx="7" ry="3" fill="#7C8F5B" transform="rotate(-12 14 -5)"></ellipse>
+    <ellipse cx="36" cy="-2" rx="7" ry="3" fill="#7C8F5B" transform="rotate(-4 36 -2)"></ellipse>
+    <ellipse cx="60" cy="0" rx="7" ry="3" fill="#7C8F5B" transform="rotate(4 60 0)"></ellipse>
+    <ellipse cx="84" cy="-2" rx="7" ry="3" fill="#7C8F5B" transform="rotate(-2 84 -2)"></ellipse>
+    <ellipse cx="104" cy="-5" rx="6" ry="2.6" fill="#7C8F5B" transform="rotate(-8 104 -5)"></ellipse>
+  </g>
+</svg>

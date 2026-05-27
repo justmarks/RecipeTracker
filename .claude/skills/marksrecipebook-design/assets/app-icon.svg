@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FDFAF4"></stop>
+      <stop offset="1" stop-color="#F4ECDD"></stop>
+    </linearGradient>
+  </defs>
+
+  
+  <rect width="512" height="512" rx="96" fill="url(#paper)"></rect>
+
+  
+  <rect x="116" y="92" width="280" height="328" rx="16" fill="#C8553D"></rect>
+  
+  <rect x="116" y="92" width="22" height="328" rx="4" fill="#903525"></rect>
+  
+  <rect x="148" y="110" width="232" height="292" rx="8" fill="#FBF6EE"></rect>
+
+  
+  <text x="264" y="298" font-family="&#39;Newsreader&#39;, &#39;Georgia&#39;, serif" font-weight="600" font-size="220" fill="#2A1F18" text-anchor="middle" letter-spacing="-8">M</text>
+
+  
+  <g transform="translate(330 130) rotate(25)">
+    <path d="M 0 0 Q 18 24 36 48 Q 50 70 56 96" stroke="#5A6A3F" stroke-width="3" fill="none" stroke-linecap="round"></path>
+    <ellipse cx="6" cy="14" rx="8" ry="4" fill="#7C8F5B" transform="rotate(-30 6 14)"></ellipse>
+    <ellipse cx="22" cy="36" rx="8" ry="4" fill="#7C8F5B" transform="rotate(-25 22 36)"></ellipse>
+    <ellipse cx="38" cy="62" rx="8" ry="4" fill="#7C8F5B" transform="rotate(-20 38 62)"></ellipse>
+    <ellipse cx="50" cy="86" rx="7" ry="3.5" fill="#7C8F5B" transform="rotate(-10 50 86)"></ellipse>
+  </g>
+</svg>

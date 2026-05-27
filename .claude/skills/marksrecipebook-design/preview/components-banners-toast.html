@@ -1,0 +1,37 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  .stage { width: 700px; padding: 28px 32px; display:flex; flex-direction:column; gap: 14px; }
+  .banner {
+    padding: 12px 14px; border-radius: 10px;
+    font-family: Manrope, sans-serif; font-size: 13px; line-height: 1.5;
+    display:flex; gap:10px; align-items:flex-start;
+  }
+  .icon { width:18px; height:18px; flex:0 0 18px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size: 11px; font-weight:700; margin-top:1px;}
+  .info { background:#FBEED0; color:#A87A22; }
+  .info .icon { background:#A87A22; color:#FBEED0; }
+  .success { background:#E1E5D0; color:#5A6A3F; }
+  .success .icon { background:#5A6A3F; color:#E1E5D0; }
+  .danger { background:#FBEDE8; color:#903525; }
+  .danger .icon { background:#903525; color:#FBEDE8; }
+  .toast {
+    background:#2A1F18; color:#FBF6EE;
+    padding: 12px 18px; border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(70, 53, 40, 0.20);
+    font-family: Manrope, sans-serif; font-size:14px;
+    display:inline-flex; align-items:center; gap:10px;
+    align-self: center;
+  }
+  .toast .ok { color:#B6C094; }
+</style>
+</head><body>
+<div class="stage">
+  <div class="banner info"><span class="icon">i</span><span>Review the parsed recipe below and save when you're happy with it.</span></div>
+  <div class="banner success"><span class="icon">✓</span><span>Recipe saved. Sharing with mom@example.com.</span></div>
+  <div class="banner danger"><span class="icon">!</span><span>iOS doesn't support sharing to apps. Copy the URL and paste it into the import screen.</span></div>
+  <div class="toast"><span class="ok">✓</span>Buttermilk pancakes saved</div>
+</div>
+</body></html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Brand" -->
+<link rel="stylesheet" href="_card.css">
+<style>
+  body { padding: 0; }
+  .stage {
+    width: 700px; padding: 32px;
+    display: flex; gap: 32px; align-items: center;
+    background: #FBF6EE;
+  }
+  .mark-block {
+    flex: 0 0 220px;
+    display: flex; align-items: center; justify-content: center;
+    aspect-ratio: 1 / 1;
+    background: #FFFFFF;
+    border-radius: 18px;
+    box-shadow: 0 4px 14px rgba(70, 53, 40, 0.10), 0 1px 2px rgba(70, 53, 40, 0.05);
+  }
+  .wordmark-block {
+    flex: 1;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .wordmark {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 600; font-size: 38px;
+    line-height: 1; letter-spacing: -1px; color: #2A1F18;
+  }
+  .wordmark em {
+    display: block; font-style: italic; font-weight: 400;
+    color: #C8553D; margin-top: 2px;
+  }
+  .strap {
+    font-family: "Manrope", sans-serif;
+    font-size: 13px; color: #463528; max-width: 360px;
+    line-height: 1.55;
+  }
+  .sprig { margin-top: 4px; }
+</style>
+</head><body>
+<div class="stage">
+  <div class="mark-block">
+    <img src="../assets/app-icon.svg" width="170" height="170" alt="App icon">
+  </div>
+  <div class="wordmark-block">
+    <div class="wordmark">Marks Family<em>Recipe Book</em></div>
+    <div class="strap">A personal recipe library for the Marks family. Warm, editorial, family-cookbook flavored. Tomato red, olive green, cream paper.</div>
+    <img class="sprig" src="../assets/sprig-divider.svg" width="240" height="32" alt="">
+  </div>
+</div>
+</body></html>

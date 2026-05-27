@@ -1,0 +1,60 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  .stage { width: 700px; padding: 28px 32px; display:flex; flex-direction:column; gap:18px; }
+  .row { display: flex; gap: 12px; align-items: center; }
+  .lbl { font-family:"JetBrains Mono",monospace; font-size:10px; color:#7B6655; width:80px; }
+  .btn {
+    font-family: Manrope, sans-serif; font-weight:600;
+    font-size: 14px; padding: 9px 16px; border-radius: 8px;
+    border: 0; cursor: pointer; line-height: 1;
+  }
+  .btn.primary { background: #C8553D; color: #FBF6EE; }
+  .btn.primary.hover { background: #B0432D; }
+  .btn.primary.press { background: #903525; }
+  .btn.secondary { background: transparent; border:1px solid #D9CAAE; color:#463528; }
+  .btn.secondary.hover { background: #F4ECDD; }
+  .btn.ghost { background:transparent; color:#C8553D; padding-left:8px; padding-right:8px; }
+  .btn.ghost.hover { color: #903525; text-decoration:underline; text-decoration-thickness:1.5px; text-underline-offset:3px; }
+  .btn.danger { background:transparent; color:#903525; border:1px solid transparent; }
+  .btn.danger:hover { text-decoration: underline; }
+  .btn:disabled, .btn.disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.sm { font-size:12px; padding: 6px 12px; }
+  .btn.lg { font-size:15px; padding: 12px 22px; }
+  .btn.icon { display:inline-flex; align-items:center; gap:6px; }
+  .btn.icon::before {
+    content: "+"; font-family: Newsreader, serif; font-weight:400; font-size:18px; line-height:0.6;
+  }
+</style>
+</head><body>
+<div class="stage">
+  <div class="row">
+    <span class="lbl">primary</span>
+    <button class="btn primary">Save recipe</button>
+    <button class="btn primary hover">Hover</button>
+    <button class="btn primary press">Press</button>
+    <button class="btn primary disabled">Saving…</button>
+  </div>
+  <div class="row">
+    <span class="lbl">secondary</span>
+    <button class="btn secondary">Chapters</button>
+    <button class="btn secondary hover">Hover</button>
+    <button class="btn ghost">Cancel</button>
+    <button class="btn ghost hover">Hover</button>
+  </div>
+  <div class="row">
+    <span class="lbl">sizes</span>
+    <button class="btn primary sm">Add</button>
+    <button class="btn primary">Save recipe</button>
+    <button class="btn primary lg icon">New recipe</button>
+  </div>
+  <div class="row">
+    <span class="lbl">destructive</span>
+    <button class="btn danger">Delete</button>
+    <button class="btn secondary" style="border-color:#F5D2C7;color:#903525">Delete chapter</button>
+  </div>
+</div>
+</body></html>

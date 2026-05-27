@@ -1,0 +1,35 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Colors" -->
+<link rel="stylesheet" href="_card.css">
+<style>
+  body { padding: 0; }
+  .stage { width: 700px; padding: 28px 32px; background: #FBF6EE; }
+  .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .swatch {
+    aspect-ratio: 1.4 / 1;
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    box-shadow: inset 0 0 0 1px rgba(70,53,40,0.04);
+  }
+  .name { font-size: 12px; font-weight: 600; color: var(--fg); }
+  .hex { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--fg); opacity: 0.7; }
+</style>
+</head><body>
+<div class="stage">
+  <div class="row">
+    <div class="swatch" style="background:#FDFAF4;--fg:#463528"><div class="name">paper-50</div><div class="hex">#FDFAF4</div></div>
+    <div class="swatch" style="background:#FBF6EE;--fg:#463528"><div class="name">paper-100</div><div class="hex">#FBF6EE</div></div>
+    <div class="swatch" style="background:#F4ECDD;--fg:#463528"><div class="name">paper-200</div><div class="hex">#F4ECDD</div></div>
+    <div class="swatch" style="background:#EADFC9;--fg:#463528"><div class="name">paper-300</div><div class="hex">#EADFC9</div></div>
+    <div class="swatch" style="background:#D9CAAE;--fg:#463528"><div class="name">paper-400</div><div class="hex">#D9CAAE</div></div>
+
+    <div class="swatch" style="background:#E5DCCC;--fg:#463528"><div class="name">ink-100</div><div class="hex">#E5DCCC</div></div>
+    <div class="swatch" style="background:#B0A08D;--fg:#FBF6EE"><div class="name">ink-300</div><div class="hex">#B0A08D</div></div>
+    <div class="swatch" style="background:#7B6655;--fg:#FBF6EE"><div class="name">ink-500</div><div class="hex">#7B6655</div></div>
+    <div class="swatch" style="background:#463528;--fg:#FBF6EE"><div class="name">ink-700</div><div class="hex">#463528</div></div>
+    <div class="swatch" style="background:#2A1F18;--fg:#FBF6EE"><div class="name">ink-900</div><div class="hex">#2A1F18</div></div>
+  </div>
+</div>
+</body></html>

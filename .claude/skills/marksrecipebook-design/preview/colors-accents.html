@@ -1,0 +1,35 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Colors" -->
+<link rel="stylesheet" href="_card.css">
+<style>
+  body { padding: 0; }
+  .stage { width: 700px; padding: 28px 32px; background: #FBF6EE; }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .swatch { border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; aspect-ratio: 1.6/1; justify-content: flex-end; }
+  .name { font-size: 12px; font-weight: 600; color: var(--fg); }
+  .hex { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--fg); opacity: 0.75; }
+  .grp-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #7B6655; margin-bottom: 8px; }
+  .group { margin-bottom: 14px; }
+  .group:last-child { margin: 0; }
+</style>
+</head><body>
+<div class="stage">
+  <div class="group">
+    <div class="grp-label">Saffron — used sparingly</div>
+    <div class="row">
+      <div class="swatch" style="background:#FBEED0;--fg:#A87A22"><div class="name">saffron-100</div><div class="hex">#FBEED0</div></div>
+      <div class="swatch" style="background:#ECCA7A;--fg:#A87A22"><div class="name">saffron-300</div><div class="hex">#ECCA7A</div></div>
+      <div class="swatch" style="background:#D9A441;--fg:#FBF6EE"><div class="name">saffron-500</div><div class="hex">#D9A441</div></div>
+    </div>
+  </div>
+  <div class="group">
+    <div class="grp-label">Plum — quiet accent</div>
+    <div class="row">
+      <div class="swatch" style="background:#EBDDE3;--fg:#5A2C3D"><div class="name">plum-100</div><div class="hex">#EBDDE3</div></div>
+      <div class="swatch" style="background:#804158;--fg:#FBF6EE"><div class="name">plum-500</div><div class="hex">#804158</div></div>
+      <div class="swatch" style="background:#5A2C3D;--fg:#FBF6EE"><div class="name">plum-700</div><div class="hex">#5A2C3D</div></div>
+    </div>
+  </div>
+</div>
+</body></html>

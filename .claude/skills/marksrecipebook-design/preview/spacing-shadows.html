@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Spacing" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  .stage { width: 700px; padding: 36px 32px; display:flex; gap:24px; align-items:center; justify-content:space-around; }
+  .item { display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .box { width: 100px; height: 70px; background: #FFFFFF; border-radius: 12px; }
+  .name { font-family: Manrope, sans-serif; font-weight: 600; font-size: 12px; color: #463528; }
+  .val { font-family: "JetBrains Mono", monospace; font-size: 10px; color: #7B6655; text-align:center; }
+  .xs { box-shadow: 0 1px 2px rgba(70, 53, 40, 0.06); }
+  .sm { box-shadow: 0 2px 6px rgba(70, 53, 40, 0.08); }
+  .md { box-shadow: 0 4px 14px rgba(70, 53, 40, 0.10), 0 1px 2px rgba(70, 53, 40, 0.05); }
+  .lg { box-shadow: 0 12px 30px rgba(70, 53, 40, 0.14), 0 2px 6px rgba(70, 53, 40, 0.06); }
+  .focus { box-shadow: 0 0 0 3px rgba(200, 85, 61, 0.25); border: 1px solid #C8553D; }
+</style>
+</head><body>
+<div class="stage">
+  <div class="item"><div class="box xs"></div><div class="name">xs</div><div class="val">subtle</div></div>
+  <div class="item"><div class="box sm"></div><div class="name">sm</div><div class="val">cards</div></div>
+  <div class="item"><div class="box md"></div><div class="name">md</div><div class="val">popover</div></div>
+  <div class="item"><div class="box lg"></div><div class="name">lg</div><div class="val">modal</div></div>
+  <div class="item"><div class="box focus"></div><div class="name">focus</div><div class="val">tomato halo</div></div>
+</div>
+</body></html>

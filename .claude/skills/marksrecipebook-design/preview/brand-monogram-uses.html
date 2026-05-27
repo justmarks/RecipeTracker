@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Brand" -->
+<link rel="stylesheet" href="_card.css">
+<style>
+  body { padding: 0; }
+  .stage { width: 700px; padding: 28px 32px; background: #FBF6EE; }
+  .row { display: flex; gap: 24px; align-items: center; }
+  .swatch {
+    width: 110px; height: 110px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(70, 53, 40, 0.08);
+  }
+  .swatch.dark { background: #2A1F18; }
+  .swatch.tomato { background: #C8553D; }
+  .swatch.olive { background: #7C8F5B; }
+  .swatch.cream { background: #FBF6EE; border: 1px solid #EADFC9; }
+  .swatch img { width: 76px; height: 76px; }
+  .swatch.dark img, .swatch.tomato img, .swatch.olive img { filter: brightness(0) invert(1); }
+  .stack { display: flex; flex-direction: column; gap: 4px; align-items: center; margin-top: 8px;}
+  .col { display: flex; flex-direction: column; align-items: center; }
+  .cap { font-size: 11px; color: #7B6655; font-family: "JetBrains Mono", monospace; }
+</style>
+</head><body>
+<div class="stage">
+  <div class="row">
+    <div class="col">
+      <div class="swatch cream"><img src="../assets/monogram.svg"></div>
+      <div class="cap" style="margin-top:8px">on cream</div>
+    </div>
+    <div class="col">
+      <div class="swatch"><img src="../assets/monogram.svg"></div>
+      <div class="cap" style="margin-top:8px">on white</div>
+    </div>
+    <div class="col">
+      <div class="swatch dark"><img src="../assets/monogram.svg"></div>
+      <div class="cap" style="margin-top:8px">on ink</div>
+    </div>
+    <div class="col">
+      <div class="swatch tomato"><img src="../assets/monogram.svg"></div>
+      <div class="cap" style="margin-top:8px">on tomato</div>
+    </div>
+    <div class="col">
+      <div class="swatch olive"><img src="../assets/monogram.svg"></div>
+      <div class="cap" style="margin-top:8px">on olive</div>
+    </div>
+  </div>
+</div>
+</body></html>
