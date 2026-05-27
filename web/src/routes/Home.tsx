@@ -11,6 +11,7 @@ import type { DocumentData, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
+import { Eyebrow, Icon, SprigDivider, Tag, tagToneFor } from "../components/ui";
 
 type RecipeSummary = {
   id: string;
@@ -18,16 +19,23 @@ type RecipeSummary = {
   category: string;
   tags: string[];
   searchTokens: string[];
+  totalTime?: string;
   createdAt?: Timestamp;
 };
 
 type SortOrder = "alpha" | "recent";
 
 /**
- * Recipe list — the index route. The sidebar owns brand/nav/actions
- * now; this page is just the content. When `?chapter=<name>` is
- * present in the URL, the list scopes to that single chapter and the
- * page header swaps to a "Browsing X · Show all" affordance.
+ * Recipe list — the cookbook index. The sidebar owns brand + actions;
+ * this page is content only. When `?chapter=<name>` is present the
+ * list scopes to that chapter and the page title swaps to it.
+ *
+ * Layout follows the kit's RecipeListView:
+ *   COOKBOOK eyebrow
+ *   38px Newsreader title  ·  optional "Show all" link
+ *   Search field (icon embedded) + sort selector
+ *   Chapter sections — bottom-bordered Newsreader h2 + count
+ *   Recipe rows — Newsreader title + mono time + tags + chevron
  */
 export function Home() {
   const { user } = useAuth();
@@ -58,20 +66,16 @@ export function Home() {
               category: data.category,
               tags: data.tags ?? [],
               searchTokens: data.searchTokens ?? [],
+              totalTime: data.totalTime as string | undefined,
               createdAt: data.createdAt as Timestamp | undefined,
             };
           }),
         );
       },
-      (err) => {
-        console.error("Recipe list:", err);
-      },
+      (err) => console.error("Recipe list:", err),
     );
   }, [user]);
 
-  // Tokenize the search query the same way recipe writes do — lowercase,
-  // drop punctuation, require at least 2 chars per token. Keeps the
-  // matching consistent with what's stored in searchTokens.
   const queryTokens = useMemo(
     () =>
       search
@@ -82,9 +86,7 @@ export function Home() {
     [search],
   );
 
-  // Filter pipeline:
-  //   1. URL `?chapter=` → scope to that single chapter (case-insensitive)
-  //   2. Search tokens (AND, prefix-match) over searchTokens + tags + category
+  // 1. URL chapter scope → 2. search filter (AND, prefix on tokens+tags+category)
   const filtered = useMemo(() => {
     let arr = recipes;
     if (activeChapter) {
@@ -117,8 +119,8 @@ export function Home() {
     return arr;
   }, [filtered, sortOrder]);
 
-  // Group by chapter — only relevant when no chapter is selected
-  // (when one is selected, the filter is already scoped to one bucket).
+  // Group by chapter for the unfiltered TOC view. When a single chapter
+  // is active, sections collapse — we render one flat list instead.
   const byChapter = useMemo(() => {
     const groups = new Map<string, RecipeSummary[]>();
     for (const c of chapters) groups.set(c.toLowerCase(), []);
@@ -135,39 +137,48 @@ export function Home() {
   const matchCount = filtered.length;
 
   return (
-    <main className="mx-auto max-w-3xl p-6 lg:p-10">
-      <header className="flex items-baseline justify-between gap-4">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-900 capitalize m-0">
-          {activeChapter || "All recipes"}
-        </h1>
-        {activeChapter && (
-          <Link
-            to="/"
-            className="text-sm text-tomato-600 hover:text-tomato-700 no-underline whitespace-nowrap"
-          >
-            Show all
-          </Link>
-        )}
+    <div className="mx-auto max-w-[880px] px-6 py-8 lg:px-10 lg:py-10">
+      <header className="mb-6">
+        <Eyebrow>Cookbook</Eyebrow>
+        <div className="mt-1 flex items-end justify-between gap-5">
+          <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.1] tracking-[-0.015em] text-ink-900 m-0 capitalize truncate min-w-0 flex-1">
+            {activeChapter || "All recipes"}
+          </h1>
+          {activeChapter && (
+            <Link
+              to="/"
+              className="text-sm text-tomato-600 hover:text-tomato-700 no-underline whitespace-nowrap shrink-0"
+            >
+              Show all
+            </Link>
+          )}
+        </div>
       </header>
 
       {recipes.length > 0 && (
-        <div className="mt-6 flex items-start gap-2">
+        <div className="mb-8 flex items-start gap-3">
           <div className="relative flex-1">
+            <span
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none"
+              aria-hidden="true"
+            >
+              <Icon name="search" size={16} />
+            </span>
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by title or ingredient…"
-              className="w-full font-sans text-sm text-ink-900 bg-white border border-paper-400 rounded-md px-3 py-2.5 pr-10 outline-none transition-colors duration-100 focus:border-tomato-500 focus:shadow-[var(--shadow-focus)] placeholder:text-ink-300"
+              className="w-full font-sans text-sm text-ink-900 bg-white border border-paper-400 rounded-md pl-10 pr-9 py-2.5 outline-none transition-colors duration-100 focus:border-tomato-500 focus:shadow-[var(--shadow-focus)] placeholder:text-ink-300"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-700"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-900 p-1"
                 aria-label="Clear search"
               >
-                ✕
+                <Icon name="x" size={14} />
               </button>
             )}
             {searching && (
@@ -179,7 +190,7 @@ export function Home() {
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-            className="font-sans text-sm text-ink-900 bg-white border border-paper-400 rounded-md px-3 py-2.5 cursor-pointer transition-colors duration-100 focus:border-tomato-500 focus:shadow-[var(--shadow-focus)] focus:outline-none"
+            className="font-sans text-sm text-ink-700 bg-white border border-paper-400 rounded-md px-3 py-2.5 cursor-pointer transition-colors duration-100 focus:border-tomato-500 focus:shadow-[var(--shadow-focus)] focus:outline-none shrink-0"
             aria-label="Sort order"
           >
             <option value="alpha">A → Z</option>
@@ -189,27 +200,20 @@ export function Home() {
       )}
 
       {recipes.length === 0 ? (
-        <p className="mt-6 text-sm text-ink-500">
-          No recipes yet. Create one to get started.
-        </p>
+        <EmptyState />
       ) : searching && matchCount === 0 ? (
-        <p className="mt-8 text-sm text-ink-500">
+        <p className="font-sans text-sm text-ink-700 text-center py-12">
           No recipes match &ldquo;{search}&rdquo;.
         </p>
       ) : activeChapter ? (
-        // Single-chapter view: just one flat list, no section headers.
         <RecipeList recipes={sorted} />
       ) : (
-        <div className="mt-8 space-y-8">
+        <div className="flex flex-col gap-9">
           {chapters.map((chapter) => {
             const items = byChapter.groups.get(chapter.toLowerCase()) ?? [];
             if (items.length === 0) return null;
             return (
-              <ChapterSection
-                key={chapter}
-                name={chapter}
-                recipes={items}
-              />
+              <ChapterSection key={chapter} name={chapter} recipes={items} />
             );
           })}
           {byChapter.orphans.length > 0 && (
@@ -217,7 +221,21 @@ export function Home() {
           )}
         </div>
       )}
-    </main>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="text-center py-16">
+      <SprigDivider className="opacity-50 mb-4" />
+      <p className="font-display italic text-[22px] text-ink-700 m-0">
+        No recipes yet.
+      </p>
+      <p className="font-sans text-sm text-ink-500 mt-2">
+        Create one to get started.
+      </p>
+    </div>
   );
 }
 
@@ -233,20 +251,22 @@ function ChapterSection({
   return (
     <section>
       <h2
-        className={`flex items-baseline gap-2 border-b border-paper-300 pb-1.5 font-display text-xl ${
+        className={`flex items-baseline gap-2.5 border-b border-paper-300 pb-2 font-display text-[22px] font-medium m-0 mb-3 ${
           italic ? "italic text-ink-500" : "capitalize text-ink-900"
         }`}
       >
-        <Link
-          to={italic ? "/" : `/?chapter=${encodeURIComponent(name)}`}
-          className={`no-underline ${
-            italic ? "text-ink-500" : "text-ink-900 hover:text-tomato-600"
-          }`}
-        >
-          {name}
-        </Link>
+        {italic ? (
+          <span>{name}</span>
+        ) : (
+          <Link
+            to={`/?chapter=${encodeURIComponent(name)}`}
+            className="no-underline text-ink-900 hover:text-tomato-600 transition-colors duration-100"
+          >
+            {name}
+          </Link>
+        )}
         <span className="font-mono text-xs font-normal text-ink-300 [font-feature-settings:'tnum']">
-          ({recipes.length})
+          {recipes.length}
         </span>
       </h2>
       <RecipeList recipes={recipes} />
@@ -256,24 +276,58 @@ function ChapterSection({
 
 function RecipeList({ recipes }: { recipes: RecipeSummary[] }) {
   return (
-    <ul className="mt-2 divide-y divide-paper-300">
+    <div className="flex flex-col">
       {recipes.map((r) => (
-        <li key={r.id}>
-          <Link
-            to={`/recipes/${r.id}`}
-            className="block py-2.5 hover:bg-paper-200 no-underline rounded-md px-2 -mx-2 transition-colors duration-100"
-          >
-            <div className="font-display text-base text-ink-900">
-              {r.title}
-            </div>
-            {r.tags.length > 0 && (
-              <div className="text-xs text-ink-500 mt-0.5">
-                {r.tags.join(" · ")}
-              </div>
-            )}
-          </Link>
-        </li>
+        <RecipeRow key={r.id} recipe={r} />
       ))}
-    </ul>
+    </div>
+  );
+}
+
+function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
+  const hasMeta = recipe.totalTime || recipe.tags.length > 0;
+  return (
+    <Link
+      to={`/recipes/${recipe.id}`}
+      className={[
+        "group flex items-center justify-between gap-4 w-full text-left no-underline",
+        "border-b border-[var(--border-faint)] last:border-b-0",
+        "px-3 py-3.5",
+        "hover:bg-paper-200 hover:rounded-md hover:border-transparent",
+        "transition-colors duration-100",
+      ].join(" ")}
+    >
+      <div className="min-w-0 flex-1">
+        <div
+          className={[
+            "font-display font-medium text-[18px] text-ink-900",
+            "tracking-[-0.005em]",
+            hasMeta ? "mb-1" : "",
+          ].join(" ")}
+        >
+          {recipe.title}
+        </div>
+        {hasMeta && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {recipe.totalTime && (
+              <span className="font-mono text-[11px] text-ink-500 [font-feature-settings:'tnum']">
+                {recipe.totalTime}
+              </span>
+            )}
+            {recipe.totalTime && recipe.tags.length > 0 && (
+              <span className="text-[11px] text-ink-300">·</span>
+            )}
+            {recipe.tags.map((t) => (
+              <Tag key={t} tone={tagToneFor(t)}>
+                {t}
+              </Tag>
+            ))}
+          </div>
+        )}
+      </div>
+      <span className="text-ink-300 shrink-0 group-hover:text-ink-500 transition-colors duration-100">
+        <Icon name="chevron-right" size={18} />
+      </span>
+    </Link>
   );
 }
