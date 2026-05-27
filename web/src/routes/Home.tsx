@@ -11,7 +11,7 @@ import type { DocumentData, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
-import { Eyebrow, Icon, SprigDivider, Tag, tagToneFor } from "../components/ui";
+import { Button, Eyebrow, Icon, SprigDivider, Tag, tagToneFor } from "../components/ui";
 
 type RecipeSummary = {
   id: string;
@@ -140,19 +140,39 @@ export function Home() {
     <div className="mx-auto max-w-[880px] px-6 py-8 lg:px-10 lg:py-10">
       <header className="mb-6">
         <Eyebrow>Cookbook</Eyebrow>
-        <div className="mt-1 flex items-end justify-between gap-5">
-          <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.1] tracking-[-0.015em] text-ink-900 m-0 capitalize truncate min-w-0 flex-1">
+        <div className="mt-1 flex items-end justify-between gap-3 sm:gap-5">
+          <h1 className="font-display text-[28px] sm:text-[38px] font-medium leading-[1.1] tracking-[-0.015em] text-ink-900 m-0 capitalize truncate min-w-0 flex-1">
             {activeChapter || "All recipes"}
           </h1>
-          {activeChapter && (
-            <Link
-              to="/"
-              className="text-sm text-tomato-600 hover:text-tomato-700 no-underline whitespace-nowrap shrink-0"
-            >
-              Show all
+          <div className="flex items-center gap-2 shrink-0">
+            {activeChapter && (
+              <Link
+                to="/"
+                className="hidden sm:inline text-sm text-tomato-600 hover:text-tomato-700 no-underline whitespace-nowrap mr-1"
+              >
+                Show all
+              </Link>
+            )}
+            <Link to="/import" className="no-underline" aria-label="Import a recipe">
+              <Button variant="secondary" icon="sparkles" size="sm">
+                <span className="hidden sm:inline">Import</span>
+              </Button>
             </Link>
-          )}
+            <Link to="/recipes/new" className="no-underline" aria-label="New recipe">
+              <Button variant="primary" icon="plus" size="sm">
+                <span className="hidden sm:inline">New recipe</span>
+              </Button>
+            </Link>
+          </div>
         </div>
+        {activeChapter && (
+          <Link
+            to="/"
+            className="sm:hidden mt-2 inline-block text-sm text-tomato-600 hover:text-tomato-700 no-underline"
+          >
+            ← Show all chapters
+          </Link>
+        )}
       </header>
 
       {recipes.length > 0 && (

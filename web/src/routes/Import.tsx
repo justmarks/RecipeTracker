@@ -9,14 +9,9 @@ import { buildSearchTokens } from "shared";
 import type { RecipeInput } from "shared";
 import { parseMarkdown } from "../lib/importMarkdown";
 import { RecipeForm } from "../components/RecipeForm";
-import {
-  Button,
-  Eyebrow,
-  Field,
-  Icon,
-  Input,
-  Textarea,
-} from "../components/ui";
+import { Button, Eyebrow, Icon, Input, Textarea } from "../components/ui";
+import type { IconName } from "../components/ui";
+import type { ReactNode } from "react";
 
 type ImportFromUrlResponse = { recipe: Partial<RecipeInput> };
 
@@ -39,11 +34,14 @@ Yield: 4 servings
 2. Bake`;
 
 /**
- * Import view — the kit's two-path card layout. Top card is the
- * AI-from-URL fetcher; a faint divider separates it from the
- * markdown paste / upload fallback. Share-target landings with a
- * URL hide the markdown affordance to keep the user on the
- * single-task path.
+ * Import view — two co-equal ImportCards stacked vertically, matching the
+ * kit. Top card: AI-from-URL fetcher. Bottom card: markdown paste with an
+ * upload affordance. Share-target landings with a URL hide the markdown
+ * card to keep the user on the single-task path.
+ *
+ * Each card follows the same shape: tomato-tinted eyebrow with small icon,
+ * full-width input, hint paragraph below, then the primary action button
+ * sits at the bottom-left (not inline with the input).
  */
 export function Import() {
   const { user, loading } = useAuth();
@@ -177,105 +175,134 @@ export function Import() {
             Import a recipe
           </h1>
           <p className="font-sans text-sm text-ink-700 m-0 mb-7">
-            Paste a URL and Claude will extract the recipe. You&apos;ll
-            review before saving.
+            Two ways to bring a recipe in. Either works — review the result
+            before saving.
           </p>
 
-          <section className="bg-white rounded-lg px-6 py-5 shadow-sm border border-[var(--border-faint)] mb-5">
-            <Eyebrow className="mb-3 flex items-center gap-1.5">
-              <span className="text-tomato-500">
-                <Icon name="sparkles" size={11} />
-              </span>
-              Extract w/AI from URL
-            </Eyebrow>
-            <div className="flex gap-2">
+          <div className="flex flex-col gap-4">
+            <ImportCard
+              eyebrowIcon="sparkles"
+              eyebrow="Extract w/AI from URL"
+              hint="We fetch the page and ask Claude to pull the recipe out."
+              error={urlError}
+              action={
+                <Button
+                  type="button"
+                  variant="primary"
+                  icon="sparkles"
+                  onClick={handleFetchUrl}
+                  disabled={fetchingUrl || !urlInput.trim()}
+                >
+                  {fetchingUrl ? "Fetching…" : "Fetch with AI"}
+                </Button>
+              }
+            >
               <Input
                 type="url"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 placeholder="https://cooking.nytimes.com/…"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && urlInput.trim() && !fetchingUrl) {
+                    e.preventDefault();
+                    handleFetchUrl();
+                  }
+                }}
               />
-              <Button
-                type="button"
-                variant="primary"
-                onClick={handleFetchUrl}
-                disabled={fetchingUrl || !urlInput.trim()}
+            </ImportCard>
+
+            {!showOnlyUrlFetcher && (
+              <ImportCard
+                eyebrowIcon="file-text"
+                eyebrow="From markdown"
+                hint="Paste a markdown recipe, or upload a .md file. Use ## Ingredients / ## Instructions / ## Notes sections."
+                error={parseError}
+                action={
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      icon="check"
+                      onClick={handleParseMarkdown}
+                      disabled={!markdownText.trim()}
+                    >
+                      Parse markdown
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      icon="upload"
+                      onClick={() => mdFileRef.current?.click()}
+                    >
+                      Upload .md file
+                    </Button>
+                    <input
+                      ref={mdFileRef}
+                      type="file"
+                      accept=".md,.markdown,text/markdown"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                        if (mdFileRef.current) mdFileRef.current.value = "";
+                      }}
+                      className="hidden"
+                    />
+                  </div>
+                }
               >
-                {fetchingUrl ? "Fetching…" : "Fetch"}
-              </Button>
-            </div>
-            {urlError && (
-              <p className="mt-2 font-sans text-[13px] text-tomato-700">
-                {urlError}
-              </p>
+                <Textarea
+                  mono
+                  rows={8}
+                  value={markdownText}
+                  onChange={(e) => setMarkdownText(e.target.value)}
+                  placeholder={MARKDOWN_PLACEHOLDER}
+                />
+              </ImportCard>
             )}
-            <p className="mt-2 font-sans text-xs text-ink-500">
-              We will extract the recipe using Claude and allow you to review the results before saving.
-            </p>
-          </section>
-
-          {!showOnlyUrlFetcher && (
-            <>
-              <div className="my-6 flex items-center gap-3 text-ink-300 font-sans text-[11px] uppercase tracking-[0.12em]">
-                <div className="flex-1 h-px bg-paper-300" />
-                <span>or paste markdown</span>
-                <div className="flex-1 h-px bg-paper-300" />
-              </div>
-
-              <section>
-                <Field
-                  label="Markdown"
-                  hint="One recipe per file. Use ## Ingredients / ## Instructions / ## Notes sections."
-                >
-                  <Textarea
-                    mono
-                    rows={10}
-                    value={markdownText}
-                    onChange={(e) => setMarkdownText(e.target.value)}
-                    placeholder={MARKDOWN_PLACEHOLDER}
-                  />
-                </Field>
-                {parseError && (
-                  <p className="mt-2 font-sans text-[13px] text-tomato-700">
-                    {parseError}
-                  </p>
-                )}
-                <div className="mt-3 flex items-center gap-4">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    icon="file-text"
-                    onClick={handleParseMarkdown}
-                    disabled={!markdownText.trim()}
-                  >
-                    Parse markdown
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    icon="upload"
-                    onClick={() => mdFileRef.current?.click()}
-                  >
-                    Upload .md file
-                  </Button>
-                  <input
-                    ref={mdFileRef}
-                    type="file"
-                    accept=".md,.markdown,text/markdown"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload(file);
-                      // Allow re-selecting the same file.
-                      if (mdFileRef.current) mdFileRef.current.value = "";
-                    }}
-                    className="hidden"
-                  />
-                </div>
-              </section>
-            </>
-          )}
+          </div>
         </>
       )}
     </div>
+  );
+}
+
+interface ImportCardProps {
+  eyebrowIcon: IconName;
+  eyebrow: string;
+  hint: string;
+  error?: string | null;
+  action: ReactNode;
+  children: ReactNode;
+}
+
+/**
+ * Card shell shared by both import paths. Layout follows the kit:
+ * eyebrow with small tomato icon on top, the input/textarea below,
+ * an inline error if any, a faint hint, then the primary action
+ * sits at the bottom-left — never inline with the input field.
+ */
+function ImportCard({
+  eyebrowIcon,
+  eyebrow,
+  hint,
+  error,
+  action,
+  children,
+}: ImportCardProps) {
+  return (
+    <section className="bg-white rounded-lg px-6 py-5 shadow-sm border border-[var(--border-faint)] flex flex-col gap-3">
+      <Eyebrow className="flex items-center gap-1.5 text-tomato-600">
+        <Icon name={eyebrowIcon} size={12} />
+        {eyebrow}
+      </Eyebrow>
+      {children}
+      {error && (
+        <p className="font-sans text-[13px] text-tomato-700 m-0">{error}</p>
+      )}
+      <p className="font-sans text-xs text-ink-500 m-0 leading-[1.5]">
+        {hint}
+      </p>
+      <div className="mt-1">{action}</div>
+    </section>
   );
 }

@@ -47,8 +47,11 @@ export default defineConfig({
         display: "standalone",
         display_override: ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
         orientation: "portrait-primary",
-        theme_color: "#0f172a",
-        background_color: "#ffffff",
+        // Design-system colors: tomato-500 for theme (browser chrome,
+        // splash icon tint) and paper-100 for the splash background so the
+        // initial paint matches the body color before React mounts.
+        theme_color: "#C8553D",
+        background_color: "#FBF6EE",
         categories: ["food", "lifestyle"],
         launch_handler: { client_mode: "navigate-existing" },
         icons: [
