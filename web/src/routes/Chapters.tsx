@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate } from "react-router";
+import { Navigate, useNavigate } from "react-router";
 import { useAuth } from "../lib/useAuth";
 import {
   addChapter,
@@ -8,10 +8,19 @@ import {
   renameChapter,
   useChapters,
 } from "../lib/categories";
+import { Button, Field, Icon, Input } from "../components/ui";
 
+/**
+ * Chapters management — list as a single card with paper-faint
+ * dividers between rows. Each row carries reorder arrows
+ * (chevron-up / chevron-down icons), the capitalized chapter name,
+ * and ghost Rename + danger Delete actions. Add-a-chapter form sits
+ * below the card.
+ */
 export function Chapters() {
   const { user, loading: authLoading } = useAuth();
   const { chapters, loading } = useChapters(user?.uid);
+  const navigate = useNavigate();
 
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
@@ -71,96 +80,116 @@ export function Chapters() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-6">
-      <Link to="/" className="text-sm text-blue-600 hover:underline">
-        ← Back
-      </Link>
-      <h1 className="mt-2 text-3xl font-semibold">Chapters</h1>
-      <p className="mt-1 text-sm text-slate-500">
+    <div className="mx-auto max-w-[640px] px-6 py-8 lg:px-10 lg:py-10">
+      <Button
+        variant="ghost"
+        icon="arrow-left"
+        onClick={() => navigate("/")}
+        className="px-0 mb-4"
+      >
+        Back
+      </Button>
+
+      <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-2">
+        Chapters
+      </h1>
+      <p className="font-sans text-sm text-ink-700 m-0 mb-6 max-w-[440px]">
         Chapters group your recipes like sections in a cookbook. Rename or
         reorder freely — recipes in renamed chapters move with them.
       </p>
 
       {loading ? (
-        <p className="mt-6 text-slate-500">Loading…</p>
+        <p className="font-sans text-sm text-ink-500">Loading…</p>
+      ) : chapters.length === 0 ? (
+        <p className="font-sans text-sm text-ink-500">
+          No chapters yet. Add one below to get started.
+        </p>
       ) : (
-        <ul className="mt-6 divide-y divide-slate-200 rounded border border-slate-200">
+        <ul className="list-none m-0 p-0 bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden">
           {chapters.map((chapter, idx) => {
             const isRenaming = renamingChapter === chapter;
             const isBusy = busyChapter === chapter;
+            const isLast = idx === chapters.length - 1;
             return (
-              <li key={chapter} className="flex items-center gap-2 p-3">
-                <div className="flex flex-col">
-                  <button
-                    type="button"
-                    onClick={() => handleMove(chapter, "up")}
-                    disabled={idx === 0 || isBusy}
-                    className="text-xs text-slate-400 hover:text-slate-700 disabled:opacity-30"
-                    aria-label={`Move ${chapter} up`}
-                  >
-                    ▲
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMove(chapter, "down")}
-                    disabled={idx === chapters.length - 1 || isBusy}
-                    className="text-xs text-slate-400 hover:text-slate-700 disabled:opacity-30"
-                    aria-label={`Move ${chapter} down`}
-                  >
-                    ▼
-                  </button>
-                </div>
+              <li
+                key={chapter}
+                className={[
+                  "flex items-center gap-3 px-4 py-3.5",
+                  isLast ? "" : "border-b border-[var(--border-faint)]",
+                ].join(" ")}
+              >
+                <ReorderControls
+                  upDisabled={idx === 0 || isBusy}
+                  downDisabled={idx === chapters.length - 1 || isBusy}
+                  onUp={() => handleMove(chapter, "up")}
+                  onDown={() => handleMove(chapter, "down")}
+                  ariaName={chapter}
+                />
 
                 {isRenaming ? (
                   <div className="flex flex-1 items-center gap-2">
-                    <input
-                      type="text"
+                    <Input
                       value={renameValue}
                       onChange={(e) => setRenameValue(e.target.value)}
-                      className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm"
                       autoFocus
+                      className="flex-1"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleRename(chapter);
+                        } else if (e.key === "Escape") {
+                          setRenamingChapter(null);
+                          setRenameValue("");
+                        }
+                      }}
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="primary"
+                      size="sm"
                       onClick={() => handleRename(chapter)}
                       disabled={isBusy || !renameValue.trim()}
-                      className="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
                     >
                       {isBusy ? "Saving…" : "Save"}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => {
                         setRenamingChapter(null);
                         setRenameValue("");
                       }}
-                      className="text-xs text-slate-500 hover:underline"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <>
-                    <span className="flex-1 capitalize">{chapter}</span>
-                    <button
+                    <span className="flex-1 font-sans font-medium text-ink-900 capitalize">
+                      {chapter}
+                    </span>
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => {
                         setRenamingChapter(chapter);
                         setRenameValue(chapter);
                       }}
                       disabled={isBusy}
-                      className="text-xs text-blue-600 hover:underline disabled:opacity-50"
                     >
                       Rename
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="danger"
+                      size="sm"
                       onClick={() => handleDelete(chapter)}
                       disabled={isBusy}
-                      className="text-xs text-red-600 hover:underline disabled:opacity-50"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </>
                 )}
               </li>
@@ -170,27 +199,78 @@ export function Chapters() {
       )}
 
       <section className="mt-6">
-        <h2 className="text-sm font-semibold text-slate-700">Add a chapter</h2>
-        <div className="mt-2 flex gap-2">
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="e.g. dessert"
-            className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
-          />
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={adding || !newName.trim()}
-            className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {adding ? "Adding…" : "Add"}
-          </button>
-        </div>
+        <Field label="Add a chapter">
+          <div className="flex gap-2">
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="e.g. brunch"
+              className="flex-1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAdd();
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleAdd}
+              disabled={adding || !newName.trim()}
+            >
+              {adding ? "Adding…" : "Add"}
+            </Button>
+          </div>
+        </Field>
       </section>
 
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-    </main>
+      {error && (
+        <div className="mt-4 rounded-md px-4 py-3 text-sm bg-tomato-50 text-tomato-700 border border-tomato-100">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ReorderControlsProps {
+  upDisabled: boolean;
+  downDisabled: boolean;
+  onUp: () => void;
+  onDown: () => void;
+  ariaName: string;
+}
+
+function ReorderControls({
+  upDisabled,
+  downDisabled,
+  onUp,
+  onDown,
+  ariaName,
+}: ReorderControlsProps) {
+  const btn =
+    "p-0.5 text-ink-500 hover:text-ink-900 disabled:opacity-30 disabled:cursor-default transition-colors duration-100";
+  return (
+    <div className="flex flex-col items-center -my-1">
+      <button
+        type="button"
+        onClick={onUp}
+        disabled={upDisabled}
+        className={btn}
+        aria-label={`Move ${ariaName} up`}
+      >
+        <Icon name="chevron-up" size={14} />
+      </button>
+      <button
+        type="button"
+        onClick={onDown}
+        disabled={downDisabled}
+        className={btn}
+        aria-label={`Move ${ariaName} down`}
+      >
+        <Icon name="chevron-down" size={14} />
+      </button>
+    </div>
   );
 }
