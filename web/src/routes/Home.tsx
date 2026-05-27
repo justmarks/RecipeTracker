@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import {
   collection,
   onSnapshot,
@@ -23,10 +23,18 @@ type RecipeSummary = {
 
 type SortOrder = "alpha" | "recent";
 
+/**
+ * Recipe list — the index route. The sidebar owns brand/nav/actions
+ * now; this page is just the content. When `?chapter=<name>` is
+ * present in the URL, the list scopes to that single chapter and the
+ * page header swaps to a "Browsing X · Show all" affordance.
+ */
 export function Home() {
-  const { user, loading, signInWithGoogle, signInWithMicrosoft, signOut } =
-    useAuth();
+  const { user } = useAuth();
   const { chapters } = useChapters(user?.uid);
+  const [params] = useSearchParams();
+  const activeChapter = params.get("chapter") ?? "";
+
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("alpha");
@@ -74,22 +82,26 @@ export function Home() {
     [search],
   );
 
-  // Filter: every query token must prefix-match at least one of the
-  // recipe's haystack tokens (searchTokens covers title + ingredients;
-  // we also fold in tags and the chapter name). Comparison is
-  // case-insensitive — chapter names like "BBQ" should still match a
-  // "bbq" query, and stored data may be in any case.
+  // Filter pipeline:
+  //   1. URL `?chapter=` → scope to that single chapter (case-insensitive)
+  //   2. Search tokens (AND, prefix-match) over searchTokens + tags + category
   const filtered = useMemo(() => {
-    if (queryTokens.length === 0) return recipes;
-    return recipes.filter((r) => {
-      const haystack = [...r.searchTokens, ...r.tags, r.category].map((h) =>
-        h.toLowerCase(),
-      );
-      return queryTokens.every((q) => haystack.some((h) => h.startsWith(q)));
-    });
-  }, [recipes, queryTokens]);
+    let arr = recipes;
+    if (activeChapter) {
+      const want = activeChapter.toLowerCase();
+      arr = arr.filter((r) => r.category.toLowerCase() === want);
+    }
+    if (queryTokens.length > 0) {
+      arr = arr.filter((r) => {
+        const haystack = [...r.searchTokens, ...r.tags, r.category].map((h) =>
+          h.toLowerCase(),
+        );
+        return queryTokens.every((q) => haystack.some((h) => h.startsWith(q)));
+      });
+    }
+    return arr;
+  }, [recipes, queryTokens, activeChapter]);
 
-  // Sort BEFORE grouping so each chapter section displays in the chosen order.
   const sorted = useMemo(() => {
     const arr = [...filtered];
     if (sortOrder === "alpha") {
@@ -97,7 +109,6 @@ export function Home() {
         a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),
       );
     } else {
-      // Recent: createdAt desc; recipes missing createdAt sort to the end.
       arr.sort(
         (a, b) =>
           (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0),
@@ -106,9 +117,8 @@ export function Home() {
     return arr;
   }, [filtered, sortOrder]);
 
-  // Group sorted recipes by chapter, in the user's chapter order.
-  // Map keys are lowercased so a "BBQ" chapter still buckets recipes
-  // whose category happens to be stored as "bbq" or "Bbq".
+  // Group by chapter — only relevant when no chapter is selected
+  // (when one is selected, the filter is already scoped to one bucket).
   const byChapter = useMemo(() => {
     const groups = new Map<string, RecipeSummary[]>();
     for (const c of chapters) groups.set(c.toLowerCase(), []);
@@ -121,155 +131,90 @@ export function Home() {
     return { groups, orphans };
   }, [sorted, chapters]);
 
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-3xl p-6">
-        <p className="text-slate-500">Loading…</p>
-      </main>
-    );
-  }
-
   const searching = queryTokens.length > 0;
   const matchCount = filtered.length;
 
   return (
-    <main className="mx-auto max-w-3xl p-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Marks Recipe Book</h1>
-        {user && (
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-slate-600">
-              {user.email ?? user.displayName}
-            </span>
-            <button
-              onClick={() => signOut()}
-              className="text-blue-600 hover:underline"
-            >
-              Sign out
-            </button>
-          </div>
+    <main className="mx-auto max-w-3xl p-6 lg:p-10">
+      <header className="flex items-baseline justify-between gap-4">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-900 capitalize m-0">
+          {activeChapter || "All recipes"}
+        </h1>
+        {activeChapter && (
+          <Link
+            to="/"
+            className="text-sm text-tomato-600 hover:text-tomato-700 no-underline whitespace-nowrap"
+          >
+            Show all
+          </Link>
         )}
       </header>
 
-      {user ? (
-        <div className="mt-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Your recipes</h2>
-            <div className="flex items-center gap-2">
-              <Link
-                to="/chapters"
-                className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+      {recipes.length > 0 && (
+        <div className="mt-6 flex items-start gap-2">
+          <div className="relative flex-1">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by title or ingredient…"
+              className="w-full font-sans text-sm text-ink-900 bg-white border border-paper-400 rounded-md px-3 py-2.5 pr-10 outline-none transition-colors duration-100 focus:border-tomato-500 focus:shadow-[var(--shadow-focus)] placeholder:text-ink-300"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-700"
+                aria-label="Clear search"
               >
-                Chapters
-              </Link>
-              <Link
-                to="/import"
-                className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
-              >
-                Import
-              </Link>
-              <Link
-                to="/recipes/new"
-                className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
-              >
-                + New recipe
-              </Link>
-            </div>
+                ✕
+              </button>
+            )}
+            {searching && (
+              <p className="mt-1 text-xs text-ink-500">
+                {matchCount} match{matchCount === 1 ? "" : "es"}
+              </p>
+            )}
           </div>
-
-          {recipes.length > 0 && (
-            <div className="mt-4 flex items-start gap-2">
-              <div className="relative flex-1">
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by title or ingredient…"
-                  className="w-full rounded border border-slate-300 px-3 py-2 pr-10 text-sm"
-                />
-                {search && (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                    aria-label="Clear search"
-                  >
-                    ✕
-                  </button>
-                )}
-                {searching && (
-                  <p className="mt-1 text-xs text-slate-500">
-                    {matchCount} match{matchCount === 1 ? "" : "es"}
-                  </p>
-                )}
-              </div>
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-                className="rounded border border-slate-300 px-3 py-2 text-sm"
-                aria-label="Sort order"
-              >
-                <option value="alpha">A → Z</option>
-                <option value="recent">Recent first</option>
-              </select>
-            </div>
-          )}
-
-          {recipes.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-500">
-              No recipes yet. Create one to get started.
-            </p>
-          ) : searching && matchCount === 0 ? (
-            <p className="mt-6 text-sm text-slate-500">
-              No recipes match &ldquo;{search}&rdquo;.
-            </p>
-          ) : (
-            <div className="mt-6 space-y-6">
-              {chapters.map((chapter) => {
-                const items =
-                  byChapter.groups.get(chapter.toLowerCase()) ?? [];
-                if (items.length === 0) return null;
-                return (
-                  <ChapterSection
-                    key={chapter}
-                    name={chapter}
-                    recipes={items}
-                  />
-                );
-              })}
-              {byChapter.orphans.length > 0 && (
-                <ChapterSection
-                  name="Other"
-                  recipes={byChapter.orphans}
-                  italic
-                />
-              )}
-            </div>
-          )}
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            className="font-sans text-sm text-ink-900 bg-white border border-paper-400 rounded-md px-3 py-2.5 cursor-pointer transition-colors duration-100 focus:border-tomato-500 focus:shadow-[var(--shadow-focus)] focus:outline-none"
+            aria-label="Sort order"
+          >
+            <option value="alpha">A → Z</option>
+            <option value="recent">Recent first</option>
+          </select>
         </div>
+      )}
+
+      {recipes.length === 0 ? (
+        <p className="mt-6 text-sm text-ink-500">
+          No recipes yet. Create one to get started.
+        </p>
+      ) : searching && matchCount === 0 ? (
+        <p className="mt-8 text-sm text-ink-500">
+          No recipes match &ldquo;{search}&rdquo;.
+        </p>
+      ) : activeChapter ? (
+        // Single-chapter view: just one flat list, no section headers.
+        <RecipeList recipes={sorted} />
       ) : (
-        <div className="mt-8 space-y-3">
-          <p className="text-slate-600">Sign in to start saving recipes.</p>
-          <button
-            onClick={() =>
-              signInWithGoogle().catch((err) =>
-                console.error("Google sign-in:", err),
-              )
-            }
-            className="block w-full max-w-xs rounded border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
-          >
-            Continue with Google
-          </button>
-          <button
-            onClick={() =>
-              signInWithMicrosoft().catch((err) =>
-                console.error("Microsoft sign-in:", err),
-              )
-            }
-            className="block w-full max-w-xs rounded border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
-          >
-            Continue with Microsoft
-          </button>
+        <div className="mt-8 space-y-8">
+          {chapters.map((chapter) => {
+            const items = byChapter.groups.get(chapter.toLowerCase()) ?? [];
+            if (items.length === 0) return null;
+            return (
+              <ChapterSection
+                key={chapter}
+                name={chapter}
+                recipes={items}
+              />
+            );
+          })}
+          {byChapter.orphans.length > 0 && (
+            <ChapterSection name="Other" recipes={byChapter.orphans} italic />
+          )}
         </div>
       )}
     </main>
@@ -287,33 +232,48 @@ function ChapterSection({
 }) {
   return (
     <section>
-      <h3
-        className={`flex items-baseline gap-2 border-b border-slate-200 pb-1 text-base font-semibold ${
-          italic ? "italic text-slate-500" : "capitalize text-slate-700"
+      <h2
+        className={`flex items-baseline gap-2 border-b border-paper-300 pb-1.5 font-display text-xl ${
+          italic ? "italic text-ink-500" : "capitalize text-ink-900"
         }`}
       >
-        <span>{name}</span>
-        <span className="text-xs font-normal text-slate-400">
+        <Link
+          to={italic ? "/" : `/?chapter=${encodeURIComponent(name)}`}
+          className={`no-underline ${
+            italic ? "text-ink-500" : "text-ink-900 hover:text-tomato-600"
+          }`}
+        >
+          {name}
+        </Link>
+        <span className="font-mono text-xs font-normal text-ink-300 [font-feature-settings:'tnum']">
           ({recipes.length})
         </span>
-      </h3>
-      <ul className="mt-2 divide-y divide-slate-200">
-        {recipes.map((r) => (
-          <li key={r.id}>
-            <Link
-              to={`/recipes/${r.id}`}
-              className="block py-2 hover:bg-slate-50"
-            >
-              <div className="font-medium">{r.title}</div>
-              {r.tags.length > 0 && (
-                <div className="text-xs text-slate-500">
-                  {r.tags.join(", ")}
-                </div>
-              )}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      </h2>
+      <RecipeList recipes={recipes} />
     </section>
+  );
+}
+
+function RecipeList({ recipes }: { recipes: RecipeSummary[] }) {
+  return (
+    <ul className="mt-2 divide-y divide-paper-300">
+      {recipes.map((r) => (
+        <li key={r.id}>
+          <Link
+            to={`/recipes/${r.id}`}
+            className="block py-2.5 hover:bg-paper-200 no-underline rounded-md px-2 -mx-2 transition-colors duration-100"
+          >
+            <div className="font-display text-base text-ink-900">
+              {r.title}
+            </div>
+            {r.tags.length > 0 && (
+              <div className="text-xs text-ink-500 mt-0.5">
+                {r.tags.join(" · ")}
+              </div>
+            )}
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
