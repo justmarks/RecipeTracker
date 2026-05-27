@@ -153,11 +153,15 @@ Tracked here so they don't get lost:
   by default. Fix: Firebase Console → Authentication → Settings →
   Authorized domains → Add domain → `marksrecipebook.web.app`. (Pure
   Console fix, nothing to deploy.)
-- **Some recipe sites still 403 the URL importer** (`allrecipes.com`
-  has been observed). The function sends real-browser headers, which
-  gets past most basic anti-bot checks, but sites behind aggressive
-  Cloudflare/DataDome filtering can still refuse. Fall back to copying
-  the recipe text and using the markdown import path.
+- **Dotdash Meredith sites refuse the URL importer.** AllRecipes,
+  Serious Eats, Simply Recipes, Food & Wine, Eating Well, and Brides
+  all share an anti-bot layer that fingerprints the request beyond
+  headers (DataDome / similar — returns HTTP 402 to flagged IPs).
+  The function sends Chrome Client Hints + browser headers, which
+  gets past Kitchn and most Cloudflare sites, but Dotdash properties
+  appear permanently blocked from Cloud Functions IP ranges. Fall
+  back to copying the recipe text and using the markdown importer.
+  Same applies to NYT Cooking (paywall) and any site requiring login.
 
 ## License
 

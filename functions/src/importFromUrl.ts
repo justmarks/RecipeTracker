@@ -125,15 +125,16 @@ export const importFromUrl = onCall(
     }
 
     // Fetch the URL server-side. We send a full browser-like header set
-    // because many recipe sites (Kitchn, NYT Cooking, anything behind
-    // Cloudflare) reject anything that doesn't look like a real browser.
-    // A bare "MarksRecipeBook/1.0" UA was getting 403s.
+    // (Client Hints included) because many recipe sites — Kitchn, NYT
+    // Cooking, Cloudflare-protected sites, and Dotdash Meredith
+    // properties (AllRecipes, Serious Eats, Simply Recipes, Food & Wine,
+    // Eating Well, Brides) — fingerprint requests beyond the User-Agent.
     let html: string;
     try {
       const fetchResponse = await fetch(url, {
         headers: {
           "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
           "Accept":
             "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
           "Accept-Language": "en-US,en;q=0.9",
@@ -145,15 +146,26 @@ export const importFromUrl = onCall(
           "Sec-Fetch-Site": "none",
           "Sec-Fetch-User": "?1",
           "Upgrade-Insecure-Requests": "1",
+          // Client Hints — Chrome 148+ ships these by default and some
+          // anti-bot systems flag their absence as a non-browser signal.
+          "sec-ch-ua":
+            "\"Chromium\";v=\"148\", \"Google Chrome\";v=\"148\", \"Not/A)Brand\";v=\"99\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Windows\"",
+          "DNT": "1",
         },
         redirect: "follow",
         signal: AbortSignal.timeout(20_000),
       });
       if (!fetchResponse.ok) {
-        const isBlocked =
-          fetchResponse.status === 403 || fetchResponse.status === 401;
-        const msg = isBlocked ?
-          `The site blocked the request (HTTP ${fetchResponse.status}). Try copying the recipe text and pasting it into the markdown importer instead.` :
+        // 401/403: classic Forbidden/Unauthorized
+        // 402: Dotdash Meredith / AllRecipes-style paywall response
+        // 429: rate-limited
+        // 451: legal block
+        // 503: Cloudflare under attack / temporary block
+        const blockedStatuses = new Set([401, 402, 403, 429, 451, 503]);
+        const msg = blockedStatuses.has(fetchResponse.status) ?
+          `The site blocked the request (HTTP ${fetchResponse.status}). Some recipe sites (AllRecipes, Serious Eats, NYT Cooking, etc.) refuse server-side fetches even with browser-like headers. Copy the recipe text from the page and paste it into the markdown importer below.` :
           `Failed to fetch URL (HTTP ${fetchResponse.status}).`;
         throw new HttpsError("failed-precondition", msg);
       }
