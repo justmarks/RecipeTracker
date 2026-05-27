@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Navigate, Link } from "react-router";
+import { useParams, useNavigate, Navigate } from "react-router";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
 import { buildSearchTokens } from "shared";
 import type { RecipeInput } from "shared";
 import { RecipeForm } from "../components/RecipeForm";
+import { Button } from "../components/ui";
 
 export function EditRecipe() {
   const { id } = useParams<{ id: string }>();
@@ -24,8 +25,6 @@ export function EditRecipe() {
           return;
         }
         const data = snap.data();
-        // Cast to RecipeInput shape. Optional fields may be absent in
-        // Firestore — RecipeForm handles undefined values.
         setInitial({
           title: data.title,
           source: data.source,
@@ -38,6 +37,9 @@ export function EditRecipe() {
           totalTime: data.totalTime,
           category: data.category,
           tags: data.tags ?? [],
+          photoUrl: data.photoUrl,
+          rating: data.rating,
+          lastMadeDate: data.lastMadeDate,
         });
       })
       .catch((err) => {
@@ -52,19 +54,24 @@ export function EditRecipe() {
 
   if (loadError) {
     return (
-      <main className="mx-auto max-w-2xl p-6">
-        <Link to="/" className="text-sm text-blue-600 hover:underline">
-          ← Back
-        </Link>
-        <p className="mt-4 text-red-600">{loadError}</p>
-      </main>
+      <div className="mx-auto max-w-[720px] px-6 py-8 lg:px-10 lg:py-10">
+        <Button
+          variant="ghost"
+          icon="arrow-left"
+          onClick={() => navigate("/")}
+          className="px-0 mb-4"
+        >
+          Back
+        </Button>
+        <p className="font-sans text-tomato-700">{loadError}</p>
+      </div>
     );
   }
   if (!initial || !id) return null;
 
-  // Note: only the editable fields are sent. ownerId, sharedWith, and
-  // createdAt are preserved by updateDoc's merge semantics, which keeps
-  // the security rule's "ownership immutable" check satisfied.
+  // Only the editable fields are sent. ownerId, sharedWith, and createdAt
+  // are preserved by Firestore's merge semantics, which keeps the security
+  // rule's "ownership immutable" check satisfied.
   async function onSubmit(input: RecipeInput) {
     await updateDoc(doc(db, "recipes", id!), {
       ...input,
@@ -75,12 +82,24 @@ export function EditRecipe() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-6">
-      <Link to={`/recipes/${id}`} className="text-sm text-blue-600 hover:underline">
-        ← Back
-      </Link>
-      <h1 className="mt-2 text-3xl font-semibold">Edit recipe</h1>
-      <RecipeForm initial={initial} submitLabel="Save changes" onSubmit={onSubmit} />
-    </main>
+    <div className="mx-auto max-w-[720px] px-6 py-8 lg:px-10 lg:py-10">
+      <Button
+        variant="ghost"
+        icon="arrow-left"
+        onClick={() => navigate(`/recipes/${id}`)}
+        className="px-0 mb-4"
+      >
+        Back
+      </Button>
+      <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-5">
+        Edit recipe
+      </h1>
+      <RecipeForm
+        initial={initial}
+        submitLabel="Save changes"
+        onSubmit={onSubmit}
+        onCancel={() => navigate(`/recipes/${id}`)}
+      />
+    </div>
   );
 }

@@ -1,19 +1,42 @@
 import { useEffect, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent } from "react";
 import { RecipeInputSchema } from "shared";
 import type { RecipeInput, Section } from "shared";
 import { useAuth } from "../lib/useAuth";
 import { addChapter, useChapters } from "../lib/categories";
+import { Button, Field, Input, Textarea } from "./ui";
 
 interface Props {
-  // Partial so the import flow can pre-fill whatever it managed to parse
-  // without having to invent values for fields that weren't in the source.
+  /**
+   * Partial so the import flow can pre-fill whatever it managed to parse
+   * without having to invent values for fields that weren't in the source.
+   */
   initial?: Partial<RecipeInput>;
   submitLabel: string;
   onSubmit: (input: RecipeInput) => Promise<void>;
+  /** Optional Cancel handler — shows a ghost Cancel button next to Save. */
+  onCancel?: () => void;
 }
 
-export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
+// Native <select> doesn't pick up the Input primitive's styling, so we
+// keep the canonical class string here and reuse it for both selects
+// (chapter + rating). Extract to a Select primitive once a third place
+// needs it.
+const SELECT_CLASSES = [
+  "w-full font-sans text-sm text-ink-900 bg-white",
+  "border border-paper-400 rounded-md px-3 py-2.5",
+  "outline-none transition-colors duration-100 ease-out cursor-pointer",
+  "focus:border-tomato-500 focus:shadow-[var(--shadow-focus)]",
+  "disabled:bg-paper-200 disabled:text-ink-500 disabled:cursor-not-allowed",
+].join(" ");
+
+/**
+ * Shared form for creating, editing, and saving AI-imported recipes.
+ * Page chrome (back button + h1) lives in the wrapper routes
+ * (NewRecipe / EditRecipe / Import); this component only renders the
+ * fields and the action row.
+ */
+export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
   const { user } = useAuth();
   const { chapters, loading: chaptersLoading } = useChapters(user?.uid);
 
@@ -23,22 +46,21 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   const [sourceUrl, setSourceUrl] = useState(
     initial?.source?.type === "url" ? initial.source.url : "",
   );
+  const [photoUrl, setPhotoUrl] = useState(initial?.photoUrl ?? "");
   const [ingredientsText, setIngredientsText] = useState(
     initial?.ingredients ? sectionsToText(initial.ingredients) : "",
   );
   const [instructionsText, setInstructionsText] = useState(
     initial?.instructions ? sectionsToText(initial.instructions) : "",
   );
-  const [notes, setNotes] = useState(initial?.notes ?? "");
   const [yieldField, setYieldField] = useState(initial?.yield ?? "");
   const [prepTime, setPrepTime] = useState(initial?.prepTime ?? "");
   const [cookTime, setCookTime] = useState(initial?.cookTime ?? "");
   const [totalTime, setTotalTime] = useState(initial?.totalTime ?? "");
-  const [photoUrl, setPhotoUrl] = useState(initial?.photoUrl ?? "");
   const [rating, setRating] = useState<number | "">(initial?.rating ?? "");
-  const [lastMadeDate, setLastMadeDate] = useState(
-    initial?.lastMadeDate ?? "",
-  );
+  const [lastMadeDate, setLastMadeDate] = useState(initial?.lastMadeDate ?? "");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,10 +69,10 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   const [addingChapter, setAddingChapter] = useState(false);
 
   // Once chapters load, settle on a sensible default:
-  //  - keep an existing match (round-trip on edit, AI import that matched a seed)
-  //  - if the case differs (AI returned "entree" but chapter is "Entree"),
-  //    swap in the canonical chapter case
-  //  - otherwise pick the first chapter
+  //   - keep an existing match (round-trip on edit, AI import that matched a seed)
+  //   - if the case differs (AI returned "entree" but chapter is "Entree"),
+  //     swap in the canonical chapter case
+  //   - otherwise pick the first chapter
   useEffect(() => {
     if (chaptersLoading || chapters.length === 0) return;
     if (!category) {
@@ -125,211 +147,250 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
       <Field label="Title">
-        <input
-          type="text"
-          required
+        <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded border border-slate-300 px-3 py-2"
+          required
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <Field label="Chapter">
-          <div className="space-y-1">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              disabled={chaptersLoading || chapters.length === 0}
-              className="w-full rounded border border-slate-300 px-3 py-2 capitalize"
-            >
-              {chapters.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            {showAddChapter ? (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newChapterName}
-                  onChange={(e) => setNewChapterName(e.target.value)}
-                  placeholder="e.g. dessert"
-                  className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={handleAddChapter}
-                  disabled={addingChapter || !newChapterName.trim()}
-                  className="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  Add
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddChapter(false);
-                    setNewChapterName("");
-                  }}
-                  className="text-xs text-slate-500 hover:underline"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowAddChapter(true)}
-                className="text-xs text-blue-600 hover:underline"
-              >
-                + Add new chapter
-              </button>
-            )}
-          </div>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            disabled={chaptersLoading || chapters.length === 0}
+            className={`${SELECT_CLASSES} capitalize`}
+          >
+            {chapters.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <AddChapterRow
+            show={showAddChapter}
+            value={newChapterName}
+            adding={addingChapter}
+            onShow={() => setShowAddChapter(true)}
+            onChange={setNewChapterName}
+            onAdd={handleAddChapter}
+            onCancel={() => {
+              setShowAddChapter(false);
+              setNewChapterName("");
+            }}
+          />
         </Field>
-
-        <Field label="Tags (comma-separated)">
-          <input
-            type="text"
+        <Field label="Tags" hint="Comma-separated, e.g. vegetarian, weeknight">
+          <Input
             value={tags}
             onChange={(e) => setTags(e.target.value)}
             placeholder="vegetarian, gluten-free"
-            className="w-full rounded border border-slate-300 px-3 py-2"
           />
         </Field>
       </div>
 
-      <Field label="Source URL (optional)">
-        <input
+      <Field
+        label="Source URL"
+        hint="A link to the original recipe, if any."
+      >
+        <Input
           type="url"
           value={sourceUrl}
           onChange={(e) => setSourceUrl(e.target.value)}
           placeholder="https://..."
-          className="w-full rounded border border-slate-300 px-3 py-2"
         />
       </Field>
 
-      <Field label="Photo URL (optional)">
-        <input
+      <Field
+        label="Photo URL"
+        hint="A direct image link. URL imports auto-fill this when the site sets og:image."
+      >
+        <Input
           type="url"
           value={photoUrl}
           onChange={(e) => setPhotoUrl(e.target.value)}
           placeholder="https://...jpg"
-          className="w-full rounded border border-slate-300 px-3 py-2"
         />
       </Field>
 
-      <Field label="Ingredients (one per line; use ## Heading for sections)">
-        <textarea
+      <Field
+        label="Ingredients"
+        hint="One per line. Use ## Heading for sections (e.g. ## For the sauce)."
+      >
+        <Textarea
+          mono
           required
           rows={8}
           value={ingredientsText}
           onChange={(e) => setIngredientsText(e.target.value)}
-          className="w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm"
         />
       </Field>
 
-      <Field label="Instructions (one step per line; use ## Heading for sections)">
-        <textarea
+      <Field
+        label="Instructions"
+        hint="One step per line. Use ## Heading for sections."
+      >
+        <Textarea
           required
           rows={8}
           value={instructionsText}
           onChange={(e) => setInstructionsText(e.target.value)}
-          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Field label="Yield">
-          <input
-            type="text"
+          <Input
             value={yieldField}
             onChange={(e) => setYieldField(e.target.value)}
             placeholder="4 servings"
-            className="w-full rounded border border-slate-300 px-3 py-2"
           />
         </Field>
-        <Field label="Prep time">
-          <input
-            type="text"
+        <Field label="Prep">
+          <Input
             value={prepTime}
             onChange={(e) => setPrepTime(e.target.value)}
             placeholder="20 min"
-            className="w-full rounded border border-slate-300 px-3 py-2"
           />
         </Field>
-        <Field label="Cook time">
-          <input
-            type="text"
+        <Field label="Cook">
+          <Input
             value={cookTime}
             onChange={(e) => setCookTime(e.target.value)}
             placeholder="40 min"
-            className="w-full rounded border border-slate-300 px-3 py-2"
           />
         </Field>
-        <Field label="Total time">
-          <input
-            type="text"
+        <Field label="Total">
+          <Input
             value={totalTime}
             onChange={(e) => setTotalTime(e.target.value)}
             placeholder="1 hr"
-            className="w-full rounded border border-slate-300 px-3 py-2"
           />
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <Field label="Rating">
           <select
             value={rating}
             onChange={(e) =>
               setRating(e.target.value === "" ? "" : Number(e.target.value))
             }
-            className="w-full rounded border border-slate-300 px-3 py-2"
+            className={SELECT_CLASSES}
           >
             <option value="">—</option>
             <option value="1">★</option>
-            <option value="2">★★</option>
-            <option value="3">★★★</option>
-            <option value="4">★★★★</option>
-            <option value="5">★★★★★</option>
+            <option value="2">★ ★</option>
+            <option value="3">★ ★ ★</option>
+            <option value="4">★ ★ ★ ★</option>
+            <option value="5">★ ★ ★ ★ ★</option>
           </select>
         </Field>
         <Field label="Last made">
-          <input
+          <Input
             type="date"
             value={lastMadeDate}
             onChange={(e) => setLastMadeDate(e.target.value)}
-            className="w-full rounded border border-slate-300 px-3 py-2"
           />
         </Field>
       </div>
 
-      <Field label="Notes (markdown — **bold**, [links](url), paragraphs)">
-        <textarea
+      <Field
+        label="Notes"
+        hint="Markdown supported — **bold**, [links](url), paragraphs."
+      >
+        <Textarea
           rows={4}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
         />
       </Field>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <div className="rounded-md px-4 py-3 text-sm bg-tomato-50 text-tomato-700 border border-tomato-100">
+          {error}
+        </div>
+      )}
 
-      <div className="flex gap-3">
-        <button
+      <div className="flex gap-3 pt-1">
+        <Button
           type="submit"
+          variant="primary"
           disabled={saving || chaptersLoading || chapters.length === 0}
-          className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
         >
           {saving ? "Saving…" : submitLabel}
-        </button>
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
       </div>
     </form>
+  );
+}
+
+interface AddChapterRowProps {
+  show: boolean;
+  value: string;
+  adding: boolean;
+  onShow: () => void;
+  onChange: (v: string) => void;
+  onAdd: () => void;
+  onCancel: () => void;
+}
+
+function AddChapterRow({
+  show,
+  value,
+  adding,
+  onShow,
+  onChange,
+  onAdd,
+  onCancel,
+}: AddChapterRowProps) {
+  if (!show) {
+    return (
+      <button
+        type="button"
+        onClick={onShow}
+        className="font-sans text-xs font-medium text-tomato-600 hover:text-tomato-700 mt-1.5 self-start"
+      >
+        + Add new chapter
+      </button>
+    );
+  }
+  return (
+    <div className="mt-2 flex gap-2 items-center">
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="e.g. dessert"
+        autoFocus
+        className="flex-1"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onAdd();
+          }
+        }}
+      />
+      <Button
+        type="button"
+        variant="primary"
+        size="sm"
+        onClick={onAdd}
+        disabled={adding || !value.trim()}
+      >
+        {adding ? "Adding…" : "Add"}
+      </Button>
+      <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+        Cancel
+      </Button>
+    </div>
   );
 }
 
@@ -391,13 +452,4 @@ function stripListMarker(line: string): string {
     .trim()
     .replace(/^\(?\d+[.)]\s+/, "")
     .trim();
-}
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="block">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
-      <div className="mt-1">{children}</div>
-    </label>
-  );
 }
