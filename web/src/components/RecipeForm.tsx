@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { RecipeInputSchema } from "shared";
 import type { RecipeInput, Section } from "shared";
 import { useAuth } from "../lib/useAuth";
 import { addChapter, useChapters } from "../lib/categories";
+import { uploadRecipePhoto } from "../lib/storage";
 import { Button, Field, Input, Textarea } from "./ui";
 
 interface Props {
@@ -16,12 +17,14 @@ interface Props {
   onSubmit: (input: RecipeInput) => Promise<void>;
   /** Optional Cancel handler — shows a ghost Cancel button next to Save. */
   onCancel?: () => void;
+  /**
+   * Fired with `true` the first time the user changes any field, and
+   * with `false` after a successful submit. Lets the parent wrap
+   * navigation with a "discard changes?" confirmation.
+   */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-// Native <select> doesn't pick up the Input primitive's styling, so we
-// keep the canonical class string here and reuse it for both selects
-// (chapter + rating). Extract to a Select primitive once a third place
-// needs it.
 const SELECT_CLASSES = [
   "w-full font-sans text-sm text-ink-900 bg-white",
   "border border-paper-400 rounded-md px-3 py-2.5",
@@ -35,8 +38,18 @@ const SELECT_CLASSES = [
  * Page chrome (back button + h1) lives in the wrapper routes
  * (NewRecipe / EditRecipe / Import); this component only renders the
  * fields and the action row.
+ *
+ * Tracks a dirty flag internally and pushes changes to onDirtyChange
+ * so parent wrappers can prompt before navigating away. Reset to
+ * clean on a successful submit.
  */
-export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
+export function RecipeForm({
+  initial,
+  submitLabel,
+  onSubmit,
+  onCancel,
+  onDirtyChange,
+}: Props) {
   const { user } = useAuth();
   const { chapters, loading: chaptersLoading } = useChapters(user?.uid);
 
@@ -68,6 +81,22 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
   const [newChapterName, setNewChapterName] = useState("");
   const [addingChapter, setAddingChapter] = useState(false);
 
+  // Photo upload state
+  const photoFileRef = useRef<HTMLInputElement>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  // Dirty tracking — set on first user input, cleared on submit success.
+  // Initial-state assignment via useState / category-default useEffect do
+  // NOT route through markDirty, so opening the form doesn't flag it dirty.
+  const [isDirty, setIsDirty] = useState(false);
+  function markDirty() {
+    if (!isDirty) {
+      setIsDirty(true);
+      onDirtyChange?.(true);
+    }
+  }
+
   // Once chapters load, settle on a sensible default:
   //   - keep an existing match (round-trip on edit, AI import that matched a seed)
   //   - if the case differs (AI returned "entree" but chapter is "Entree"),
@@ -94,12 +123,32 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
     try {
       const normalized = await addChapter(user.uid, name);
       setCategory(normalized);
+      markDirty();
       setNewChapterName("");
       setShowAddChapter(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add chapter.");
     } finally {
       setAddingChapter(false);
+    }
+  }
+
+  async function handlePhotoUpload(file: File) {
+    if (!user) return;
+    setUploadingPhoto(true);
+    setPhotoError(null);
+    try {
+      const url = await uploadRecipePhoto(file, user.uid);
+      setPhotoUrl(url);
+      markDirty();
+    } catch (err) {
+      console.error("Photo upload:", err);
+      setPhotoError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setUploadingPhoto(false);
+      // Allow re-selecting the same file (browsers ignore change when value
+      // hasn't moved). Clearing the input value resets that.
+      if (photoFileRef.current) photoFileRef.current.value = "";
     }
   }
 
@@ -138,6 +187,10 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
     setSaving(true);
     try {
       await onSubmit(parsed.data);
+      // Clear the dirty flag BEFORE the parent navigates so any
+      // outer "discard?" check sees a clean form.
+      setIsDirty(false);
+      onDirtyChange?.(false);
     } catch (err) {
       console.error("Save:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -146,12 +199,23 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
     }
   }
 
+  // Helper to wrap an onChange so it also marks dirty. Saves verbosity
+  // across 12+ form fields.
+  function onChangeText<E extends HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+    setter: (v: string) => void,
+  ): (e: React.ChangeEvent<E>) => void {
+    return (e) => {
+      setter(e.target.value);
+      markDirty();
+    };
+  }
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
       <Field label="Title">
         <Input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={onChangeText(setTitle)}
           required
         />
       </Field>
@@ -160,7 +224,7 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
         <Field label="Chapter">
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={onChangeText(setCategory)}
             disabled={chaptersLoading || chapters.length === 0}
             className={`${SELECT_CLASSES} capitalize`}
           >
@@ -186,7 +250,7 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
         <Field label="Tags" hint="Comma-separated, e.g. vegetarian, weeknight">
           <Input
             value={tags}
-            onChange={(e) => setTags(e.target.value)}
+            onChange={onChangeText(setTags)}
             placeholder="vegetarian, gluten-free"
           />
         </Field>
@@ -199,21 +263,56 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
         <Input
           type="url"
           value={sourceUrl}
-          onChange={(e) => setSourceUrl(e.target.value)}
+          onChange={onChangeText(setSourceUrl)}
           placeholder="https://..."
         />
       </Field>
 
       <Field
-        label="Photo URL"
-        hint="A direct image link. URL imports auto-fill this when the site sets og:image."
+        label="Photo"
+        hint="Paste a direct image URL, or upload from your device (max 10MB)."
       >
-        <Input
-          type="url"
-          value={photoUrl}
-          onChange={(e) => setPhotoUrl(e.target.value)}
-          placeholder="https://...jpg"
-        />
+        <div className="flex gap-2">
+          <Input
+            type="url"
+            value={photoUrl}
+            onChange={onChangeText(setPhotoUrl)}
+            placeholder="https://...jpg"
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            icon="upload"
+            onClick={() => photoFileRef.current?.click()}
+            disabled={uploadingPhoto}
+          >
+            {uploadingPhoto ? "Uploading…" : "Upload"}
+          </Button>
+          <input
+            ref={photoFileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handlePhotoUpload(f);
+            }}
+          />
+        </div>
+        {photoError && (
+          <p className="mt-1 font-sans text-[12px] text-tomato-700">
+            {photoError}
+          </p>
+        )}
+        {photoUrl && !photoError && (
+          <img
+            src={photoUrl}
+            alt=""
+            className="mt-2 max-h-40 rounded-md border border-paper-300 object-cover"
+            loading="lazy"
+          />
+        )}
       </Field>
 
       <Field
@@ -225,7 +324,7 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
           required
           rows={8}
           value={ingredientsText}
-          onChange={(e) => setIngredientsText(e.target.value)}
+          onChange={onChangeText(setIngredientsText)}
         />
       </Field>
 
@@ -237,7 +336,7 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
           required
           rows={8}
           value={instructionsText}
-          onChange={(e) => setInstructionsText(e.target.value)}
+          onChange={onChangeText(setInstructionsText)}
         />
       </Field>
 
@@ -245,28 +344,28 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
         <Field label="Yield">
           <Input
             value={yieldField}
-            onChange={(e) => setYieldField(e.target.value)}
+            onChange={onChangeText(setYieldField)}
             placeholder="4 servings"
           />
         </Field>
         <Field label="Prep">
           <Input
             value={prepTime}
-            onChange={(e) => setPrepTime(e.target.value)}
+            onChange={onChangeText(setPrepTime)}
             placeholder="20 min"
           />
         </Field>
         <Field label="Cook">
           <Input
             value={cookTime}
-            onChange={(e) => setCookTime(e.target.value)}
+            onChange={onChangeText(setCookTime)}
             placeholder="40 min"
           />
         </Field>
         <Field label="Total">
           <Input
             value={totalTime}
-            onChange={(e) => setTotalTime(e.target.value)}
+            onChange={onChangeText(setTotalTime)}
             placeholder="1 hr"
           />
         </Field>
@@ -276,9 +375,10 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
         <Field label="Rating">
           <select
             value={rating}
-            onChange={(e) =>
-              setRating(e.target.value === "" ? "" : Number(e.target.value))
-            }
+            onChange={(e) => {
+              setRating(e.target.value === "" ? "" : Number(e.target.value));
+              markDirty();
+            }}
             className={SELECT_CLASSES}
           >
             <option value="">—</option>
@@ -293,7 +393,7 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
           <Input
             type="date"
             value={lastMadeDate}
-            onChange={(e) => setLastMadeDate(e.target.value)}
+            onChange={onChangeText(setLastMadeDate)}
           />
         </Field>
       </div>
@@ -305,7 +405,7 @@ export function RecipeForm({ initial, submitLabel, onSubmit, onCancel }: Props) 
         <Textarea
           rows={4}
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={onChangeText(setNotes)}
         />
       </Field>
 
@@ -395,7 +495,6 @@ function AddChapterRow({
 }
 
 function parseSections(text: string): Section[] {
-  // Classify each line: did it originally have a bullet/number marker?
   const lines = text
     .split(/\n+/)
     .map((s) => s.trim())
@@ -405,13 +504,6 @@ function parseSections(text: string): Section[] {
       return { hadMarker: stripped !== raw, text: stripped };
     });
 
-  // Heuristic: if ANY line was bulleted/numbered, treat unmarked lines as
-  // section headings. This catches real-world pastes like:
-  //   • 1 cup flour
-  //   • 2 eggs
-  //   AVOCADO GODDESS SAUCE   ← unmarked among bullets → heading
-  //   • 1 avocado
-  // Falls back to "## Heading" for inputs that don't use bullets at all.
   const anyMarkers = lines.some((l) => l.hadMarker);
 
   const sections: Section[] = [];

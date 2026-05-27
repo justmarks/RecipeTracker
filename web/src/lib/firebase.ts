@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, OAuthProvider, connectAuthEmulator } from "firebase/auth";
 import { initializeFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -18,6 +19,7 @@ export const auth = getAuth(app);
 // prepTime, etc.) drop silently instead of throwing on addDoc/setDoc.
 export const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
 export const functions = getFunctions(app);
+export const storage = getStorage(app);
 
 export const googleProvider = new GoogleAuthProvider();
 
@@ -31,4 +33,5 @@ if (import.meta.env.VITE_USE_EMULATOR === "1") {
   connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
   connectFirestoreEmulator(db, "localhost", 8080);
   connectFunctionsEmulator(functions, "localhost", 5001);
+  connectStorageEmulator(storage, "localhost", 9199);
 }

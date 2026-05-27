@@ -7,6 +7,7 @@
 // extending or duplicating.
 
 export { Button } from "./Button";
+export { ConfirmDialog } from "./ConfirmDialog";
 export { Eyebrow } from "./Eyebrow";
 export { Field } from "./Field";
 export { Icon, type IconName } from "./Icon";

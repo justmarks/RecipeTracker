@@ -8,7 +8,7 @@ import {
   renameChapter,
   useChapters,
 } from "../lib/categories";
-import { Button, Field, Icon, Input } from "../components/ui";
+import { Button, ConfirmDialog, Field, Icon, Input } from "../components/ui";
 
 /**
  * Chapters management — list as a single card with paper-faint
@@ -28,6 +28,7 @@ export function Chapters() {
   const [renamingChapter, setRenamingChapter] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [busyChapter, setBusyChapter] = useState<string | null>(null);
+  const [confirmDeleteName, setConfirmDeleteName] = useState<string | null>(null);
 
   if (authLoading) return null;
   if (!user) return <Navigate to="/" replace />;
@@ -68,9 +69,10 @@ export function Chapters() {
     }
   }
 
-  async function handleDelete(name: string) {
-    if (!user) return;
-    if (!confirm(`Delete chapter "${name}"?`)) return;
+  async function handleDeleteConfirmed() {
+    if (!user || !confirmDeleteName) return;
+    const name = confirmDeleteName;
+    setConfirmDeleteName(null);
     await withBusy(name, () => deleteChapter(user.uid, name));
   }
 
@@ -212,7 +214,7 @@ export function Chapters() {
                       type="button"
                       variant="danger"
                       size="sm"
-                      onClick={() => handleDelete(chapter)}
+                      onClick={() => setConfirmDeleteName(chapter)}
                       disabled={isBusy}
                     >
                       Delete
@@ -230,6 +232,19 @@ export function Chapters() {
           {error}
         </div>
       )}
+      <ConfirmDialog
+        open={confirmDeleteName !== null}
+        title="Delete chapter?"
+        message={
+          confirmDeleteName
+            ? `"${confirmDeleteName}" will be removed from your cookbook. Recipes already in this chapter will keep their data but lose their chapter assignment.`
+            : ""
+        }
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        onCancel={() => setConfirmDeleteName(null)}
+        onConfirm={handleDeleteConfirmed}
+      />
     </div>
   );
 }

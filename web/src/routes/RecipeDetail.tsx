@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link, Navigate } from "react-router";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import type { DocumentData } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
+import { useToast } from "../lib/useToast";
 import { renderInlineMarkdown, renderMarkdownBlock } from "../lib/inlineMarkdown";
 import type { RecipeSource, Section } from "shared";
 import {
   Button,
+  ConfirmDialog,
   Eyebrow,
   Icon,
   MetaRow,
@@ -58,9 +60,12 @@ export function RecipeDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [recipe, setRecipe] = useState<StoredRecipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -85,6 +90,23 @@ export function RecipeDetail() {
     // pop; deep links / first page fall through to home.
     if (window.history.length > 1) navigate(-1);
     else navigate("/");
+  }
+
+  async function handleDelete() {
+    if (!id || !recipe) return;
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, "recipes", id));
+      setShowDeleteConfirm(false);
+      toast.show(`Deleted "${recipe.title}"`);
+      navigate("/", { replace: true });
+    } catch (err) {
+      console.error("Delete recipe:", err);
+      setError(err instanceof Error ? err.message : "Could not delete recipe.");
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   if (authLoading || loading) return null;
@@ -128,11 +150,22 @@ export function RecipeDetail() {
           {recipe.title}
         </h1>
         {isOwner && (
-          <Link to={`/recipes/${id}/edit`} className="no-underline shrink-0">
-            <Button variant="secondary" icon="pencil" size="sm" type="button">
-              Edit
+          <div className="flex items-center gap-2 shrink-0">
+            <Link to={`/recipes/${id}/edit`} className="no-underline">
+              <Button variant="secondary" icon="pencil" size="sm" type="button">
+                Edit
+              </Button>
+            </Link>
+            <Button
+              type="button"
+              variant="danger"
+              icon="trash"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              Delete
             </Button>
-          </Link>
+          </div>
         )}
       </div>
 
@@ -266,6 +299,16 @@ export function RecipeDetail() {
           </section>
         </>
       )}
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete this recipe?"
+        message={`"${recipe.title}" will be permanently removed from your cookbook. This can't be undone.`}
+        confirmLabel={deleting ? "Deleting…" : "Delete"}
+        cancelLabel="Keep"
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+      />
     </article>
   );
 }

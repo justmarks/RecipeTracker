@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { Brand } from "./Brand";
 import { Sidebar } from "./Sidebar";
+import { useFocusTrap } from "../lib/useFocusTrap";
 
 /**
  * The signed-in shell. Sidebar on the left at lg+, slide-in drawer
@@ -14,6 +15,7 @@ import { Sidebar } from "./Sidebar";
 export function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   // Auto-close drawer on navigation.
   useEffect(() => {
@@ -29,6 +31,10 @@ export function Layout() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [drawerOpen]);
+
+  // Trap keyboard focus inside the drawer while it's open. Tab/Shift+Tab
+  // cycle within; on close, focus returns to the trigger button.
+  useFocusTrap(drawerOpen, drawerRef);
 
   return (
     <div className="min-h-screen bg-paper-100">
@@ -65,7 +71,13 @@ export function Layout() {
             onClick={() => setDrawerOpen(false)}
             aria-hidden="true"
           />
-          <div className="fixed inset-y-0 left-0 z-50 lg:hidden shadow-lg">
+          <div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation"
+            className="fixed inset-y-0 left-0 z-50 lg:hidden shadow-lg"
+          >
             <Sidebar
               onNavigate={() => setDrawerOpen(false)}
               onClose={() => setDrawerOpen(false)}

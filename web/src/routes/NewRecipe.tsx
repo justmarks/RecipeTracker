@@ -1,15 +1,32 @@
+import { useCallback, useState } from "react";
 import { useNavigate, Navigate } from "react-router";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
+import { useToast } from "../lib/useToast";
 import { buildSearchTokens } from "shared";
 import type { RecipeInput } from "shared";
 import { RecipeForm } from "../components/RecipeForm";
-import { Button } from "../components/ui";
+import { Button, ConfirmDialog } from "../components/ui";
 
 export function NewRecipe() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
+
+  const [isDirty, setIsDirty] = useState(false);
+  const [pendingNav, setPendingNav] = useState<(() => void) | null>(null);
+
+  // Stable callback so RecipeForm's onDirtyChange effect doesn't churn.
+  const handleDirtyChange = useCallback((d: boolean) => setIsDirty(d), []);
+
+  function navIfClean(action: () => void) {
+    if (isDirty) {
+      setPendingNav(() => action);
+    } else {
+      action();
+    }
+  }
 
   if (loading) return null;
   if (!user) return <Navigate to="/" replace />;
@@ -23,7 +40,10 @@ export function NewRecipe() {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    navigate(`/recipes/${docRef.id}`);
+    toast.show(`Saved "${input.title}"`);
+    // replace so the browser Back button skips the form and goes to
+    // wherever the user came from (typically the list).
+    navigate(`/recipes/${docRef.id}`, { replace: true });
   }
 
   return (
@@ -31,7 +51,7 @@ export function NewRecipe() {
       <Button
         variant="ghost"
         icon="arrow-left"
-        onClick={() => navigate("/")}
+        onClick={() => navIfClean(() => navigate("/"))}
         className="px-0 mb-4"
       >
         Back
@@ -42,7 +62,25 @@ export function NewRecipe() {
       <RecipeForm
         submitLabel="Save recipe"
         onSubmit={onSubmit}
-        onCancel={() => navigate("/")}
+        onCancel={() => navIfClean(() => navigate("/"))}
+        onDirtyChange={handleDirtyChange}
+      />
+
+      <ConfirmDialog
+        open={pendingNav !== null}
+        title="Discard recipe?"
+        message="You haven't saved this recipe yet. Leave without saving?"
+        confirmLabel="Discard"
+        cancelLabel="Keep editing"
+        onCancel={() => setPendingNav(null)}
+        onConfirm={() => {
+          const go = pendingNav;
+          setPendingNav(null);
+          // Clear the local dirty flag so the navigation doesn't re-trigger
+          // the dialog from a quick double-Back race.
+          setIsDirty(false);
+          go?.();
+        }}
       />
     </div>
   );

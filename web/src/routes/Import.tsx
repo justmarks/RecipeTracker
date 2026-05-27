@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
+import { useToast } from "../lib/useToast";
 import { buildSearchTokens } from "shared";
 import type { RecipeInput } from "shared";
 import { parseMarkdown } from "../lib/importMarkdown";
@@ -47,6 +48,7 @@ Yield: 4 servings
 export function Import() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [params] = useSearchParams();
   const sharedUrl = params.get("url") ?? params.get("text") ?? "";
 
@@ -57,6 +59,8 @@ export function Import() {
   const [markdownText, setMarkdownText] = useState("");
   const [parsed, setParsed] = useState<Partial<RecipeInput> | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
+
+  const mdFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (sharedUrl && /^https?:\/\//i.test(sharedUrl)) {
@@ -126,7 +130,9 @@ export function Import() {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    navigate(`/recipes/${docRef.id}`);
+    toast.show(`Saved "${input.title}"`);
+    // replace so Back skips the import form and goes home.
+    navigate(`/recipes/${docRef.id}`, { replace: true });
   }
 
   return (
@@ -244,19 +250,26 @@ export function Import() {
                   >
                     Parse markdown
                   </Button>
-                  <label className="cursor-pointer font-sans text-[13px] text-tomato-600 hover:text-tomato-700 inline-flex items-center gap-1.5">
-                    <Icon name="upload" size={14} />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    icon="upload"
+                    onClick={() => mdFileRef.current?.click()}
+                  >
                     Upload .md file
-                    <input
-                      type="file"
-                      accept=".md,.markdown,text/markdown"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload(file);
-                      }}
-                      className="hidden"
-                    />
-                  </label>
+                  </Button>
+                  <input
+                    ref={mdFileRef}
+                    type="file"
+                    accept=".md,.markdown,text/markdown"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file);
+                      // Allow re-selecting the same file.
+                      if (mdFileRef.current) mdFileRef.current.value = "";
+                    }}
+                    className="hidden"
+                  />
                 </div>
               </section>
             </>
