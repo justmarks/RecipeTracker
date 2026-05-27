@@ -98,6 +98,33 @@ export function Chapters() {
         reorder freely — recipes in renamed chapters move with them.
       </p>
 
+      <section className="mb-6">
+        <Field label="Add a chapter">
+          <div className="flex gap-2">
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="e.g. brunch"
+              className="flex-1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAdd();
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleAdd}
+              disabled={adding || !newName.trim()}
+            >
+              {adding ? "Adding…" : "Add"}
+            </Button>
+          </div>
+        </Field>
+      </section>
+
       {loading ? (
         <p className="font-sans text-sm text-ink-500">Loading…</p>
       ) : chapters.length === 0 ? (
@@ -197,33 +224,6 @@ export function Chapters() {
           })}
         </ul>
       )}
-
-      <section className="mt-6">
-        <Field label="Add a chapter">
-          <div className="flex gap-2">
-            <Input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. brunch"
-              className="flex-1"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAdd();
-                }
-              }}
-            />
-            <Button
-              type="button"
-              variant="primary"
-              onClick={handleAdd}
-              disabled={adding || !newName.trim()}
-            >
-              {adding ? "Adding…" : "Add"}
-            </Button>
-          </div>
-        </Field>
-      </section>
 
       {error && (
         <div className="mt-4 rounded-md px-4 py-3 text-sm bg-tomato-50 text-tomato-700 border border-tomato-100">

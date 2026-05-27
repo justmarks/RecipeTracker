@@ -27,10 +27,27 @@
   font-style: italic;
   font-display: swap;
 }
-
-/* Manrope (UI sans) + JetBrains Mono (numbers) from Google Fonts CDN.
-   Drop TTFs into web/public/fonts/ and add @font-face above to self-host. */
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@font-face {
+  font-family: "Manrope";
+  src: url("fonts/Manrope-VariableFont_wght.ttf") format("truetype-variations");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("fonts/JetBrainsMono-VariableFont_wght.ttf") format("truetype-variations");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("fonts/JetBrainsMono-Italic-VariableFont_wght.ttf") format("truetype-variations");
+  font-weight: 100 800;
+  font-style: italic;
+  font-display: swap;
+}
 
 /* =============================================================
    Tailwind v4 @theme bridge
@@ -240,6 +257,105 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+
+  h1, .h1 {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 500;
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--fg-default);
+  }
+
+  h2, .h2 {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: 500;
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+    color: var(--fg-default);
+  }
+
+  h3, .h3 {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 500;
+    line-height: var(--leading-snug);
+    color: var(--fg-default);
+  }
+
+  h4, .h4 {
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    font-weight: 600;
+    line-height: var(--leading-snug);
+    color: var(--fg-default);
+  }
+
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    color: var(--fg-subtle);
+  }
+
+  .chapter-mark {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: var(--text-lg);
+    color: var(--accent);
+  }
+
+  .recipe-title {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+  }
+
+  .recipe-meta {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-feature-settings: "tnum";
+    color: var(--fg-muted);
+  }
+
+  p, .body {
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+    color: var(--fg-muted);
+  }
+
+  .step {
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    line-height: var(--leading-loose);
+    color: var(--fg-default);
+  }
+
+  .caption, small {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--fg-subtle);
+  }
+
+  code, kbd, .mono {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+  }
+
+  a {
+    color: var(--fg-link);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  a:hover { color: var(--fg-link-hover); }
 
   ::selection {
     background: var(--tomato-100);
