@@ -145,18 +145,13 @@ export function Import() {
           <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-2">
             Review imported recipe
           </h1>
-          <p className="font-sans text-sm text-ink-700 m-0 mb-6">
-            Claude returned the recipe below. Tweak anything that looks
-            off, then save.
-          </p>
 
           <div className="mb-5 flex items-start gap-2.5 rounded-md bg-saffron-100 px-3.5 py-3 text-saffron-700 font-sans text-[13px]">
             <span className="shrink-0 mt-0.5">
               <Icon name="sparkles" size={16} />
             </span>
             <span>
-              Review the parsed recipe below and save when you&apos;re happy
-              with it.
+              Claude returned the recipe below.  Tweak anything that looks off, then save.
             </span>
           </div>
 
@@ -185,7 +180,7 @@ export function Import() {
               <span className="text-tomato-500">
                 <Icon name="sparkles" size={11} />
               </span>
-              AI from URL
+              Extract w/AI from URL
             </Eyebrow>
             <div className="flex gap-2">
               <Input
@@ -209,8 +204,7 @@ export function Import() {
               </p>
             )}
             <p className="mt-2 font-sans text-xs text-ink-500">
-              We fetch the page and ask Claude to extract the recipe.
-              Review the result before saving.
+              We will extract the recipe using Claude and allow you to review the results before saving.
             </p>
           </section>
 
