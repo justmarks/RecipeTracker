@@ -53,18 +53,31 @@ export function Import() {
   const [urlInput, setUrlInput] = useState(sharedUrl);
   const [fetchingUrl, setFetchingUrl] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [autoFetched, setAutoFetched] = useState(false);
 
   const [markdownText, setMarkdownText] = useState("");
   const [parsed, setParsed] = useState<Partial<RecipeInput> | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
 
   const mdFileRef = useRef<HTMLInputElement>(null);
+  const autoFetchRef = useRef(false);
 
+  // Share-target landings: if the manifest's share_target handed us a
+  // URL (via ?url= or ?text= containing an http(s) link), skip the
+  // "click Fetch" step entirely. Auto-fire the import once on mount and
+  // show a progress screen while Claude works.
   useEffect(() => {
-    if (sharedUrl && /^https?:\/\//i.test(sharedUrl)) {
-      setUrlInput(sharedUrl);
-    }
-  }, [sharedUrl]);
+    if (autoFetchRef.current) return;
+    if (!user) return;
+    if (!sharedUrl || !/^https?:\/\//i.test(sharedUrl)) return;
+    autoFetchRef.current = true;
+    setUrlInput(sharedUrl);
+    setAutoFetched(true);
+    void fetchUrl(sharedUrl);
+    // fetchUrl is stable for this render — guarded by autoFetchRef so it
+    // only runs once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedUrl, user]);
 
   // When share-target supplied a URL and we haven't parsed yet, keep the
   // page focused on the URL fetcher — the user came here intending to
@@ -77,13 +90,8 @@ export function Import() {
   if (loading) return null;
   if (!user) return <Navigate to="/" replace />;
 
-  async function handleFetchUrl() {
-    const url = urlInput.trim();
+  async function fetchUrl(url: string) {
     setUrlError(null);
-    if (!/^https?:\/\//i.test(url)) {
-      setUrlError("Enter a valid http(s) URL.");
-      return;
-    }
     setFetchingUrl(true);
     try {
       const result = await callImportFromUrl({ url });
@@ -92,9 +100,21 @@ export function Import() {
       console.error("importFromUrl:", err);
       const message = err instanceof Error ? err.message : String(err);
       setUrlError(message);
+      // Auto-fetch failed — drop back to the manual screen so the user
+      // can edit the URL and retry. The error renders inline on the card.
+      setAutoFetched(false);
     } finally {
       setFetchingUrl(false);
     }
+  }
+
+  async function handleFetchUrl() {
+    const url = urlInput.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      setUrlError("Enter a valid http(s) URL.");
+      return;
+    }
+    await fetchUrl(url);
   }
 
   async function handleFileUpload(file: File) {
@@ -134,18 +154,22 @@ export function Import() {
     navigate(`/recipes/${docRef.id}`, { replace: true });
   }
 
+  const showProgress = autoFetched && fetchingUrl && !parsed;
+
   return (
     <div className="mx-auto max-w-[640px] px-6 py-8 lg:px-10 lg:py-10">
       <Button
         variant="ghost"
         icon="arrow-left"
-        onClick={() => navigate(parsed ? "/" : "/")}
+        onClick={() => navigate("/")}
         className="px-0 mb-4"
       >
         Back
       </Button>
 
-      {parsed ? (
+      {showProgress ? (
+        <ImportProgress url={urlInput} />
+      ) : parsed ? (
         <>
           <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-2">
             Review imported recipe
@@ -301,6 +325,40 @@ function isIOS(): boolean {
     navigator.platform === "MacIntel" &&
     typeof navigator.maxTouchPoints === "number" &&
     navigator.maxTouchPoints > 1
+  );
+}
+
+/**
+ * Full-screen progress state for share-target imports. Replaces the
+ * import options entirely while Claude fetches and parses the URL, so
+ * the user never has to tap "Fetch with AI" — they just see progress
+ * and land in the review form when it resolves.
+ */
+function ImportProgress({ url }: { url: string }) {
+  let host = url;
+  try {
+    host = new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    // fall back to raw URL
+  }
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex flex-col items-center justify-center py-16 text-center"
+    >
+      <span className="mb-5 text-tomato-500 animate-spin">
+        <Icon name="sparkles" size={32} />
+      </span>
+      <h1 className="font-display text-[28px] sm:text-[32px] font-medium leading-[1.15] tracking-[-0.015em] text-ink-900 m-0 mb-2">
+        Importing recipe…
+      </h1>
+      <p className="font-sans text-sm text-ink-500 m-0 max-w-[28ch]">
+        Asking Claude to read{" "}
+        <span className="font-medium text-ink-700">{host}</span> and pull out
+        the recipe.
+      </p>
+    </div>
   );
 }
 

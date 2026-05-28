@@ -4,6 +4,8 @@
 //   /public/icons/icon-{192,256,384,512}.png            — "any" purpose
 //   /public/icons/icon-maskable-{192,512}.png           — "maskable" purpose
 //   /public/icons/apple-touch-icon-180.png              — iOS home screen
+//   /public/icons/shortcut-new-96.png                   — "New recipe" jump-list icon
+//   /public/icons/shortcut-import-96.png                — "Import from URL" jump-list icon
 //
 // "any" icons render the source SVG straight: rounded corners, original
 // composition. "maskable" icons drop the rounded corners and inset the
@@ -114,5 +116,34 @@ console.log("Rendering favicon raster fallbacks:");
 const publicDir = resolve(here, "..", "public");
 await render(monogramSvg, 32, join(publicDir, "favicon-32.png"));
 await render(monogramSvg, 16, join(publicDir, "favicon-16.png"));
+
+// Manifest shortcut icons. The OS jump list / right-click context menu
+// renders these at 96px alongside short labels, so the artwork has to
+// read well at that scale — solid tomato circle with a heavy cream
+// glyph, mirroring the monogram pattern rather than the full app icon.
+const shortcutNewSvg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <circle cx="60" cy="60" r="58" fill="#C8553D"/>
+  <g stroke="#FBF6EE" stroke-width="9" stroke-linecap="round" fill="none">
+    <line x1="60" y1="38" x2="60" y2="82"/>
+    <line x1="38" y1="60" x2="82" y2="60"/>
+  </g>
+</svg>`;
+
+// Sparkles tie back to the "Fetch with AI" branding on the import card.
+const shortcutImportSvg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <circle cx="60" cy="60" r="58" fill="#C8553D"/>
+  <path d="M60 28 L67.5 58 L97.5 65.5 L67.5 73 L60 103 L52.5 73 L22.5 65.5 L52.5 58 Z"
+        fill="#FBF6EE" stroke="#FBF6EE" stroke-width="3" stroke-linejoin="round"/>
+</svg>`;
+
+console.log("Rendering shortcut icons:");
+await render(Buffer.from(shortcutNewSvg), 96, join(outDir, "shortcut-new-96.png"));
+await render(
+  Buffer.from(shortcutImportSvg),
+  96,
+  join(outDir, "shortcut-import-96.png"),
+);
 
 console.log("Done.");

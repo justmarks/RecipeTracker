@@ -9,6 +9,7 @@ import {
   Eyebrow,
   Icon,
   PhotoFrame,
+  Select,
   SprigDivider,
   Tag,
   tagToneFor,
@@ -173,15 +174,16 @@ export function Home() {
               </p>
             )}
           </div>
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-            className="font-sans text-sm text-ink-700 bg-white border border-paper-400 rounded-md px-3 py-2.5 cursor-pointer transition-colors duration-100 focus:border-tomato-500 focus:shadow-[var(--shadow-focus)] focus:outline-none shrink-0"
-            aria-label="Sort order"
-          >
-            <option value="alpha">A → Z</option>
-            <option value="recent">Recent first</option>
-          </select>
+          <div className="shrink-0">
+            <Select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+              aria-label="Sort order"
+            >
+              <option value="alpha">A → Z</option>
+              <option value="recent">Recent first</option>
+            </Select>
+          </div>
         </div>
       )}
 
