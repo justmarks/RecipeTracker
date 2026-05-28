@@ -365,3 +365,69 @@
     color: var(--ink-900);
   }
 }
+
+/* =============================================================
+   Print / "Export as PDF"
+   The PDF button on the recipe page calls window.print(). Browsers
+   route that through the same engine as their "Save as PDF" dest,
+   so this stylesheet is what every exported PDF looks like.
+
+   Chrome (sidebars, headers, action buttons, PWA toasts, drawer)
+   already opts out via `print:hidden` Tailwind classes on those
+   wrappers — see Layout.tsx and RecipeDetail.tsx. This block
+   handles paper sizing, color preservation, and page-break hints
+   for the recipe article itself.
+   ============================================================= */
+@media print {
+  @page {
+    size: Letter;
+    margin: 0.6in 0.7in;
+  }
+
+  html, body {
+    background: white !important;
+  }
+
+  /* Tailwind's print:hidden already does this, but belt-and-braces
+     in case someone adds chrome that forgets the utility. */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Force color preservation so tomato dots, italic numerals, and the
+     saffron notes card don't print as flat grayscale, and strip the
+     warm-tinted shadows which print as visible boxes. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+  }
+
+  /* Let the article use the full printable area instead of the
+     720px max-width that's right for a screen but cramped on paper. */
+  main, article {
+    max-width: none !important;
+  }
+
+  /* Keep tightly-related blocks together when paginating. */
+  section, li {
+    break-inside: avoid;
+  }
+  h1, h2 {
+    break-after: avoid;
+  }
+
+  /* Photos: cap so a hero shot doesn't push instructions to page 2
+     on its own. */
+  article img {
+    max-height: 3in !important;
+    page-break-inside: avoid;
+  }
+
+  /* Source URLs / ingredient links should be legible on paper, not
+     muted tomato red on dark paper background. */
+  a {
+    color: var(--ink-900) !important;
+    text-decoration: underline;
+  }
+}

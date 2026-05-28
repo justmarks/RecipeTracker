@@ -98,6 +98,29 @@ export function RecipeDetail() {
     else navigate("/");
   }
 
+  /**
+   * Export the current recipe as a PDF via the browser's native print
+   * → "Save as PDF" flow. Zero deps, preserves Newsreader typography,
+   * and works on every platform (iOS Safari included — though iOS's
+   * Print → pinch-to-PDF → Share dance is clunkier than desktop).
+   *
+   * We swap `document.title` temporarily so the default saved
+   * filename is "Roasted Tomato Soup.pdf" instead of "MarksRecipeBook.pdf".
+   * Filename-illegal characters are stripped because some OSes will
+   * silently refuse the save otherwise.
+   */
+  function handlePrint() {
+    if (!recipe) return;
+    const previousTitle = document.title;
+    document.title = (recipe.title || "Recipe").replace(/[\\/:*?"<>|]/g, " ").trim();
+    const restore = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    window.print();
+  }
+
   async function handleDelete() {
     if (!id || !recipe) return;
     setDeleting(true);
@@ -138,37 +161,55 @@ export function RecipeDetail() {
     recipe.totalTime && { label: "Total", value: recipe.totalTime },
   ].filter((x): x is { label: string; value: string } => Boolean(x));
 
-  const actionButtons = isOwner ? (
+  // PDF export is available to everyone who can view the recipe
+  // (owners and people it's shared with). The other actions are
+  // owner-only.
+  const actionButtons = (
     <div className="flex items-center gap-2 shrink-0">
-      <Link to={`/recipes/${id}/edit`} className="no-underline">
-        <Button variant="secondary" icon="pencil" size="sm" type="button">
-          Edit
+      {isOwner && (
+        <Link to={`/recipes/${id}/edit`} className="no-underline">
+          <Button variant="secondary" icon="pencil" size="sm" type="button">
+            Edit
+          </Button>
+        </Link>
+      )}
+      {isOwner && (
+        <Button
+          type="button"
+          variant="secondary"
+          icon="share-2"
+          size="sm"
+          onClick={() => setShareOpen(true)}
+        >
+          Share
         </Button>
-      </Link>
+      )}
       <Button
         type="button"
         variant="secondary"
-        icon="share-2"
+        icon="download"
         size="sm"
-        onClick={() => setShareOpen(true)}
+        onClick={handlePrint}
       >
-        Share
+        PDF
       </Button>
-      <Button
-        type="button"
-        variant="danger"
-        icon="trash"
-        size="sm"
-        onClick={() => setShowDeleteConfirm(true)}
-      >
-        Delete
-      </Button>
+      {isOwner && (
+        <Button
+          type="button"
+          variant="danger"
+          icon="trash"
+          size="sm"
+          onClick={() => setShowDeleteConfirm(true)}
+        >
+          Delete
+        </Button>
+      )}
     </div>
-  ) : null;
+  );
 
   return (
     <article className="mx-auto max-w-[720px] px-6 py-8 lg:px-10 lg:py-10">
-      <div className="flex items-center justify-between gap-3 mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4 print:hidden">
         <Button
           variant="ghost"
           icon="arrow-left"

@@ -40,7 +40,7 @@ export function Layout() {
   return (
     <div className="min-h-screen bg-paper-100">
       {/* Mobile top bar — visible only below lg */}
-      <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-paper-300 bg-paper-50">
+      <div className="lg:hidden print:hidden flex items-center justify-between px-4 py-3 border-b border-paper-300 bg-paper-50">
         <Link to="/" className="no-underline min-w-0">
           <Brand size={28} />
         </Link>
@@ -56,7 +56,7 @@ export function Layout() {
 
       {/* Desktop layout — sidebar + main side by side */}
       <div className="lg:flex">
-        <div className="hidden lg:block">
+        <div className="hidden lg:block print:hidden">
           <Sidebar />
         </div>
         <main className="flex-1 min-w-0">
@@ -67,13 +67,15 @@ export function Layout() {
       {/* PWA affordances (update toast, offline-ready toast, install
           button). Mounted once at the shell level so they survive
           route changes. */}
-      <PwaPrompts />
+      <div className="print:hidden">
+        <PwaPrompts />
+      </div>
 
       {/* Mobile drawer overlay */}
       {drawerOpen && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-ink-900/50 lg:hidden"
+            className="fixed inset-0 z-40 bg-ink-900/50 lg:hidden print:hidden"
             onClick={() => setDrawerOpen(false)}
             aria-hidden="true"
           />
@@ -82,7 +84,7 @@ export function Layout() {
             role="dialog"
             aria-modal="true"
             aria-label="Navigation"
-            className="fixed inset-y-0 left-0 z-50 lg:hidden shadow-lg"
+            className="fixed inset-y-0 left-0 z-50 lg:hidden print:hidden shadow-lg"
           >
             <Sidebar
               onNavigate={() => setDrawerOpen(false)}

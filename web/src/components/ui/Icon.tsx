@@ -35,7 +35,8 @@ export type IconName =
   | "bookmark"
   | "file-text"
   | "share-2"
-  | "mail";
+  | "mail"
+  | "download";
 
 const ICON_PATHS: Record<IconName, ReactElement> = {
   plus: (
@@ -170,6 +171,13 @@ const ICON_PATHS: Record<IconName, ReactElement> = {
     <>
       <rect x="3" y="5" width="18" height="14" rx="2" />
       <polyline points="3 7 12 13 21 7" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M3 17 v3 a1 1 0 0 0 1 1 h16 a1 1 0 0 0 1-1 v-3" />
+      <polyline points="7 12 12 17 17 12" />
+      <line x1="12" y1="3" x2="12" y2="17" />
     </>
   ),
 };
