@@ -9,6 +9,7 @@ import {
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
+import { useFavorites } from "../lib/favorites";
 import { Brand } from "./Brand";
 import { Button, Eyebrow, Icon } from "./ui";
 
@@ -34,9 +35,11 @@ interface SidebarProps {
 export function Sidebar({ onNavigate, onClose }: SidebarProps) {
   const { user, signOut } = useAuth();
   const { chapters } = useChapters(user?.uid);
+  const { favorites } = useFavorites(user?.uid);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const activeChapter = params.get("chapter") ?? "";
+  const favoritesActive = params.get("favorites") === "1";
 
   // Subscribe to recipe counts for the badge next to each chapter.
   // Lightweight — we only need the category strings.
@@ -129,16 +132,27 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
         <ChapterButton
           name="All recipes"
           count={totalCount}
-          active={activeChapter === ""}
+          active={activeChapter === "" && !favoritesActive}
           onClick={() => go("/")}
           italic
+        />
+        <ChapterButton
+          name="Favorites"
+          count={favorites.size}
+          active={favoritesActive}
+          onClick={() => go("/?favorites=1")}
+          italic
+          icon="heart"
         />
         {chapters.map((c) => (
           <ChapterButton
             key={c}
             name={c}
             count={counts[c.toLowerCase()] ?? 0}
-            active={activeChapter.toLowerCase() === c.toLowerCase()}
+            active={
+              !favoritesActive &&
+              activeChapter.toLowerCase() === c.toLowerCase()
+            }
             onClick={() => go(`/?chapter=${encodeURIComponent(c)}`)}
           />
         ))}
@@ -201,6 +215,8 @@ interface ChapterButtonProps {
   count: number;
   active: boolean;
   italic?: boolean;
+  /** Optional leading icon — used to mark "Favorites" with a heart. */
+  icon?: "heart";
   onClick: () => void;
 }
 
@@ -209,6 +225,7 @@ function ChapterButton({
   count,
   active,
   italic = false,
+  icon,
   onClick,
 }: ChapterButtonProps) {
   const base =
@@ -218,10 +235,20 @@ function ChapterButton({
     : "bg-transparent text-ink-700 font-medium hover:bg-paper-200";
   return (
     <button type="button" onClick={onClick} className={`${base} ${state}`}>
-      <span
-        className={italic ? "font-display italic text-[15px]" : "capitalize"}
-      >
-        {name}
+      <span className="inline-flex items-center gap-2 min-w-0">
+        {icon === "heart" && (
+          <Icon
+            name="heart"
+            size={14}
+            filled={active}
+            className={active ? "text-tomato-500" : "text-tomato-500/70"}
+          />
+        )}
+        <span
+          className={italic ? "font-display italic text-[15px]" : "capitalize"}
+        >
+          {name}
+        </span>
       </span>
       <span className="font-mono text-[11px] text-ink-300 [font-feature-settings:'tnum']">
         {count}

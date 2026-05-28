@@ -36,7 +36,8 @@ export type IconName =
   | "file-text"
   | "share-2"
   | "mail"
-  | "download";
+  | "download"
+  | "heart";
 
 const ICON_PATHS: Record<IconName, ReactElement> = {
   plus: (
@@ -180,14 +181,29 @@ const ICON_PATHS: Record<IconName, ReactElement> = {
       <line x1="12" y1="3" x2="12" y2="17" />
     </>
   ),
+  heart: (
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+  ),
 };
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {
   name: IconName;
   size?: number;
+  /**
+   * Fill the icon with currentColor instead of outline-only. Used for
+   * stateful icons like a favorited heart. Stroke stays so the shape
+   * stays crisp on light backgrounds.
+   */
+  filled?: boolean;
 }
 
-export function Icon({ name, size = 20, className, ...rest }: IconProps) {
+export function Icon({
+  name,
+  size = 20,
+  className,
+  filled = false,
+  ...rest
+}: IconProps) {
   const path = ICON_PATHS[name];
   if (!path) return null;
   return (
@@ -195,7 +211,7 @@ export function Icon({ name, size = 20, className, ...rest }: IconProps) {
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
       strokeWidth={1.5}
       strokeLinecap="round"

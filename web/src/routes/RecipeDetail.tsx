@@ -4,6 +4,7 @@ import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import type { DocumentData } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
+import { useFavorites } from "../lib/favorites";
 import { useToast } from "../lib/useToast";
 import { renderInlineMarkdown, renderMarkdownBlock } from "../lib/inlineMarkdown";
 import type { RecipeSource, Section } from "shared";
@@ -66,6 +67,8 @@ export function RecipeDetail() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const { favorites, toggle: toggleFavorite } = useFavorites(user?.uid);
+  const isFavorited = id ? favorites.has(id) : false;
   const [recipe, setRecipe] = useState<StoredRecipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -161,11 +164,33 @@ export function RecipeDetail() {
     recipe.totalTime && { label: "Total", value: recipe.totalTime },
   ].filter((x): x is { label: string; value: string } => Boolean(x));
 
-  // PDF export is available to everyone who can view the recipe
-  // (owners and people it's shared with). The other actions are
-  // owner-only.
+  // Favorite + PDF are personal actions, available to everyone who can
+  // view the recipe (owners and people it's shared with). Edit / Share /
+  // Delete are owner-only.
   const actionButtons = (
     <div className="flex items-center gap-2 shrink-0">
+      {id && (
+        <Button
+          type="button"
+          variant="secondary"
+          icon="heart"
+          iconFilled={isFavorited}
+          size="sm"
+          onClick={() => {
+            void toggleFavorite(id).catch((err) => {
+              toast.show(
+                err instanceof Error
+                  ? `Couldn't update favorite: ${err.message}`
+                  : "Couldn't update favorite.",
+              );
+            });
+          }}
+          aria-pressed={isFavorited}
+          className={isFavorited ? "text-tomato-600" : undefined}
+        >
+          {isFavorited ? "Favorited" : "Favorite"}
+        </Button>
+      )}
       {isOwner && (
         <Link to={`/recipes/${id}/edit`} className="no-underline">
           <Button variant="secondary" icon="pencil" size="sm" type="button">

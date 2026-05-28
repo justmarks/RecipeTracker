@@ -73,6 +73,30 @@ service cloud.firestore {
 
     // ---------- Auto-shares ----------
 
+    // ---------- Favorites ----------
+
+    // favorites/{uid}_{recipeId} — per-user favorites. Deterministic doc id
+    // makes toggle / existence checks O(1). The doc id prefix is the
+    // authoritative ownership check; the uid field in the body is just a
+    // convenience for queries.
+    match /favorites/{favoriteId} {
+      allow read: if isSignedIn()
+        && favoriteId.matches('^' + request.auth.uid + '_.*');
+
+      allow create: if isSignedIn()
+        && favoriteId.matches('^' + request.auth.uid + '_.*')
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.recipeId is string
+        && request.resource.data.recipeId.size() > 0
+        && request.resource.data.createdAt is timestamp;
+
+      allow delete: if isSignedIn()
+        && favoriteId.matches('^' + request.auth.uid + '_.*');
+
+      // Favorites are create + delete only — no mutation.
+      allow update: if false;
+    }
+
     match /autoShares/{shareId} {
       // Owner can manage their grants; grantee can read grants targeting them
       // (needed for the recipe-list query that fans out across granted owners).

@@ -9,6 +9,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: Size;
   icon?: IconName;
   iconRight?: IconName;
+  /**
+   * Render the leading `icon` filled instead of outline-only. Used for
+   * stateful affordances like a favorited heart so the same icon name
+   * can express both states.
+   */
+  iconFilled?: boolean;
   children?: ReactNode;
 }
 
@@ -44,6 +50,7 @@ export function Button({
   size = "md",
   icon,
   iconRight,
+  iconFilled = false,
   className = "",
   type = "button",
   children,
@@ -67,7 +74,7 @@ export function Button({
 
   return (
     <button type={type} className={classes} {...rest}>
-      {icon && <Icon name={icon} size={ICON_SIZE[size]} />}
+      {icon && <Icon name={icon} size={ICON_SIZE[size]} filled={iconFilled} />}
       {children}
       {iconRight && <Icon name={iconRight} size={ICON_SIZE[size]} />}
     </button>

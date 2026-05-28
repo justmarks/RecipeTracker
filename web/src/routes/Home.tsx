@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
+import { useFavorites } from "../lib/favorites";
 import { useRecipeList } from "../lib/queryRecipes";
 import type { RecipeListItem } from "../lib/queryRecipes";
+import { useToast } from "../lib/useToast";
 import {
   Button,
   Eyebrow,
@@ -34,8 +36,11 @@ type SortOrder = "alpha" | "recent";
 export function Home() {
   const { user } = useAuth();
   const { chapters } = useChapters(user?.uid);
+  const { favorites, toggle: toggleFavorite } = useFavorites(user?.uid);
+  const toast = useToast();
   const [params] = useSearchParams();
   const activeChapter = params.get("chapter") ?? "";
+  const favoritesOnly = params.get("favorites") === "1";
 
   // Merged stream of recipes I own + recipes explicitly shared with me +
   // recipes auto-shared with me. The hook handles the three-way fan-out.
@@ -53,9 +58,15 @@ export function Home() {
     [search],
   );
 
-  // 1. URL chapter scope → 2. search filter (AND, prefix on tokens+tags+category)
+  // 1. favorites filter → 2. chapter scope → 3. search (AND-prefix match
+  //    across tokens + tags + category). Favorites and chapter scope are
+  //    mutually exclusive in the UI (only one is active at a time via the
+  //    sidebar), but the pipeline composes either way.
   const filtered = useMemo(() => {
     let arr = recipes;
+    if (favoritesOnly) {
+      arr = arr.filter((r) => favorites.has(r.id));
+    }
     if (activeChapter) {
       const want = activeChapter.toLowerCase();
       arr = arr.filter((r) => r.category.toLowerCase() === want);
@@ -69,7 +80,7 @@ export function Home() {
       });
     }
     return arr;
-  }, [recipes, queryTokens, activeChapter]);
+  }, [recipes, queryTokens, activeChapter, favoritesOnly, favorites]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -109,10 +120,10 @@ export function Home() {
         <Eyebrow>Cookbook</Eyebrow>
         <div className="mt-1 flex items-end justify-between gap-3 sm:gap-5">
           <h1 className="font-display text-[28px] sm:text-[38px] font-medium leading-[1.1] tracking-[-0.015em] text-ink-900 m-0 capitalize truncate min-w-0 flex-1">
-            {activeChapter || "All recipes"}
+            {favoritesOnly ? "Favorites" : activeChapter || "All recipes"}
           </h1>
           <div className="flex items-center gap-2 shrink-0">
-            {activeChapter && (
+            {(activeChapter || favoritesOnly) && (
               <Link
                 to="/"
                 className="hidden sm:inline text-sm text-tomato-600 hover:text-tomato-700 no-underline whitespace-nowrap mr-1"
@@ -132,7 +143,7 @@ export function Home() {
             </Link>
           </div>
         </div>
-        {activeChapter && (
+        {(activeChapter || favoritesOnly) && (
           <Link
             to="/"
             className="sm:hidden mt-2 inline-block text-sm text-tomato-600 hover:text-tomato-700 no-underline"
@@ -187,31 +198,111 @@ export function Home() {
         </div>
       )}
 
-      {recipes.length === 0 ? (
-        <EmptyState />
-      ) : searching && matchCount === 0 ? (
-        <p className="font-sans text-sm text-ink-700 text-center py-12">
-          No recipes match &ldquo;{search}&rdquo;.
-        </p>
-      ) : activeChapter ? (
-        <RecipeList recipes={sorted} />
-      ) : (
-        <>
-          <RecentlyAdded recipes={recipes} />
-          <div className="flex flex-col gap-9">
-            {chapters.map((chapter) => {
-              const items = byChapter.groups.get(chapter.toLowerCase()) ?? [];
-              if (items.length === 0) return null;
-              return (
-                <ChapterSection key={chapter} name={chapter} recipes={items} />
+      <FavoriteContext.Provider
+        value={{
+          favorites,
+          onToggle: (recipeId) => {
+            void toggleFavorite(recipeId).catch((err) => {
+              toast.show(
+                err instanceof Error
+                  ? `Couldn't update favorite: ${err.message}`
+                  : "Couldn't update favorite.",
               );
-            })}
-            {byChapter.orphans.length > 0 && (
-              <ChapterSection name="Other" recipes={byChapter.orphans} italic />
-            )}
-          </div>
-        </>
-      )}
+            });
+          },
+        }}
+      >
+        {recipes.length === 0 ? (
+          <EmptyState />
+        ) : searching && matchCount === 0 ? (
+          <p className="font-sans text-sm text-ink-700 text-center py-12">
+            No recipes match &ldquo;{search}&rdquo;.
+          </p>
+        ) : favoritesOnly ? (
+          sorted.length === 0 ? (
+            <FavoritesEmptyState />
+          ) : (
+            <RecipeList recipes={sorted} />
+          )
+        ) : activeChapter ? (
+          <RecipeList recipes={sorted} />
+        ) : (
+          <>
+            <RecentlyAdded recipes={recipes} />
+            <FavoritesSection
+              recipes={recipes.filter((r) => favorites.has(r.id))}
+            />
+            <div className="flex flex-col gap-9">
+              {chapters.map((chapter) => {
+                const items =
+                  byChapter.groups.get(chapter.toLowerCase()) ?? [];
+                if (items.length === 0) return null;
+                return (
+                  <ChapterSection
+                    key={chapter}
+                    name={chapter}
+                    recipes={items}
+                  />
+                );
+              })}
+              {byChapter.orphans.length > 0 && (
+                <ChapterSection
+                  name="Other"
+                  recipes={byChapter.orphans}
+                  italic
+                />
+              )}
+            </div>
+          </>
+        )}
+      </FavoriteContext.Provider>
+    </div>
+  );
+}
+
+/**
+ * Context that makes `favorites` membership + the toggle handler
+ * available to deeply-nested `RecipeRow`s without prop-drilling
+ * through `RecipeList` and `ChapterSection`. Only valid inside the
+ * Home tree — outside, the heart button is hidden by default.
+ */
+const FavoriteContext = createContext<{
+  favorites: Set<string>;
+  onToggle: (recipeId: string) => void;
+} | null>(null);
+
+/**
+ * Favorites section — sits between "Recently added" and the chapter
+ * sections on the unscoped Home view. Hidden when the user hasn't
+ * favorited anything yet, so a new user doesn't see an empty section
+ * before they've discovered the feature.
+ */
+function FavoritesSection({ recipes }: { recipes: RecipeSummary[] }) {
+  if (recipes.length === 0) return null;
+  return (
+    <section className="mb-10">
+      <h2 className="flex items-center gap-2.5 border-b border-paper-300 pb-2 font-display text-[22px] font-medium m-0 mb-3 text-ink-900">
+        <Icon name="heart" size={18} filled className="text-tomato-500" />
+        Favorites
+        <span className="font-mono text-xs font-normal text-ink-300 [font-feature-settings:'tnum']">
+          {recipes.length}
+        </span>
+      </h2>
+      <RecipeList recipes={recipes} />
+    </section>
+  );
+}
+
+function FavoritesEmptyState() {
+  return (
+    <div className="text-center py-16">
+      <SprigDivider className="opacity-50 mb-4" />
+      <p className="font-display italic text-[22px] text-ink-700 m-0">
+        No favorites yet.
+      </p>
+      <p className="font-sans text-sm text-ink-500 mt-2 max-w-[360px] mx-auto">
+        Tap the heart on any recipe to keep it within easy reach here.
+      </p>
     </div>
   );
 }
@@ -356,17 +447,29 @@ function RecipeList({ recipes }: { recipes: RecipeSummary[] }) {
 function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
   const hasMeta =
     recipe.totalTime || recipe.tags.length > 0 || recipe.access !== "owned";
+  const favoriteCtx = useContext(FavoriteContext);
+  const isFav = favoriteCtx?.favorites.has(recipe.id) ?? false;
+
+  // Overlay-link pattern: the row is a relative-positioned div, the
+  // `<Link>` is absolutely positioned across the whole row at z-0, and
+  // any interactive controls (favorite toggle) sit at z-10 so clicks
+  // hit them instead of bubbling to the link. This sidesteps the
+  // invalid-HTML problem of nesting a <button> inside an <a>.
   return (
-    <Link
-      to={`/recipes/${recipe.id}`}
+    <div
       className={[
-        "group flex items-center gap-3.5 w-full text-left no-underline",
+        "group relative flex items-center gap-3.5 w-full",
         "border-b border-[var(--border-faint)] last:border-b-0",
         "px-3 py-3",
         "hover:bg-paper-200 hover:rounded-md hover:border-transparent",
         "transition-colors duration-100",
       ].join(" ")}
     >
+      <Link
+        to={`/recipes/${recipe.id}`}
+        aria-label={`Open ${recipe.title}`}
+        className="absolute inset-0 z-0 rounded-md no-underline"
+      />
       <PhotoFrame
         src={recipe.photoUrl}
         alt=""
@@ -415,9 +518,32 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
           </div>
         )}
       </div>
-      <span className="text-ink-300 shrink-0 group-hover:text-ink-500 transition-colors duration-100">
+      {favoriteCtx && (
+        <button
+          type="button"
+          onClick={(e) => {
+            // The button sits above the overlay link in the stacking
+            // context, so this click never reaches it — but stop just
+            // in case a future style change drops z-index.
+            e.stopPropagation();
+            favoriteCtx.onToggle(recipe.id);
+          }}
+          aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+          aria-pressed={isFav}
+          className={[
+            "relative z-10 shrink-0 p-1.5 rounded-md transition-colors duration-100",
+            isFav
+              ? "text-tomato-500 hover:text-tomato-600"
+              : "text-ink-300 hover:text-tomato-500",
+            "hover:bg-paper-300/60",
+          ].join(" ")}
+        >
+          <Icon name="heart" size={18} filled={isFav} />
+        </button>
+      )}
+      <span className="relative z-0 text-ink-300 shrink-0 group-hover:text-ink-500 transition-colors duration-100">
         <Icon name="chevron-right" size={18} />
       </span>
-    </Link>
+    </div>
   );
 }

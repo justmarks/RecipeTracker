@@ -18,6 +18,23 @@ export const DEFAULT_CHAPTERS = [
 // is auto-added to the user's list on first need and can't be deleted itself.
 export const UNCATEGORIZED_CHAPTER = "uncategorized";
 
+/**
+ * Favorites live in their own top-level collection at
+ *   favorites/{uid}_{recipeId}
+ * with a deterministic doc id so existence checks and toggles are O(1)
+ * (mirrors the autoShares pattern). A favorite is per-user, not per-
+ * recipe, so two users viewing the same shared recipe can favorite it
+ * independently without touching the recipe doc.
+ */
+export const favoriteDocId = (uid: string, recipeId: string): string =>
+  `${uid}_${recipeId}`;
+
+export type Favorite = {
+  uid: string;
+  recipeId: string;
+  createdAt: unknown; // Firestore Timestamp on read; serverTimestamp() on write
+};
+
 export const RecipeSourceSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("url"),
