@@ -180,6 +180,19 @@ export function Import() {
             before saving.
           </p>
 
+          {isIOS() && (
+            <div className="mb-5 flex items-start gap-2.5 rounded-md bg-paper-200 px-3.5 py-3 text-ink-700 font-sans text-[13px]">
+              <span className="shrink-0 mt-0.5 text-ink-500">
+                <Icon name="link" size={14} />
+              </span>
+              <span>
+                On iPhone / iPad, the system share sheet can't open this
+                app directly — Safari doesn't support it yet. Copy the
+                recipe URL from your browser and paste it below.
+              </span>
+            </div>
+          )}
+
           <div className="flex flex-col gap-4">
             <ImportCard
               eyebrowIcon="sparkles"
@@ -264,6 +277,30 @@ export function Import() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Detect iOS Safari / Chrome / Firefox — all three use WebKit under the
+ * hood and none of them implement the Web Share Target API. When this
+ * returns true we show a "copy the URL and paste it here" hint so users
+ * understand why MarksRecipeBook doesn't appear in their share sheet.
+ *
+ * Modern iPadOS reports "MacIntel" as platform with touch support — we
+ * detect that case explicitly. Desktop Safari is unaffected (its share
+ * sheet is identical to iOS but PWA install isn't the use case there).
+ *
+ * @return {boolean} True when the running browser is an iOS WebKit.
+ */
+function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua)) return true;
+  // iPadOS 13+ desktop-class Safari
+  return (
+    navigator.platform === "MacIntel" &&
+    typeof navigator.maxTouchPoints === "number" &&
+    navigator.maxTouchPoints > 1
   );
 }
 

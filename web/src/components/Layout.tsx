@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { Brand } from "./Brand";
 import { Sidebar } from "./Sidebar";
+import { PwaPrompts } from "./PwaPrompts";
 import { useFocusTrap } from "../lib/useFocusTrap";
 
 /**
@@ -62,6 +63,11 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* PWA affordances (update toast, offline-ready toast, install
+          button). Mounted once at the shell level so they survive
+          route changes. */}
+      <PwaPrompts />
 
       {/* Mobile drawer overlay */}
       {drawerOpen && (

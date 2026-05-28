@@ -34,7 +34,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt" — when a new service worker is waiting, we ask the user
+      // before reloading. Silent auto-update is too disruptive mid-cooking
+      // (a reload would scroll the recipe back to the top while their
+      // hands are wet). The UpdatePrompt component handles the toast.
+      registerType: "prompt",
       manifest: {
         name: "MarksRecipeBook",
         short_name: "Recipes",
@@ -62,10 +66,10 @@ export default defineConfig({
           { src: "/icons/icon-maskable-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
           { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
-        screenshots: [
-          { src: "/screenshots/wide-1.png", sizes: "1280x720", type: "image/png", form_factor: "wide" },
-          { src: "/screenshots/narrow-1.png", sizes: "750x1334", type: "image/png", form_factor: "narrow" },
-        ],
+        // screenshots: intentionally omitted until we capture real ones at
+        // 1280x720 (wide) and 750x1334 (narrow). Re-add the block with
+        // matching files in web/public/screenshots/ when ready — the
+        // install prompt still works fine without them.
         shortcuts: [
           { name: "New recipe", url: "/recipes/new" },
           { name: "Import from URL", url: "/import?via=shortcut" },
@@ -85,14 +89,46 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
+        // SPA navigation falls back to the cached index.html so deep
+        // links work offline. Skip Firebase Auth's iframe handler and
+        // any /api/* paths — they must always hit the network.
+        navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/__\/auth/, /^\/api\//],
+        // Bump the precache size budget so the variable Newsreader
+        // and Manrope font files fit comfortably in the app shell.
+        // Without this Workbox refuses to precache files > 2 MiB.
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        // Include fonts and other public assets the default globs miss.
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff,woff2,ttf}"],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
-            handler: "CacheFirst",
+            // Firebase Storage recipe photos — cache once seen so the
+            // user can still see them offline. SWR keeps them fresh
+            // without blocking the UI when the network comes back.
+            urlPattern: /^https:\/\/firebasestorage\.googleapis\.com\//,
+            handler: "StaleWhileRevalidate",
             options: {
-              cacheName: "google-fonts",
-              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheName: "recipe-photos",
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Externally-hosted recipe photos (Unsplash, NYT, etc.) that
+            // owners may have pasted as photoUrl. Lighter cache, shorter
+            // TTL — these are someone else's CDN.
+            urlPattern: /\.(?:png|jpg|jpeg|webp|gif|avif)$/i,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "external-images",
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 1 week
+              },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],

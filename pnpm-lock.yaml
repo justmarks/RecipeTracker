@@ -35,6 +35,9 @@ importers:
       shared:
         specifier: workspace:*
         version: link:../shared
+      workbox-window:
+        specifier: ^7.4.1
+        version: 7.4.1
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.0.0
