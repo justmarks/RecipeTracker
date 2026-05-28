@@ -11,7 +11,15 @@ import type { DocumentData, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
-import { Button, Eyebrow, Icon, SprigDivider, Tag, tagToneFor } from "../components/ui";
+import {
+  Button,
+  Eyebrow,
+  Icon,
+  PhotoFrame,
+  SprigDivider,
+  Tag,
+  tagToneFor,
+} from "../components/ui";
 
 type RecipeSummary = {
   id: string;
@@ -20,6 +28,7 @@ type RecipeSummary = {
   tags: string[];
   searchTokens: string[];
   totalTime?: string;
+  photoUrl?: string;
   createdAt?: Timestamp;
 };
 
@@ -67,6 +76,7 @@ export function Home() {
               tags: data.tags ?? [],
               searchTokens: data.searchTokens ?? [],
               totalTime: data.totalTime as string | undefined,
+              photoUrl: data.photoUrl as string | undefined,
               createdAt: data.createdAt as Timestamp | undefined,
             };
           }),
@@ -310,18 +320,25 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
     <Link
       to={`/recipes/${recipe.id}`}
       className={[
-        "group flex items-center justify-between gap-4 w-full text-left no-underline",
+        "group flex items-center gap-3.5 w-full text-left no-underline",
         "border-b border-[var(--border-faint)] last:border-b-0",
-        "px-3 py-3.5",
+        "px-3 py-3",
         "hover:bg-paper-200 hover:rounded-md hover:border-transparent",
         "transition-colors duration-100",
       ].join(" ")}
     >
+      <PhotoFrame
+        src={recipe.photoUrl}
+        alt=""
+        ratio="1 / 1"
+        radius="sm"
+        className="shrink-0 w-16 h-16"
+      />
       <div className="min-w-0 flex-1">
         <div
           className={[
             "font-display font-medium text-[18px] text-ink-900",
-            "tracking-[-0.005em]",
+            "tracking-[-0.005em] leading-[1.2]",
             hasMeta ? "mb-1" : "",
           ].join(" ")}
         >

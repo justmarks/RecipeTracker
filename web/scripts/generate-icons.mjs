@@ -99,4 +99,20 @@ for (const size of maskableSizes) {
 console.log("Rendering Apple touch icon:");
 await render(srcBuf, 180, join(outDir, "apple-touch-icon-180.png"));
 
+// Favicon: pure monogram (M on tomato circle) — high-contrast at 16/32px
+// where the cookbook art would just smudge into noise.
+const monogramSvgPath = join(
+  repoRoot,
+  ".claude",
+  "skills",
+  "marksrecipebook-design",
+  "assets",
+  "monogram.svg",
+);
+const monogramSvg = readFileSync(monogramSvgPath);
+console.log("Rendering favicon raster fallbacks:");
+const publicDir = resolve(here, "..", "public");
+await render(monogramSvg, 32, join(publicDir, "favicon-32.png"));
+await render(monogramSvg, 16, join(publicDir, "favicon-16.png"));
+
 console.log("Done.");

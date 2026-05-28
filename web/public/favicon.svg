@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!--
+    Marks Family Recipe Book favicon — the design system's
+    monogram (M on tomato circle) per assets/monogram.svg.
+    Browsers that don't accept SVG favicons fall back to the
+    apple-touch-icon PNGs declared in index.html.
+  -->
+  <circle cx="60" cy="60" r="58" fill="#C8553D"/>
+  <text x="60" y="86" font-family="'Newsreader','Georgia',serif" font-weight="600" font-size="78" fill="#FBF6EE" text-anchor="middle" letter-spacing="-3">M</text>
+</svg>

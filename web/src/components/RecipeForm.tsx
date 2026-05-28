@@ -211,7 +211,9 @@ export function RecipeForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
+    // pb-28 leaves room for the fixed action bar at the viewport bottom so
+    // the last field doesn't disappear under it on short forms.
+    <form onSubmit={handleSubmit} className="flex flex-col gap-[18px] pb-28">
       <Field label="Title">
         <Input
           value={title}
@@ -415,19 +417,37 @@ export function RecipeForm({
         </div>
       )}
 
-      <div className="flex gap-3 pt-1">
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={saving || chaptersLoading || chapters.length === 0}
-        >
-          {saving ? "Saving…" : submitLabel}
-        </Button>
-        {onCancel && (
-          <Button type="button" variant="ghost" onClick={onCancel}>
-            Cancel
+      {/*
+        Sticky action bar — locked to the viewport bottom per the design
+        system's RecipeForm pattern (see ui_kits/web/RecipeForm.jsx).
+        Inset from the left by the 260px sidebar on lg+, full-width on
+        mobile. Semi-transparent paper-100 plus a backdrop blur keeps the
+        form content visible behind it as the user scrolls — the only
+        place the system permits backdrop-filter blur is exactly this
+        kind of pass-through chrome.
+      */}
+      <div
+        className={[
+          "fixed bottom-0 left-0 right-0 lg:left-[260px] z-10",
+          "border-t border-[var(--border-default)]",
+          "bg-[rgba(251,246,238,0.92)] backdrop-blur-md",
+          "px-6 py-3.5 lg:px-10",
+        ].join(" ")}
+      >
+        <div className="mx-auto max-w-[720px] flex items-center gap-3">
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={saving || chaptersLoading || chapters.length === 0}
+          >
+            {saving ? "Saving…" : submitLabel}
           </Button>
-        )}
+          {onCancel && (
+            <Button type="button" variant="ghost" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+        </div>
       </div>
     </form>
   );
