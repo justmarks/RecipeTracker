@@ -3,3 +3,9 @@ import {setGlobalOptions} from "firebase-functions";
 setGlobalOptions({maxInstances: 10});
 
 export {importFromUrl} from "./importFromUrl";
+export {shareRecipe, unshareRecipe} from "./shareRecipe";
+export {grantAutoShare, revokeAutoShare} from "./autoShare";
+export {
+  cleanupRecipePhotoOnDelete,
+  cleanupRecipePhotoOnUpdate,
+} from "./photoCleanup";

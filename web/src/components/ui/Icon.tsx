@@ -33,7 +33,9 @@ export type IconName =
   | "settings"
   | "user"
   | "bookmark"
-  | "file-text";
+  | "file-text"
+  | "share-2"
+  | "mail";
 
 const ICON_PATHS: Record<IconName, ReactElement> = {
   plus: (
@@ -153,6 +155,21 @@ const ICON_PATHS: Record<IconName, ReactElement> = {
       <polyline points="14 2 14 8 20 8" />
       <line x1="8" y1="13" x2="16" y2="13" />
       <line x1="8" y1="17" x2="13" y2="17" />
+    </>
+  ),
+  "share-2": (
+    <>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <polyline points="3 7 12 13 21 7" />
     </>
   ),
 };

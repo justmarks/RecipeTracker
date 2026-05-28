@@ -17,6 +17,9 @@ import {
   Tag,
   tagToneFor,
 } from "../components/ui";
+import { ShareDialog } from "../components/ShareDialog";
+
+type SharedWithDetail = { uid: string; email: string };
 
 type StoredRecipe = {
   ownerId: string;
@@ -34,6 +37,8 @@ type StoredRecipe = {
   photoUrl?: string;
   rating?: number;
   lastMadeDate?: string;
+  sharedWith?: string[];
+  sharedWithDetails?: SharedWithDetail[];
 };
 
 /**
@@ -66,6 +71,7 @@ export function RecipeDetail() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -156,6 +162,15 @@ export function RecipeDetail() {
                 Edit
               </Button>
             </Link>
+            <Button
+              type="button"
+              variant="secondary"
+              icon="share-2"
+              size="sm"
+              onClick={() => setShareOpen(true)}
+            >
+              Share
+            </Button>
             <Button
               type="button"
               variant="danger"
@@ -309,6 +324,30 @@ export function RecipeDetail() {
         onCancel={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
       />
+
+      {isOwner && id && (
+        <ShareDialog
+          open={shareOpen}
+          recipeId={id}
+          recipeTitle={recipe.title}
+          sharedWithDetails={recipe.sharedWithDetails ?? []}
+          onClose={() => setShareOpen(false)}
+          onChange={(next) =>
+            // Optimistically reflect changes from the dialog locally.
+            // The Firestore doc has the source of truth; next refresh
+            // will reconcile if anything went sideways.
+            setRecipe((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    sharedWithDetails: next,
+                    sharedWith: next.map((d) => d.uid),
+                  }
+                : prev,
+            )
+          }
+        />
+      )}
     </article>
   );
 }

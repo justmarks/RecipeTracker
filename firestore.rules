@@ -32,6 +32,10 @@ service cloud.firestore {
         && data.category.size() <= 100
         && data.tags is list
         && data.sharedWith is list
+        // sharedWithDetails is the denormalized {uid, email} mirror used by
+        // the share-dialog UI. Optional for backwards-compat with old recipes
+        // that predate it — when present must be a list.
+        && (!('sharedWithDetails' in data) || data.sharedWithDetails is list)
         && data.searchTokens is list
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;

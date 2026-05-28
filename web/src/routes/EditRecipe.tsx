@@ -114,12 +114,21 @@ export function EditRecipe() {
     navigate(`/recipes/${id}`, { replace: true });
   }
 
+  // Pop the edit entry off the history stack instead of pushing a new
+  // detail entry on top. Pushing would mean clicking Back from the
+  // detail page lands on /edit again — the user expects to walk back
+  // toward the chapter / home they came from.
+  function goBack() {
+    if (window.history.length > 1) navigate(-1);
+    else navigate(`/recipes/${id}`);
+  }
+
   return (
     <div className="mx-auto max-w-[720px] px-6 py-8 lg:px-10 lg:py-10">
       <Button
         variant="ghost"
         icon="arrow-left"
-        onClick={() => navIfClean(() => navigate(`/recipes/${id}`))}
+        onClick={() => navIfClean(goBack)}
         className="px-0 mb-4"
       >
         Back
@@ -131,7 +140,7 @@ export function EditRecipe() {
         initial={initial}
         submitLabel="Save changes"
         onSubmit={onSubmit}
-        onCancel={() => navIfClean(() => navigate(`/recipes/${id}`))}
+        onCancel={() => navIfClean(goBack)}
         onDirtyChange={handleDirtyChange}
       />
 

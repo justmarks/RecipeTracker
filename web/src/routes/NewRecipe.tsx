@@ -36,6 +36,9 @@ export function NewRecipe() {
       ...input,
       ownerId: user!.uid,
       sharedWith: [],
+      // Denormalized {uid, email}[] for the Share dialog. Kept in sync
+      // with sharedWith by the shareRecipe / unshareRecipe Cloud Functions.
+      sharedWithDetails: [],
       searchTokens: buildSearchTokens(input),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -46,12 +49,20 @@ export function NewRecipe() {
     navigate(`/recipes/${docRef.id}`, { replace: true });
   }
 
+  // Pop the form off the history stack instead of pushing a fresh "/"
+  // entry. Pushing would leave /recipes/new in the back stack — one
+  // browser-back from home would shove the user back into the form.
+  function goBack() {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/");
+  }
+
   return (
     <div className="mx-auto max-w-[720px] px-6 py-8 lg:px-10 lg:py-10">
       <Button
         variant="ghost"
         icon="arrow-left"
-        onClick={() => navIfClean(() => navigate("/"))}
+        onClick={() => navIfClean(goBack)}
         className="px-0 mb-4"
       >
         Back
@@ -62,7 +73,7 @@ export function NewRecipe() {
       <RecipeForm
         submitLabel="Save recipe"
         onSubmit={onSubmit}
-        onCancel={() => navIfClean(() => navigate("/"))}
+        onCancel={() => navIfClean(goBack)}
         onDirtyChange={handleDirtyChange}
       />
 

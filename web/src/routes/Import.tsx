@@ -124,6 +124,7 @@ export function Import() {
       ...input,
       ownerId: user!.uid,
       sharedWith: [],
+      sharedWithDetails: [],
       searchTokens: buildSearchTokens(input),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),

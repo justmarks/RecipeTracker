@@ -144,7 +144,7 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Footer: manage chapters + user */}
+      {/* Footer: manage chapters + sharing + user */}
       <div className="px-3 pt-3 border-t border-[var(--border-faint)]">
         <button
           type="button"
@@ -153,6 +153,14 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
         >
           <Icon name="book-open" size={16} />
           Manage chapters
+        </button>
+        <button
+          type="button"
+          onClick={() => go("/settings/sharing")}
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md bg-transparent text-ink-700 hover:bg-paper-200 text-sm text-left transition-colors duration-100"
+        >
+          <Icon name="share-2" size={16} />
+          Sharing
         </button>
 
         <div className="flex items-center gap-2.5 px-2.5 pt-2.5 pb-1">

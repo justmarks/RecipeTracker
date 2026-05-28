@@ -1,16 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from "firebase/firestore";
-import type { DocumentData, Timestamp } from "firebase/firestore";
-import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
+import { useRecipeList } from "../lib/queryRecipes";
+import type { RecipeListItem } from "../lib/queryRecipes";
 import {
   Button,
   Eyebrow,
@@ -21,16 +14,7 @@ import {
   tagToneFor,
 } from "../components/ui";
 
-type RecipeSummary = {
-  id: string;
-  title: string;
-  category: string;
-  tags: string[];
-  searchTokens: string[];
-  totalTime?: string;
-  photoUrl?: string;
-  createdAt?: Timestamp;
-};
+type RecipeSummary = RecipeListItem;
 
 type SortOrder = "alpha" | "recent";
 
@@ -52,39 +36,11 @@ export function Home() {
   const [params] = useSearchParams();
   const activeChapter = params.get("chapter") ?? "";
 
-  const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
+  // Merged stream of recipes I own + recipes explicitly shared with me +
+  // recipes auto-shared with me. The hook handles the three-way fan-out.
+  const { recipes } = useRecipeList(user?.uid);
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("alpha");
-
-  useEffect(() => {
-    if (!user) return;
-    const q = query(
-      collection(db, "recipes"),
-      where("ownerId", "==", user.uid),
-      orderBy("updatedAt", "desc"),
-    );
-    return onSnapshot(
-      q,
-      (snap) => {
-        setRecipes(
-          snap.docs.map((d) => {
-            const data = d.data() as DocumentData;
-            return {
-              id: d.id,
-              title: data.title,
-              category: data.category,
-              tags: data.tags ?? [],
-              searchTokens: data.searchTokens ?? [],
-              totalTime: data.totalTime as string | undefined,
-              photoUrl: data.photoUrl as string | undefined,
-              createdAt: data.createdAt as Timestamp | undefined,
-            };
-          }),
-        );
-      },
-      (err) => console.error("Recipe list:", err),
-    );
-  }, [user]);
 
   const queryTokens = useMemo(
     () =>
@@ -315,7 +271,8 @@ function RecipeList({ recipes }: { recipes: RecipeSummary[] }) {
 }
 
 function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
-  const hasMeta = recipe.totalTime || recipe.tags.length > 0;
+  const hasMeta =
+    recipe.totalTime || recipe.tags.length > 0 || recipe.access !== "owned";
   return (
     <Link
       to={`/recipes/${recipe.id}`}
@@ -359,6 +316,19 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
                 {t}
               </Tag>
             ))}
+            {recipe.access !== "owned" && (
+              <span
+                className="inline-flex items-center gap-1 font-sans text-[11px] font-medium text-olive-700 bg-olive-100 px-1.5 py-0.5 rounded-sm"
+                title={
+                  recipe.access === "shared"
+                    ? "Shared with you"
+                    : "Auto-shared with you"
+                }
+              >
+                <Icon name="share-2" size={10} />
+                Shared
+              </span>
+            )}
           </div>
         )}
       </div>
