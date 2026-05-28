@@ -86,10 +86,32 @@ export default defineConfig({
             ],
           },
         ],
+        // POST + multipart so Android can hand us an image from the
+        // gallery / camera share sheet. URL/text sharing still works —
+        // those keys remain in `params` and are read from FormData by
+        // public/share-target-handler.js (or by the SPA when no file is
+        // attached). iOS WebKit ignores share_target entirely; that
+        // hasn't changed.
         share_target: {
           action: "/import",
-          method: "GET",
-          params: { title: "title", text: "text", url: "url" },
+          method: "POST",
+          enctype: "multipart/form-data",
+          params: {
+            title: "title",
+            text: "text",
+            url: "url",
+            files: [
+              {
+                name: "photo",
+                accept: [
+                  "image/jpeg",
+                  "image/png",
+                  "image/webp",
+                  "image/gif",
+                ],
+              },
+            ],
+          },
         },
         protocol_handlers: [
           { protocol: "web+recipe", url: "/recipes/%s" },
@@ -100,6 +122,11 @@ export default defineConfig({
         prefer_related_applications: false,
       },
       workbox: {
+        // Pulled into the generated SW so we can intercept POST /import
+        // (the share_target endpoint) and stash the uploaded photo in
+        // CacheStorage before redirecting the user to /import?via=share-photo.
+        // Lives in web/public/ so it's served at /share-target-handler.js.
+        importScripts: ["/share-target-handler.js"],
         cleanupOutdatedCaches: true,
         // SPA navigation falls back to the cached index.html so deep
         // links work offline. Skip Firebase Auth's iframe handler and

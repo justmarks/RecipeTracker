@@ -8,17 +8,25 @@ import { useToast } from "../lib/useToast";
 import { buildSearchTokens } from "shared";
 import type { RecipeInput } from "shared";
 import { parseMarkdown } from "../lib/importMarkdown";
+import { prepareImageForImport } from "../lib/importImage";
+import { consumeSharedFile } from "../lib/shareTarget";
 import { RecipeForm } from "../components/RecipeForm";
 import { Button, Eyebrow, Icon, Input, Textarea } from "../components/ui";
 import type { IconName } from "../components/ui";
 import type { ReactNode } from "react";
 
 type ImportFromUrlResponse = { recipe: Partial<RecipeInput> };
+type ImportFromImageResponse = { recipe: Partial<RecipeInput> };
 
 const callImportFromUrl = httpsCallable<{ url: string }, ImportFromUrlResponse>(
   functions,
   "importFromUrl",
 );
+
+const callImportFromImage = httpsCallable<
+  { imageBase64: string; mimeType: string },
+  ImportFromImageResponse
+>(functions, "importFromImage");
 
 const MARKDOWN_PLACEHOLDER = `# Title
 
@@ -49,6 +57,9 @@ export function Import() {
   const toast = useToast();
   const [params] = useSearchParams();
   const sharedUrl = params.get("url") ?? params.get("text") ?? "";
+  // Set by the service-worker share-target handler when the system share
+  // sheet handed us a photo (Android only — see CLAUDE.md re: iOS).
+  const sharedPhotoPending = params.get("via") === "share-photo";
 
   const [urlInput, setUrlInput] = useState(sharedUrl);
   const [fetchingUrl, setFetchingUrl] = useState(false);
@@ -59,8 +70,14 @@ export function Import() {
   const [parsed, setParsed] = useState<Partial<RecipeInput> | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
 
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [autoPhoto, setAutoPhoto] = useState(false);
+
   const mdFileRef = useRef<HTMLInputElement>(null);
+  const photoFileRef = useRef<HTMLInputElement>(null);
   const autoFetchRef = useRef(false);
+  const autoPhotoRef = useRef(false);
 
   // Share-target landings: if the manifest's share_target handed us a
   // URL (via ?url= or ?text= containing an http(s) link), skip the
@@ -79,12 +96,43 @@ export function Import() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sharedUrl, user]);
 
+  // Photo share-target landings (Android): the service worker stashed
+  // the shared file in CacheStorage and redirected us here with
+  // ?via=share-photo. Pull the file back out and kick off vision import.
+  useEffect(() => {
+    if (autoPhotoRef.current) return;
+    if (!user) return;
+    if (!sharedPhotoPending) return;
+    autoPhotoRef.current = true;
+    setAutoPhoto(true);
+    void (async () => {
+      const file = await consumeSharedFile();
+      if (!file) {
+        setPhotoError(
+          "Couldn't find the shared photo. The service worker may not have finished registering yet — try sharing again.",
+        );
+        setAutoPhoto(false);
+        return;
+      }
+      await processPhoto(file);
+    })();
+    // processPhoto is stable for this render — guarded by autoPhotoRef
+    // so it only runs once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedPhotoPending, user]);
+
   // When share-target supplied a URL and we haven't parsed yet, keep the
   // page focused on the URL fetcher — the user came here intending to
   // import that URL, not to paste markdown.
   const showOnlyUrlFetcher = useMemo(
     () => Boolean(sharedUrl && /^https?:\/\//i.test(sharedUrl)) && !parsed,
     [sharedUrl, parsed],
+  );
+  // Same idea for photo share — keep the page focused on the photo flow
+  // while the import is in flight.
+  const showOnlyPhotoFetcher = useMemo(
+    () => sharedPhotoPending && !parsed,
+    [sharedPhotoPending, parsed],
   );
 
   if (loading) return null;
@@ -115,6 +163,31 @@ export function Import() {
       return;
     }
     await fetchUrl(url);
+  }
+
+  /**
+   * Common pipeline for any photo source — file picker, camera capture,
+   * or share-target hand-off. Resize → base64 → Cloud Function vision
+   * call → drop into the review form.
+   */
+  async function processPhoto(file: File) {
+    setPhotoError(null);
+    setPhotoBusy(true);
+    try {
+      const prepared = await prepareImageForImport(file);
+      const result = await callImportFromImage({
+        imageBase64: prepared.base64,
+        mimeType: prepared.mimeType,
+      });
+      setParsed(result.data.recipe);
+    } catch (err) {
+      console.error("importFromImage:", err);
+      setPhotoError(err instanceof Error ? err.message : String(err));
+      // Share-target auto path drops back to manual photo UI on error.
+      setAutoPhoto(false);
+    } finally {
+      setPhotoBusy(false);
+    }
   }
 
   async function handleFileUpload(file: File) {
@@ -154,7 +227,8 @@ export function Import() {
     navigate(`/recipes/${docRef.id}`, { replace: true });
   }
 
-  const showProgress = autoFetched && fetchingUrl && !parsed;
+  const showUrlProgress = autoFetched && fetchingUrl && !parsed;
+  const showPhotoProgress = autoPhoto && photoBusy && !parsed;
 
   return (
     <div className="mx-auto max-w-[640px] px-6 py-8 lg:px-10 lg:py-10">
@@ -167,8 +241,22 @@ export function Import() {
         Back
       </Button>
 
-      {showProgress ? (
-        <ImportProgress url={urlInput} />
+      {showUrlProgress ? (
+        <ImportProgress
+          label="Importing recipe…"
+          detail={
+            <>
+              Asking Claude to read{" "}
+              <span className="font-medium text-ink-700">{urlHost(urlInput)}</span>{" "}
+              and pull out the recipe.
+            </>
+          }
+        />
+      ) : showPhotoProgress ? (
+        <ImportProgress
+          label="Reading photo…"
+          detail="Asking Claude to read the photo and pull out the recipe."
+        />
       ) : parsed ? (
         <>
           <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-2">
@@ -251,6 +339,50 @@ export function Import() {
 
             {!showOnlyUrlFetcher && (
               <ImportCard
+                eyebrowIcon="upload"
+                eyebrow="Extract w/AI from photo"
+                hint="Snap a cookbook page, magazine clipping, or recipe card. Works on handwriting too."
+                error={photoError}
+                action={
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      icon="upload"
+                      onClick={() => photoFileRef.current?.click()}
+                      disabled={photoBusy}
+                    >
+                      {photoBusy ? "Reading…" : "Choose photo"}
+                    </Button>
+                    <input
+                      ref={photoFileRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      // On mobile this prefers the rear camera and opens it
+                      // directly; desktop browsers ignore the attribute and
+                      // fall back to a normal file picker.
+                      capture="environment"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void processPhoto(file);
+                        if (photoFileRef.current) {
+                          photoFileRef.current.value = "";
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </div>
+                }
+              >
+                <p className="font-sans text-sm text-ink-500 m-0">
+                  JPEG, PNG, WebP, or GIF — up to about 5 MB after the in-app
+                  resize.
+                </p>
+              </ImportCard>
+            )}
+
+            {!showOnlyUrlFetcher && !showOnlyPhotoFetcher && (
+              <ImportCard
                 eyebrowIcon="file-text"
                 eyebrow="From markdown"
                 hint="Paste a markdown recipe, or upload a .md file. Use ## Ingredients / ## Instructions / ## Notes sections."
@@ -330,17 +462,20 @@ function isIOS(): boolean {
 
 /**
  * Full-screen progress state for share-target imports. Replaces the
- * import options entirely while Claude fetches and parses the URL, so
- * the user never has to tap "Fetch with AI" — they just see progress
- * and land in the review form when it resolves.
+ * import options entirely while Claude fetches and parses the source,
+ * so the user never has to tap "Fetch" — they just see progress and
+ * land in the review form when it resolves.
+ *
+ * Same component is reused for URL and photo share targets; the caller
+ * supplies the wording and any details inline.
  */
-function ImportProgress({ url }: { url: string }) {
-  let host = url;
-  try {
-    host = new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    // fall back to raw URL
-  }
+function ImportProgress({
+  label,
+  detail,
+}: {
+  label: string;
+  detail: ReactNode;
+}) {
   return (
     <div
       role="status"
@@ -351,15 +486,22 @@ function ImportProgress({ url }: { url: string }) {
         <Icon name="sparkles" size={32} />
       </span>
       <h1 className="font-display text-[28px] sm:text-[32px] font-medium leading-[1.15] tracking-[-0.015em] text-ink-900 m-0 mb-2">
-        Importing recipe…
+        {label}
       </h1>
-      <p className="font-sans text-sm text-ink-500 m-0 max-w-[28ch]">
-        Asking Claude to read{" "}
-        <span className="font-medium text-ink-700">{host}</span> and pull out
-        the recipe.
+      <p className="font-sans text-sm text-ink-500 m-0 max-w-[36ch]">
+        {detail}
       </p>
     </div>
   );
+}
+
+/** Pretty-print the hostname for the URL progress label. */
+function urlHost(rawUrl: string): string {
+  try {
+    return new URL(rawUrl).hostname.replace(/^www\./, "");
+  } catch {
+    return rawUrl;
+  }
 }
 
 interface ImportCardProps {
