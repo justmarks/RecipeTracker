@@ -31,21 +31,50 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK }}
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
         run: |
+          # All VITE_* values get inlined into the JS bundle at build
+          # time. An empty value here means the deployed app will throw
+          # "Firebase: Error (auth/invalid-api-key)" on first load —
+          # silently broken from the user's perspective until you open
+          # devtools. Fail the build instead.
           missing=()
           [ -z "$FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK" ] && missing+=("FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK")
           [ -z "$VITE_FIREBASE_API_KEY" ] && missing+=("VITE_FIREBASE_API_KEY")
+          [ -z "$VITE_FIREBASE_AUTH_DOMAIN" ] && missing+=("VITE_FIREBASE_AUTH_DOMAIN")
           [ -z "$VITE_FIREBASE_PROJECT_ID" ] && missing+=("VITE_FIREBASE_PROJECT_ID")
+          [ -z "$VITE_FIREBASE_STORAGE_BUCKET" ] && missing+=("VITE_FIREBASE_STORAGE_BUCKET")
+          [ -z "$VITE_FIREBASE_MESSAGING_SENDER_ID" ] && missing+=("VITE_FIREBASE_MESSAGING_SENDER_ID")
           [ -z "$VITE_FIREBASE_APP_ID" ] && missing+=("VITE_FIREBASE_APP_ID")
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error title=Missing GitHub secrets::${missing[*]}"
             echo "::error::Set them under Settings → Secrets and variables → Actions → New repository secret"
-            echo "::error::FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK must be the full JSON contents of a GCP service-account key (including the outer braces)."
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK must be the full JSON contents of a GCP service-account key."
+            echo "::error::VITE_FIREBASE_* values come from Firebase Console → Project settings → Your apps → SDK setup and configuration."
             exit 1
           fi
-          echo "All required secrets present."
+          # Sanity check on the API key shape — Firebase web API keys
+          # are 39 chars and start with "AIza". A pasted value with stray
+          # quotes, spaces, or a wrong field would slip past the empty
+          # check above but still break at runtime.
+          if [ "${#VITE_FIREBASE_API_KEY}" -ne 39 ] || [[ "$VITE_FIREBASE_API_KEY" != AIza* ]]; then
+            echo "::error title=VITE_FIREBASE_API_KEY looks wrong::Expected a 39-char string starting with 'AIza' (got ${#VITE_FIREBASE_API_KEY} chars). Re-copy from Firebase Console → Project settings → Web app SDK config and paste just the apiKey value (no quotes)."
+            exit 1
+          fi
+          # Echo the shape of each secret so future CI failures are
+          # easier to diagnose without exposing the values themselves.
+          echo "All required secrets present:"
+          echo "  FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK: ${#FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK} chars"
+          echo "  VITE_FIREBASE_API_KEY: ${#VITE_FIREBASE_API_KEY} chars (starts with ${VITE_FIREBASE_API_KEY:0:4})"
+          echo "  VITE_FIREBASE_AUTH_DOMAIN: ${#VITE_FIREBASE_AUTH_DOMAIN} chars"
+          echo "  VITE_FIREBASE_PROJECT_ID: ${#VITE_FIREBASE_PROJECT_ID} chars"
+          echo "  VITE_FIREBASE_STORAGE_BUCKET: ${#VITE_FIREBASE_STORAGE_BUCKET} chars"
+          echo "  VITE_FIREBASE_MESSAGING_SENDER_ID: ${#VITE_FIREBASE_MESSAGING_SENDER_ID} chars"
+          echo "  VITE_FIREBASE_APP_ID: ${#VITE_FIREBASE_APP_ID} chars"
 
       - uses: pnpm/action-setup@v4
         with:
