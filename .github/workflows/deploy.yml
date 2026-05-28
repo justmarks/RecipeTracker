@@ -119,7 +119,35 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET || vars.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID || vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID || vars.VITE_FIREBASE_APP_ID }}
-        run: pnpm --filter web build
+        run: |
+          # Confirm the env vars actually reached this step (separate
+          # from the Verify step — those are siblings, not parent/child).
+          echo "Build-step env confirmation:"
+          echo "  VITE_FIREBASE_API_KEY: ${#VITE_FIREBASE_API_KEY} chars"
+          echo "  VITE_FIREBASE_AUTH_DOMAIN: ${#VITE_FIREBASE_AUTH_DOMAIN} chars"
+          echo "  VITE_FIREBASE_PROJECT_ID: ${#VITE_FIREBASE_PROJECT_ID} chars"
+          echo "  VITE_FIREBASE_STORAGE_BUCKET: ${#VITE_FIREBASE_STORAGE_BUCKET} chars"
+          echo "  VITE_FIREBASE_MESSAGING_SENDER_ID: ${#VITE_FIREBASE_MESSAGING_SENDER_ID} chars"
+          echo "  VITE_FIREBASE_APP_ID: ${#VITE_FIREBASE_APP_ID} chars"
+          pnpm --filter web build
+
+      - name: Verify bundle has real Firebase config
+        # Fail the deploy if Vite inlined `void 0` instead of real
+        # values — much better than shipping a broken bundle and
+        # finding out via "auth/invalid-api-key" in the browser.
+        run: |
+          bundle=$(ls web/dist/assets/index-*.js | head -1)
+          echo "Inspecting: $bundle"
+          if grep -q 'apiKey:void 0' "$bundle" || grep -q 'apiKey:""' "$bundle"; then
+            echo "::error title=Bundle has empty apiKey::Vite inlined 'void 0' for VITE_FIREBASE_API_KEY. The env var didn't reach the Vite process even though it was set on the build step. See the Build-step env confirmation above — if API_KEY shows 39 chars there but the bundle shows void 0, this is a Vite envDir or .env-file precedence issue."
+            grep -o 'apiKey:[^,}]*' "$bundle" | head -3
+            exit 1
+          fi
+          # Print the inlined apiKey prefix as a sanity check (full
+          # value is masked by GitHub's secret scrubber automatically
+          # since it matches the secret).
+          inlined=$(grep -o 'apiKey:"[^"]*"' "$bundle" | head -1)
+          echo "Inlined: $inlined"
 
       - name: Build functions
         run: npm --prefix functions run build
