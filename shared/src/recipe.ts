@@ -13,6 +13,11 @@ export const DEFAULT_CHAPTERS = [
   "dessert"
 ] as const;
 
+// Fallback chapter used when a chapter is deleted while recipes still live
+// in it — those recipes get reassigned here instead of orphaned. The chapter
+// is auto-added to the user's list on first need and can't be deleted itself.
+export const UNCATEGORIZED_CHAPTER = "uncategorized";
+
 export const RecipeSourceSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("url"),

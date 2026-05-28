@@ -12,7 +12,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { DEFAULT_CHAPTERS } from "shared";
+import { DEFAULT_CHAPTERS, UNCATEGORIZED_CHAPTER } from "shared";
 
 const FIRESTORE_BATCH_LIMIT = 500;
 
@@ -172,32 +172,70 @@ export async function renameChapter(
   await batch.commit();
 }
 
+/**
+ * Delete a chapter. Any recipes still in this chapter are atomically
+ * reassigned to the "uncategorized" fallback chapter (auto-added to the
+ * user's chapter list if it isn't already there). The "uncategorized"
+ * chapter itself cannot be deleted — it's the safety net.
+ */
 export async function deleteChapter(uid: string, name: string): Promise<void> {
-  // Refuse if any recipes still live in this chapter.
+  if (nameKey(name) === nameKey(UNCATEGORIZED_CHAPTER)) {
+    throw new Error(
+      `Can't delete the "${UNCATEGORIZED_CHAPTER}" chapter — ` +
+        "it's the fallback for unassigned recipes.",
+    );
+  }
+
+  const userSnap = await getDoc(userDocRef(uid));
+  if (!userSnap.exists()) return;
+  const current: string[] = userSnap.data().categories ?? [];
+  if (!current.includes(name)) return;
+
   const recipesSnap = await getDocs(
     query(
       collection(db, "recipes"),
       where("ownerId", "==", uid),
       where("category", "==", name),
-      // limit irrelevant — we just need to know if any exist
     ),
   );
-  if (!recipesSnap.empty) {
+
+  // Preserve the user's preferred casing if they already have an
+  // "Uncategorized"/"UNCATEGORIZED" chapter under a different case. Otherwise
+  // fall back to the canonical lowercase form.
+  const existingFallback = current.find(
+    (c) => nameKey(c) === nameKey(UNCATEGORIZED_CHAPTER),
+  );
+  const targetCategory = existingFallback ?? UNCATEGORIZED_CHAPTER;
+
+  // Build the new chapter list: drop the deleted one, and append
+  // "uncategorized" if it isn't present AND we actually have recipes to
+  // rehome (no point cluttering the list if the chapter was already empty).
+  let updated = current.filter((c) => c !== name);
+  if (!existingFallback && !recipesSnap.empty) {
+    updated = [...updated, UNCATEGORIZED_CHAPTER];
+  }
+
+  // Batch caps at 500 ops including the user doc update.
+  if (recipesSnap.size + 1 > FIRESTORE_BATCH_LIMIT) {
     throw new Error(
-      `Cannot delete "${name}" — it still contains ${recipesSnap.size} recipe(s). ` +
-        "Move them to another chapter first.",
+      `Too many recipes (${recipesSnap.size}) to move in one batch. ` +
+        "Move some recipes to another chapter first.",
     );
   }
 
-  const snap = await getDoc(userDocRef(uid));
-  if (!snap.exists()) return;
-  const current: string[] = snap.data().categories ?? [];
-  const updated = current.filter((c) => c !== name);
-  await setDoc(
+  const batch = writeBatch(db);
+  batch.set(
     userDocRef(uid),
     { categories: updated, updatedAt: serverTimestamp() },
     { merge: true },
   );
+  recipesSnap.forEach((d) => {
+    batch.update(d.ref, {
+      category: targetCategory,
+      updatedAt: serverTimestamp(),
+    });
+  });
+  await batch.commit();
 }
 
 export async function moveChapter(

@@ -237,7 +237,7 @@ export function Chapters() {
         title="Delete chapter?"
         message={
           confirmDeleteName
-            ? `"${confirmDeleteName}" will be removed from your cookbook. Recipes already in this chapter will keep their data but lose their chapter assignment.`
+            ? `"${confirmDeleteName}" will be removed from your cookbook. Any recipes still in it will move to the "Uncategorized" chapter (created automatically if it doesn't exist yet).`
             : ""
         }
         confirmLabel="Delete"
