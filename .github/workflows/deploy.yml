@@ -32,7 +32,11 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
+        # Root postinstall also installs functions/ via npm.
         run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Typecheck
         run: pnpm typecheck
@@ -48,7 +52,7 @@ jobs:
         run: pnpm --filter web build
 
       - name: Build functions
-        run: pnpm --filter functions run build
+        run: npm --prefix functions run build
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
