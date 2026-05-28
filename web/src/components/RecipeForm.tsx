@@ -5,7 +5,7 @@ import type { RecipeInput, Section } from "shared";
 import { useAuth } from "../lib/useAuth";
 import { addChapter, useChapters } from "../lib/categories";
 import { uploadRecipePhoto } from "../lib/storage";
-import { Button, Field, Input, Textarea } from "./ui";
+import { Button, Field, Input, Select, Textarea } from "./ui";
 
 interface Props {
   /**
@@ -24,14 +24,6 @@ interface Props {
    */
   onDirtyChange?: (dirty: boolean) => void;
 }
-
-const SELECT_CLASSES = [
-  "w-full font-sans text-sm text-ink-900 bg-white",
-  "border border-paper-400 rounded-md px-3 py-2.5",
-  "outline-none transition-colors duration-100 ease-out cursor-pointer",
-  "focus:border-tomato-500 focus:shadow-[var(--shadow-focus)]",
-  "disabled:bg-paper-200 disabled:text-ink-500 disabled:cursor-not-allowed",
-].join(" ");
 
 /**
  * Shared form for creating, editing, and saving AI-imported recipes.
@@ -224,18 +216,18 @@ export function RecipeForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <Field label="Chapter">
-          <select
+          <Select
             value={category}
             onChange={onChangeText(setCategory)}
             disabled={chaptersLoading || chapters.length === 0}
-            className={`${SELECT_CLASSES} capitalize`}
+            className="capitalize"
           >
             {chapters.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
-          </select>
+          </Select>
           <AddChapterRow
             show={showAddChapter}
             value={newChapterName}
@@ -375,13 +367,12 @@ export function RecipeForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <Field label="Rating">
-          <select
+          <Select
             value={rating}
             onChange={(e) => {
               setRating(e.target.value === "" ? "" : Number(e.target.value));
               markDirty();
             }}
-            className={SELECT_CLASSES}
           >
             <option value="">—</option>
             <option value="1">★</option>
@@ -389,7 +380,7 @@ export function RecipeForm({
             <option value="3">★ ★ ★</option>
             <option value="4">★ ★ ★ ★</option>
             <option value="5">★ ★ ★ ★ ★</option>
-          </select>
+          </Select>
         </Field>
         <Field label="Last made">
           <Input

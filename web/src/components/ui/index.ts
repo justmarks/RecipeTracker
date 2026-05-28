@@ -14,6 +14,7 @@ export { Icon, type IconName } from "./Icon";
 export { Input } from "./Input";
 export { MetaRow } from "./MetaRow";
 export { PhotoFrame } from "./PhotoFrame";
+export { Select } from "./Select";
 export { SprigDivider } from "./SprigDivider";
 export { Tag, tagToneFor, type TagTone } from "./Tag";
 export { Textarea } from "./Textarea";
