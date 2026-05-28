@@ -41,6 +41,7 @@ export function Home() {
   const [params] = useSearchParams();
   const activeChapter = params.get("chapter") ?? "";
   const favoritesOnly = params.get("favorites") === "1";
+  const otherOnly = params.get("view") === "other";
 
   // Merged stream of recipes I own + recipes explicitly shared with me +
   // recipes auto-shared with me. The hook handles the three-way fan-out.
@@ -58,14 +59,21 @@ export function Home() {
     [search],
   );
 
-  // 1. favorites filter → 2. chapter scope → 3. search (AND-prefix match
-  //    across tokens + tags + category). Favorites and chapter scope are
-  //    mutually exclusive in the UI (only one is active at a time via the
-  //    sidebar), but the pipeline composes either way.
+  // 1. favorites / other filter → 2. chapter scope → 3. search (AND-
+  //    prefix match across tokens + tags + category). Favorites, Other,
+  //    and chapter scope are mutually exclusive in the sidebar UI, but
+  //    the pipeline composes either way.
   const filtered = useMemo(() => {
     let arr = recipes;
     if (favoritesOnly) {
       arr = arr.filter((r) => favorites.has(r.id));
+    }
+    if (otherOnly) {
+      // "Other" = recipes with a category that isn't in the user's
+      // chapter list (orphans). Compare case-insensitively to match
+      // how Sidebar.tsx and the chapter-section grouping bucket them.
+      const chapterKeys = new Set(chapters.map((c) => c.toLowerCase()));
+      arr = arr.filter((r) => !chapterKeys.has(r.category.toLowerCase()));
     }
     if (activeChapter) {
       const want = activeChapter.toLowerCase();
@@ -80,7 +88,15 @@ export function Home() {
       });
     }
     return arr;
-  }, [recipes, queryTokens, activeChapter, favoritesOnly, favorites]);
+  }, [
+    recipes,
+    queryTokens,
+    activeChapter,
+    favoritesOnly,
+    otherOnly,
+    favorites,
+    chapters,
+  ]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -120,10 +136,14 @@ export function Home() {
         <Eyebrow>Cookbook</Eyebrow>
         <div className="mt-1 flex items-end justify-between gap-3 sm:gap-5">
           <h1 className="font-display text-[28px] sm:text-[38px] font-medium leading-[1.1] tracking-[-0.015em] text-ink-900 m-0 capitalize truncate min-w-0 flex-1">
-            {favoritesOnly ? "Favorites" : activeChapter || "All recipes"}
+            {favoritesOnly
+              ? "Favorites"
+              : otherOnly
+                ? "Other"
+                : activeChapter || "All recipes"}
           </h1>
           <div className="flex items-center gap-2 shrink-0">
-            {(activeChapter || favoritesOnly) && (
+            {(activeChapter || favoritesOnly || otherOnly) && (
               <Link
                 to="/"
                 className="hidden sm:inline text-sm text-tomato-600 hover:text-tomato-700 no-underline whitespace-nowrap mr-1"
@@ -143,7 +163,7 @@ export function Home() {
             </Link>
           </div>
         </div>
-        {(activeChapter || favoritesOnly) && (
+        {(activeChapter || favoritesOnly || otherOnly) && (
           <Link
             to="/"
             className="sm:hidden mt-2 inline-block text-sm text-tomato-600 hover:text-tomato-700 no-underline"
@@ -233,6 +253,8 @@ export function Home() {
               )}
             />
           )
+        ) : otherOnly ? (
+          <RecipeList recipes={sorted} />
         ) : activeChapter ? (
           <RecipeList recipes={sorted} />
         ) : (

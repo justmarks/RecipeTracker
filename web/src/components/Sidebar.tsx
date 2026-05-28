@@ -40,6 +40,7 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
   const [params] = useSearchParams();
   const activeChapter = params.get("chapter") ?? "";
   const favoritesActive = params.get("favorites") === "1";
+  const otherActive = params.get("view") === "other";
 
   // Subscribe to recipe counts for the badge next to each chapter.
   // Lightweight — we only need the category strings.
@@ -71,6 +72,20 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
     const name = user?.displayName ?? user?.email ?? "";
     return name.trim().charAt(0).toUpperCase() || "?";
   }, [user]);
+
+  // "Other" = recipes whose category isn't in the user's chapter list.
+  // Mostly a safety net for legacy data or shared recipes from another
+  // user who uses different chapter names. New imports SHOULD always
+  // create the matching chapter, but we surface the bucket so anything
+  // that does end up orphaned stays reachable.
+  const otherCount = useMemo(() => {
+    const chapterKeys = new Set(chapters.map((c) => c.toLowerCase()));
+    let n = 0;
+    for (const [cat, count] of Object.entries(counts)) {
+      if (!chapterKeys.has(cat)) n += count;
+    }
+    return n;
+  }, [counts, chapters]);
 
   function go(path: string) {
     navigate(path);
@@ -132,7 +147,7 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
         <ChapterButton
           name="All recipes"
           count={totalCount}
-          active={activeChapter === "" && !favoritesActive}
+          active={activeChapter === "" && !favoritesActive && !otherActive}
           onClick={() => go("/")}
           italic
         />
@@ -151,11 +166,21 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
             count={counts[c.toLowerCase()] ?? 0}
             active={
               !favoritesActive &&
+              !otherActive &&
               activeChapter.toLowerCase() === c.toLowerCase()
             }
             onClick={() => go(`/?chapter=${encodeURIComponent(c)}`)}
           />
         ))}
+        {otherCount > 0 && (
+          <ChapterButton
+            name="Other"
+            count={otherCount}
+            active={otherActive}
+            onClick={() => go("/?view=other")}
+            italic
+          />
+        )}
       </nav>
 
       {/* Footer: manage chapters + sharing + user */}

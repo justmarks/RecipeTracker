@@ -60,6 +60,12 @@ const db = getFirestore();
 
 let imported = 0;
 let skipped = 0;
+// Track every chapter we write a recipe into. After the import loop we
+// merge these into users/{uid}.categories so the new chapters appear in
+// the sidebar nav — without this, recipes land under "Other" because
+// their category doesn't match any chapter the user has defined.
+const importedChapters = new Set();
+
 for (const filePath of walkMarkdown(rootDir)) {
   const relPath = path.relative(rootDir, filePath);
   const text = fs.readFileSync(filePath, "utf8");
@@ -90,6 +96,37 @@ for (const filePath of walkMarkdown(rootDir)) {
   const ref = await db.collection("recipes").add(doc);
   console.log(`OK    ${relPath} → ${chapter} (${ref.id})`);
   imported++;
+  importedChapters.add(chapter);
+}
+
+// Merge any new chapters into the user's chapter list (creates the doc
+// with defaults if it doesn't exist — first import on a fresh user).
+// Compare case-insensitively to preserve the user's existing casing.
+if (importedChapters.size > 0) {
+  const userRef = db.collection("users").doc(ownerUid);
+  const snap = await userRef.get();
+  const existing = snap.exists ? (snap.data().categories ?? []) : [];
+  const existingKeys = new Set(existing.map((c) => c.toLowerCase()));
+  const additions = [...importedChapters].filter((c) => !existingKeys.has(c));
+  if (additions.length > 0) {
+    const updated = [...existing, ...additions];
+    await userRef.set(
+      {
+        ownerId: ownerUid,
+        categories: updated,
+        updatedAt: FieldValue.serverTimestamp(),
+        // createdAt only applied on first write — merge:true won't overwrite
+        // an existing value, but seeds it for brand-new user docs.
+        createdAt: FieldValue.serverTimestamp(),
+      },
+      {merge: true},
+    );
+    console.log(
+      `\nAdded ${additions.length} new chapter(s) to user list: ${additions.join(", ")}`,
+    );
+  } else {
+    console.log("\nAll imported chapters already in user list — no changes.");
+  }
 }
 
 console.log(`\nDone. Imported ${imported}, skipped ${skipped}.`);
