@@ -138,16 +138,47 @@ export function RecipeDetail() {
     recipe.totalTime && { label: "Total", value: recipe.totalTime },
   ].filter((x): x is { label: string; value: string } => Boolean(x));
 
+  const actionButtons = isOwner ? (
+    <div className="flex items-center gap-2 shrink-0">
+      <Link to={`/recipes/${id}/edit`} className="no-underline">
+        <Button variant="secondary" icon="pencil" size="sm" type="button">
+          Edit
+        </Button>
+      </Link>
+      <Button
+        type="button"
+        variant="secondary"
+        icon="share-2"
+        size="sm"
+        onClick={() => setShareOpen(true)}
+      >
+        Share
+      </Button>
+      <Button
+        type="button"
+        variant="danger"
+        icon="trash"
+        size="sm"
+        onClick={() => setShowDeleteConfirm(true)}
+      >
+        Delete
+      </Button>
+    </div>
+  ) : null;
+
   return (
     <article className="mx-auto max-w-[720px] px-6 py-8 lg:px-10 lg:py-10">
-      <Button
-        variant="ghost"
-        icon="arrow-left"
-        onClick={goBack}
-        className="px-0 mb-4"
-      >
-        Back
-      </Button>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <Button
+          variant="ghost"
+          icon="arrow-left"
+          onClick={goBack}
+          className="px-0"
+        >
+          Back
+        </Button>
+        {actionButtons && <div className="sm:hidden">{actionButtons}</div>}
+      </div>
 
       <Eyebrow>{recipe.category}</Eyebrow>
 
@@ -155,33 +186,7 @@ export function RecipeDetail() {
         <h1 className="font-display text-[32px] sm:text-[44px] font-medium leading-[1.05] tracking-[-0.02em] text-ink-900 m-0 flex-1 min-w-0">
           {recipe.title}
         </h1>
-        {isOwner && (
-          <div className="flex items-center gap-2 shrink-0">
-            <Link to={`/recipes/${id}/edit`} className="no-underline">
-              <Button variant="secondary" icon="pencil" size="sm" type="button">
-                Edit
-              </Button>
-            </Link>
-            <Button
-              type="button"
-              variant="secondary"
-              icon="share-2"
-              size="sm"
-              onClick={() => setShareOpen(true)}
-            >
-              Share
-            </Button>
-            <Button
-              type="button"
-              variant="danger"
-              icon="trash"
-              size="sm"
-              onClick={() => setShowDeleteConfirm(true)}
-            >
-              Delete
-            </Button>
-          </div>
-        )}
+        {actionButtons && <div className="hidden sm:block">{actionButtons}</div>}
       </div>
 
       {recipe.tags.length > 0 && (

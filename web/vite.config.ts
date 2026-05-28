@@ -71,8 +71,20 @@ export default defineConfig({
         // matching files in web/public/screenshots/ when ready — the
         // install prompt still works fine without them.
         shortcuts: [
-          { name: "New recipe", url: "/recipes/new" },
-          { name: "Import from URL", url: "/import?via=shortcut" },
+          {
+            name: "New recipe",
+            url: "/recipes/new",
+            icons: [
+              { src: "/icons/shortcut-new-96.png", sizes: "96x96", type: "image/png" },
+            ],
+          },
+          {
+            name: "Import from URL",
+            url: "/import?via=shortcut",
+            icons: [
+              { src: "/icons/shortcut-import-96.png", sizes: "96x96", type: "image/png" },
+            ],
+          },
         ],
         share_target: {
           action: "/import",
