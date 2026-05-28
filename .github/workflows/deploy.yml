@@ -22,6 +22,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Fail fast with a clear message if any required secret is empty.
+      # Without this, the google-github-actions/auth step further down
+      # errors with "must specify exactly one of workload_identity_provider
+      # or credentials_json" — accurate but easy to misread as a workflow
+      # syntax problem when it's really a missing-secret problem.
+      - name: Verify required secrets
+        env:
+          FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        run: |
+          missing=()
+          [ -z "$FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK" ] && missing+=("FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK")
+          [ -z "$VITE_FIREBASE_API_KEY" ] && missing+=("VITE_FIREBASE_API_KEY")
+          [ -z "$VITE_FIREBASE_PROJECT_ID" ] && missing+=("VITE_FIREBASE_PROJECT_ID")
+          [ -z "$VITE_FIREBASE_APP_ID" ] && missing+=("VITE_FIREBASE_APP_ID")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error title=Missing GitHub secrets::${missing[*]}"
+            echo "::error::Set them under Settings → Secrets and variables → Actions → New repository secret"
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK must be the full JSON contents of a GCP service-account key (including the outer braces)."
+            exit 1
+          fi
+          echo "All required secrets present."
+
       - uses: pnpm/action-setup@v4
         with:
           version: 11.4.0
@@ -57,7 +82,7 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK }}
 
       - name: Deploy to Firebase
         run: |
