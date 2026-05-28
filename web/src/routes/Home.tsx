@@ -194,20 +194,101 @@ export function Home() {
       ) : activeChapter ? (
         <RecipeList recipes={sorted} />
       ) : (
-        <div className="flex flex-col gap-9">
-          {chapters.map((chapter) => {
-            const items = byChapter.groups.get(chapter.toLowerCase()) ?? [];
-            if (items.length === 0) return null;
-            return (
-              <ChapterSection key={chapter} name={chapter} recipes={items} />
-            );
-          })}
-          {byChapter.orphans.length > 0 && (
-            <ChapterSection name="Other" recipes={byChapter.orphans} italic />
-          )}
-        </div>
+        <>
+          <RecentlyAdded recipes={recipes} />
+          <div className="flex flex-col gap-9">
+            {chapters.map((chapter) => {
+              const items = byChapter.groups.get(chapter.toLowerCase()) ?? [];
+              if (items.length === 0) return null;
+              return (
+                <ChapterSection key={chapter} name={chapter} recipes={items} />
+              );
+            })}
+            {byChapter.orphans.length > 0 && (
+              <ChapterSection name="Other" recipes={byChapter.orphans} italic />
+            )}
+          </div>
+        </>
       )}
     </div>
+  );
+}
+
+/**
+ * "Recently added" card grid — the kit's discovery affordance for the
+ * cookbook root. Top 4 recipes by createdAt across all sources (owned +
+ * shared + auto-shared) rendered as 4:3 photo cards. Only shown on the
+ * unscoped, unsearched view; when a chapter is active or the user is
+ * searching, the grid would just be noise.
+ *
+ * Threshold: 5+ recipes. Below that, the cards would duplicate every
+ * row in the chapter sections below, which feels redundant rather than
+ * useful.
+ */
+function RecentlyAdded({ recipes }: { recipes: RecipeSummary[] }) {
+  const featured = useMemo(() => {
+    if (recipes.length < 5) return [];
+    return [...recipes]
+      .sort(
+        (a, b) =>
+          (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0),
+      )
+      .slice(0, 4);
+  }, [recipes]);
+
+  if (featured.length === 0) return null;
+
+  return (
+    <section className="mb-10">
+      <h2 className="font-display italic text-[22px] font-medium text-ink-900 m-0 mb-4">
+        Recently added
+      </h2>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {featured.map((r) => (
+          <RecipeCard key={r.id} recipe={r} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Card variant of the recipe summary — 4:3 photo on top, category
+ * eyebrow + Newsreader title + mono total time below. Used by
+ * RecentlyAdded; not currently used elsewhere but kept as a standalone
+ * component so search-result grids and "shared with me" surfaces could
+ * lift it without refactor.
+ */
+function RecipeCard({ recipe }: { recipe: RecipeSummary }) {
+  return (
+    <Link
+      to={`/recipes/${recipe.id}`}
+      className={[
+        "group flex flex-col bg-white rounded-lg overflow-hidden",
+        "shadow-xs hover:shadow-md -translate-y-0 hover:-translate-y-px",
+        "transition-[box-shadow,transform] duration-100 ease-out",
+        "no-underline",
+      ].join(" ")}
+    >
+      <PhotoFrame
+        src={recipe.photoUrl}
+        alt=""
+        ratio="4 / 3"
+        radius="none"
+        border={false}
+      />
+      <div className="px-3.5 py-3 flex flex-col gap-0.5">
+        <Eyebrow className="capitalize">{recipe.category}</Eyebrow>
+        <div className="font-display font-medium text-[17px] leading-[1.2] tracking-[-0.005em] text-ink-900 mt-0.5 line-clamp-2">
+          {recipe.title}
+        </div>
+        {recipe.totalTime && (
+          <div className="font-mono text-[11px] text-ink-500 mt-1 [font-feature-settings:'tnum']">
+            {recipe.totalTime}
+          </div>
+        )}
+      </div>
+    </Link>
   );
 }
 

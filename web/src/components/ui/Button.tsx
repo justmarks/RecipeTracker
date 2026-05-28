@@ -55,6 +55,11 @@ export function Button({
     "transition-colors duration-100 ease-out",
     "focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)]",
     "disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none",
+    // 44px minimum tap target per the design system. The button's visual
+    // padding still drives "sm vs md vs lg" appearance; this just lifts
+    // the floor so a finger can hit any size cleanly on touch. Flex
+    // centering keeps the label vertically centered in the extra space.
+    "min-h-[44px]",
     SIZE_CLASSES[size],
     VARIANT_CLASSES[variant],
     className,
