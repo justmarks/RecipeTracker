@@ -13,8 +13,8 @@
     "lint": "pnpm -r --if-present run lint && npm --prefix functions run lint",
     "lint:fix": "pnpm -r --if-present run lint:fix && npm --prefix functions run lint:fix",
     "typecheck": "pnpm -r --if-present run typecheck",
-    "deploy": "firebase deploy --only hosting,functions,firestore,storage --project marksrecipebook",
-    "deploy:hosting": "firebase deploy --only hosting --project marksrecipebook",
+    "deploy": "pnpm --filter web build && firebase deploy --only hosting,functions,firestore,storage --project marksrecipebook",
+    "deploy:hosting": "pnpm --filter web build && firebase deploy --only hosting --project marksrecipebook",
     "deploy:functions": "firebase deploy --only functions --project marksrecipebook",
     "deploy:rules": "firebase deploy --only firestore,storage --project marksrecipebook",
     "postinstall": "npm --prefix functions install --no-audit --no-fund"

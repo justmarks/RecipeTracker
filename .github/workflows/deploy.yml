@@ -158,6 +158,12 @@ jobs:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MARKSRECIPEBOOK }}
 
       - name: Deploy to Firebase
+        # The hosting target has no predeploy hook in firebase.json — the
+        # CI's earlier "Build web" step is the single source of truth for
+        # web/dist/. Don't reintroduce a predeploy here or in firebase.json
+        # without also passing VITE_* env vars to this step, or the
+        # predeploy will rebuild the bundle without secrets and upload
+        # a bundle where apiKey resolves to `void 0` at runtime.
         run: |
           npx --yes firebase-tools@latest deploy \
             --only hosting,functions,firestore,storage \
