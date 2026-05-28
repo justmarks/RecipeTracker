@@ -47,9 +47,9 @@ type StoredRecipe = {
  * saffron notes card. Print-style cookbook on screen.
  *
  * Layout follows the kit:
- *   ← Back
+ *   ← Back · Edit · Share · Delete (action buttons share the back row)
  *   CATEGORY eyebrow
- *   Title (44px Newsreader) · Edit button
+ *   Title (44px Newsreader, full width)
  *   Tag chips
  *   Source line
  *   (photo)
@@ -177,17 +177,14 @@ export function RecipeDetail() {
         >
           Back
         </Button>
-        {actionButtons && <div className="sm:hidden">{actionButtons}</div>}
+        {actionButtons}
       </div>
 
       <Eyebrow>{recipe.category}</Eyebrow>
 
-      <div className="mt-1.5 flex items-start justify-between gap-4">
-        <h1 className="font-display text-[32px] sm:text-[44px] font-medium leading-[1.05] tracking-[-0.02em] text-ink-900 m-0 flex-1 min-w-0">
-          {recipe.title}
-        </h1>
-        {actionButtons && <div className="hidden sm:block">{actionButtons}</div>}
-      </div>
+      <h1 className="mt-1.5 font-display text-[32px] sm:text-[44px] font-medium leading-[1.05] tracking-[-0.02em] text-ink-900 m-0">
+        {recipe.title}
+      </h1>
 
       {recipe.tags.length > 0 && (
         <div className="mt-3 flex gap-1.5 flex-wrap">
