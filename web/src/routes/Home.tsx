@@ -222,7 +222,16 @@ export function Home() {
           sorted.length === 0 ? (
             <FavoritesEmptyState />
           ) : (
-            <RecipeList recipes={sorted} />
+            // Favorites view is always alphabetical — the sortOrder
+            // selector still appears (it would be jarring to hide it),
+            // but in favorites mode the alpha ordering is canonical.
+            <RecipeList
+              recipes={[...sorted].sort((a, b) =>
+                a.title.localeCompare(b.title, undefined, {
+                  sensitivity: "base",
+                }),
+              )}
+            />
           )
         ) : activeChapter ? (
           <RecipeList recipes={sorted} />
@@ -230,7 +239,13 @@ export function Home() {
           <>
             <RecentlyAdded recipes={recipes} />
             <FavoritesSection
-              recipes={recipes.filter((r) => favorites.has(r.id))}
+              recipes={recipes
+                .filter((r) => favorites.has(r.id))
+                .sort((a, b) =>
+                  a.title.localeCompare(b.title, undefined, {
+                    sensitivity: "base",
+                  }),
+                )}
             />
             <div className="flex flex-col gap-9">
               {chapters.map((chapter) => {

@@ -80,8 +80,16 @@ service cloud.firestore {
     // authoritative ownership check; the uid field in the body is just a
     // convenience for queries.
     match /favorites/{favoriteId} {
+      // Read uses the `uid` FIELD (not the doc id pattern) so a list
+      // query like `where("uid", "==", auth.uid)` can be proven safe
+      // by the rules engine. List queries can only reference rule
+      // predicates that derive from the query's own filters, and the
+      // path variable doesn't qualify — using it on read was rejecting
+      // the useFavorites snapshot subscription with PERMISSION_DENIED.
+      // Create still enforces the doc-id pattern so ownership is
+      // double-bound (id prefix + body uid both must match auth.uid).
       allow read: if isSignedIn()
-        && favoriteId.matches('^' + request.auth.uid + '_.*');
+        && resource.data.uid == request.auth.uid;
 
       allow create: if isSignedIn()
         && favoriteId.matches('^' + request.auth.uid + '_.*')
@@ -91,7 +99,7 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp;
 
       allow delete: if isSignedIn()
-        && favoriteId.matches('^' + request.auth.uid + '_.*');
+        && resource.data.uid == request.auth.uid;
 
       // Favorites are create + delete only — no mutation.
       allow update: if false;
