@@ -89,7 +89,7 @@ function renderParagraph(text: string): ReactNode[] {
   return out;
 }
 
-function isSafeUrl(url: string): boolean {
+export function isSafeUrl(url: string): boolean {
   const lower = url.trim().toLowerCase();
   return (
     lower.startsWith("http://") ||
