@@ -3,33 +3,10 @@ import {onDocumentDeleted, onDocumentUpdated}
 import {initializeApp, getApps} from "firebase-admin/app";
 import {getStorage} from "firebase-admin/storage";
 import {logger} from "firebase-functions";
+import {pathFromDownloadUrl, isOwnedByRecipeOwner}
+  from "./photoCleanupHelpers.js";
 
 if (getApps().length === 0) initializeApp();
-
-/**
- * Parse the storage object path out of a Firebase Storage download URL.
- *
- * Download URLs look like:
- *   https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<encoded-path>?alt=media&token=...
- *
- * Returns null when the URL isn't a Firebase Storage URL at all (e.g.
- * a hand-pasted Unsplash link) — those photos aren't ours to delete.
- *
- * @param {string} url - The full https download URL to parse.
- * @return {string | null} The decoded storage object path, or null if the
- *   URL doesn't match the Firebase Storage download pattern.
- */
-function pathFromDownloadUrl(url: string): string | null {
-  const match = url.match(
-    /firebasestorage\.googleapis\.com\/v0\/b\/[^/]+\/o\/([^?]+)/,
-  );
-  if (!match) return null;
-  try {
-    return decodeURIComponent(match[1]);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Delete the given storage object, treating "already gone" as success.
@@ -49,20 +26,6 @@ async function deleteIfExists(path: string): Promise<void> {
     if (code === 404) return; // already gone, fine
     logger.error(`Failed to delete photo ${path}:`, err);
   }
-}
-
-/**
- * Safety check: only delete photos that live under the recipe owner's
- * directory (recipes/{ownerId}/). If a malicious or buggy client wrote
- * a photoUrl pointing at another user's file, we don't want to dutifully
- * delete it just because the owner deleted their own recipe.
- *
- * @param {string} path - The storage object path being considered.
- * @param {string} ownerId - The recipe's ownerId field.
- * @return {boolean} True iff the path lives under recipes/{ownerId}/.
- */
-function isOwnedByRecipeOwner(path: string, ownerId: string): boolean {
-  return path.startsWith(`recipes/${ownerId}/`);
 }
 
 /**

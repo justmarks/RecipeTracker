@@ -12,6 +12,7 @@
     "preview": "pnpm --filter web preview",
     "lint": "pnpm -r --if-present run lint && npm --prefix functions run lint",
     "lint:fix": "pnpm -r --if-present run lint:fix && npm --prefix functions run lint:fix",
+    "test": "pnpm -r --if-present run test && npm --prefix functions run test",
     "typecheck": "pnpm -r --if-present run typecheck",
     "deploy": "pnpm --filter web build && firebase deploy --only hosting,functions,firestore,storage --project marksrecipebook",
     "deploy:hosting": "pnpm --filter web build && firebase deploy --only hosting --project marksrecipebook",

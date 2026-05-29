@@ -1,4 +1,11 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Link, useSearchParams } from "react-router";
 import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
@@ -48,6 +55,33 @@ export function Home() {
   const { recipes } = useRecipeList(user?.uid);
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("alpha");
+
+  // Which sections are expanded on the full TOC view.
+  // "recent" and "favorites" start open; all chapters start collapsed.
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    () => new Set(["recent", "favorites"]),
+  );
+
+  const toggleSection = (key: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // When the user navigates back from a chapter-filtered view to the full
+  // TOC (e.g. clicks "Show all"), auto-open that chapter's section so
+  // they land somewhere meaningful.
+  const prevChapterRef = useRef(activeChapter);
+  useEffect(() => {
+    const prev = prevChapterRef.current;
+    prevChapterRef.current = activeChapter;
+    if (!activeChapter && prev) {
+      setExpandedSections((s) => new Set([...s, prev.toLowerCase()]));
+    }
+  }, [activeChapter]);
 
   const queryTokens = useMemo(
     () =>
@@ -259,7 +293,11 @@ export function Home() {
           <RecipeList recipes={sorted} />
         ) : (
           <>
-            <RecentlyAdded recipes={recipes} />
+            <RecentlyAdded
+              recipes={recipes}
+              isOpen={expandedSections.has("recent")}
+              onToggle={() => toggleSection("recent")}
+            />
             <FavoritesSection
               recipes={recipes
                 .filter((r) => favorites.has(r.id))
@@ -268,8 +306,10 @@ export function Home() {
                     sensitivity: "base",
                   }),
                 )}
+              isOpen={expandedSections.has("favorites")}
+              onToggle={() => toggleSection("favorites")}
             />
-            <div className="flex flex-col gap-9">
+            <div className="flex flex-col gap-0">
               {chapters.map((chapter) => {
                 const items =
                   byChapter.groups.get(chapter.toLowerCase()) ?? [];
@@ -279,6 +319,8 @@ export function Home() {
                     key={chapter}
                     name={chapter}
                     recipes={items}
+                    isOpen={expandedSections.has(chapter.toLowerCase())}
+                    onToggle={() => toggleSection(chapter.toLowerCase())}
                   />
                 );
               })}
@@ -287,6 +329,8 @@ export function Home() {
                   name="Other"
                   recipes={byChapter.orphans}
                   italic
+                  isOpen={expandedSections.has("other")}
+                  onToggle={() => toggleSection("other")}
                 />
               )}
             </div>
@@ -308,24 +352,72 @@ const FavoriteContext = createContext<{
   onToggle: (recipeId: string) => void;
 } | null>(null);
 
+/** Animated expand/collapse container using grid-template-rows trick. */
+function CollapsePanel({
+  isOpen,
+  children,
+}: {
+  isOpen: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateRows: isOpen ? "1fr" : "0fr",
+        transition: "grid-template-rows 200ms ease",
+      }}
+      aria-hidden={!isOpen}
+    >
+      <div style={{ overflow: "hidden" }}>{children}</div>
+    </div>
+  );
+}
+
 /**
  * Favorites section — sits between "Recently added" and the chapter
  * sections on the unscoped Home view. Hidden when the user hasn't
  * favorited anything yet, so a new user doesn't see an empty section
  * before they've discovered the feature.
  */
-function FavoritesSection({ recipes }: { recipes: RecipeSummary[] }) {
+function FavoritesSection({
+  recipes,
+  isOpen,
+  onToggle,
+}: {
+  recipes: RecipeSummary[];
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
   if (recipes.length === 0) return null;
   return (
-    <section className="mb-10">
-      <h2 className="flex items-center gap-2.5 border-b border-paper-300 pb-2 font-display text-[22px] font-medium m-0 mb-3 text-ink-900">
-        <Icon name="heart" size={18} filled className="text-tomato-500" />
-        Favorites
+    <section className="mb-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className="w-full flex items-center gap-2.5 border-b border-paper-300 pb-2 mb-0 text-left cursor-pointer hover:text-tomato-600 transition-colors duration-100 group"
+      >
+        <Icon name="heart" size={18} filled className="text-tomato-500 shrink-0" />
+        <span className="font-display text-[22px] font-medium text-ink-900 group-hover:text-tomato-600 transition-colors duration-100">
+          Favorites
+        </span>
         <span className="font-mono text-xs font-normal text-ink-300 [font-feature-settings:'tnum']">
           {recipes.length}
         </span>
-      </h2>
-      <RecipeList recipes={recipes} />
+        <span className="ml-auto shrink-0 text-ink-400 group-hover:text-tomato-600 transition-colors duration-100">
+          <Icon
+            name="chevron-right"
+            size={16}
+            className={`transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}
+          />
+        </span>
+      </button>
+      <CollapsePanel isOpen={isOpen}>
+        <div className="pt-3 mb-8">
+          <RecipeList recipes={recipes} />
+        </div>
+      </CollapsePanel>
     </section>
   );
 }
@@ -355,7 +447,15 @@ function FavoritesEmptyState() {
  * row in the chapter sections below, which feels redundant rather than
  * useful.
  */
-function RecentlyAdded({ recipes }: { recipes: RecipeSummary[] }) {
+function RecentlyAdded({
+  recipes,
+  isOpen,
+  onToggle,
+}: {
+  recipes: RecipeSummary[];
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
   const featured = useMemo(() => {
     if (recipes.length < 5) return [];
     return [...recipes]
@@ -369,15 +469,33 @@ function RecentlyAdded({ recipes }: { recipes: RecipeSummary[] }) {
   if (featured.length === 0) return null;
 
   return (
-    <section className="mb-10">
-      <h2 className="font-display italic text-[22px] font-medium text-ink-900 m-0 mb-4">
-        Recently added
-      </h2>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {featured.map((r) => (
-          <RecipeCard key={r.id} recipe={r} />
-        ))}
-      </div>
+    <section className="mb-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className="w-full flex items-center gap-2.5 pb-2 mb-0 text-left cursor-pointer group"
+      >
+        <span className="font-display italic text-[22px] font-medium text-ink-900 group-hover:text-tomato-600 transition-colors duration-100">
+          Recently added
+        </span>
+        <span className="ml-auto shrink-0 text-ink-400 group-hover:text-tomato-600 transition-colors duration-100">
+          <Icon
+            name="chevron-right"
+            size={16}
+            className={`transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}
+          />
+        </span>
+      </button>
+      <CollapsePanel isOpen={isOpen}>
+        <div className="pt-2 mb-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {featured.map((r) => (
+              <RecipeCard key={r.id} recipe={r} />
+            ))}
+          </div>
+        </div>
+      </CollapsePanel>
     </section>
   );
 }
@@ -440,33 +558,60 @@ function ChapterSection({
   name,
   recipes,
   italic = false,
+  isOpen,
+  onToggle,
 }: {
   name: string;
   recipes: RecipeSummary[];
   italic?: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
   return (
-    <section>
-      <h2
-        className={`flex items-baseline gap-2.5 border-b border-paper-300 pb-2 font-display text-[22px] font-medium m-0 mb-3 ${
-          italic ? "italic text-ink-500" : "capitalize text-ink-900"
-        }`}
+    <section className="border-b border-paper-300 last:border-b-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className={[
+          "w-full flex items-center gap-2.5 py-3 text-left cursor-pointer group",
+          "transition-colors duration-100",
+          italic ? "" : "",
+        ].join(" ")}
       >
-        {italic ? (
-          <span>{name}</span>
-        ) : (
-          <Link
-            to={`/?chapter=${encodeURIComponent(name)}`}
-            className="no-underline text-ink-900 hover:text-tomato-600 transition-colors duration-100"
-          >
-            {name}
-          </Link>
-        )}
+        <span
+          className={[
+            "font-display text-[22px] font-medium transition-colors duration-100",
+            italic
+              ? "italic text-ink-500 group-hover:text-ink-700"
+              : "capitalize text-ink-900 group-hover:text-tomato-600",
+          ].join(" ")}
+        >
+          {name}
+        </span>
         <span className="font-mono text-xs font-normal text-ink-300 [font-feature-settings:'tnum']">
           {recipes.length}
         </span>
-      </h2>
-      <RecipeList recipes={recipes} />
+        <span
+          className={[
+            "ml-auto shrink-0 transition-colors duration-100",
+            italic
+              ? "text-ink-300 group-hover:text-ink-500"
+              : "text-ink-400 group-hover:text-tomato-600",
+          ].join(" ")}
+        >
+          <Icon
+            name="chevron-right"
+            size={16}
+            className={`transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}
+          />
+        </span>
+      </button>
+      <CollapsePanel isOpen={isOpen}>
+        <div className="pb-4">
+          <RecipeList recipes={recipes} />
+        </div>
+      </CollapsePanel>
     </section>
   );
 }
