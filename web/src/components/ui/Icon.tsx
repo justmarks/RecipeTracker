@@ -37,7 +37,8 @@ export type IconName =
   | "share-2"
   | "mail"
   | "download"
-  | "heart";
+  | "heart"
+  | "grip-vertical";
 
 const ICON_PATHS: Record<IconName, ReactElement> = {
   plus: (
@@ -183,6 +184,16 @@ const ICON_PATHS: Record<IconName, ReactElement> = {
   ),
   heart: (
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+  ),
+  "grip-vertical": (
+    <>
+      <circle cx="9" cy="7" r="1.25" stroke="none" fill="currentColor" />
+      <circle cx="15" cy="7" r="1.25" stroke="none" fill="currentColor" />
+      <circle cx="9" cy="12" r="1.25" stroke="none" fill="currentColor" />
+      <circle cx="15" cy="12" r="1.25" stroke="none" fill="currentColor" />
+      <circle cx="9" cy="17" r="1.25" stroke="none" fill="currentColor" />
+      <circle cx="15" cy="17" r="1.25" stroke="none" fill="currentColor" />
+    </>
   ),
 };
 

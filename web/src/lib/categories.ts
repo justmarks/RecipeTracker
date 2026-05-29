@@ -238,6 +238,17 @@ export async function deleteChapter(uid: string, name: string): Promise<void> {
   await batch.commit();
 }
 
+export async function reorderChapters(
+  uid: string,
+  newOrder: string[],
+): Promise<void> {
+  await setDoc(
+    userDocRef(uid),
+    { categories: newOrder, updatedAt: serverTimestamp() },
+    { merge: true },
+  );
+}
+
 export async function moveChapter(
   uid: string,
   name: string,
