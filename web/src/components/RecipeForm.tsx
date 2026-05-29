@@ -506,33 +506,37 @@ function AddChapterRow({
 }
 
 function parseSections(text: string): Section[] {
+  // Each non-blank line becomes one item, unless it's marked as an
+  // explicit sub-heading via "## Foo" (hash form) or "**Foo**" (bold
+  // form). Round-trips of imported recipes already include `## `
+  // prefixes via sectionsToText below, so no regression there.
+  //
+  // We intentionally do NOT try to auto-detect sub-headings from
+  // unmarked short lines — the previous version did, and it would
+  // silently drop multi-paragraph prose whenever any other line in
+  // the textarea happened to have a bullet marker. If a user wants
+  // sub-sections, they prefix with `##` or `**`; otherwise every
+  // line is preserved as an item.
   const lines = text
     .split(/\n+/)
     .map((s) => s.trim())
     .filter(Boolean)
-    .map((raw) => {
-      const stripped = stripListMarker(raw);
-      return { hadMarker: stripped !== raw, text: stripped };
-    });
-
-  const anyMarkers = lines.some((l) => l.hadMarker);
+    .map((raw) => stripListMarker(raw));
 
   const sections: Section[] = [];
   let current: Section | null = null;
 
   for (const line of lines) {
-    const explicit = line.text.match(/^#{1,3}\s+(.+?):?$/);
-    const isHeuristic = anyMarkers && !line.hadMarker && !explicit;
+    const hashHeading = line.match(/^#{1,3}\s+(.+?):?$/);
+    const boldHeading = line.match(/^\*\*(.+?):?\*\*$/);
+    const explicit = hashHeading || boldHeading;
 
-    if (explicit || isHeuristic) {
+    if (explicit) {
       if (current && current.items.length > 0) sections.push(current);
-      const heading = explicit
-        ? explicit[1].trim()
-        : line.text.replace(/:$/, "").trim();
-      current = { heading, items: [] };
+      current = { heading: explicit[1].trim(), items: [] };
     } else {
       if (!current) current = { heading: null, items: [] };
-      current.items.push(line.text);
+      current.items.push(line);
     }
   }
   if (current && current.items.length > 0) sections.push(current);
