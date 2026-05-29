@@ -103,6 +103,67 @@ export function parseMarkdown(text: string): Partial<RecipeInput> {
     }
   }
 
+  // ---- Shape fallback: bulleted list followed by prose ----
+  // When the markdown has NO section headers at all (common for hand-
+  // written recipes / OneNote exports), look for the canonical shape:
+  // a contiguous run of bulleted/numbered lines (the ingredients)
+  // followed by at least one prose paragraph (the instructions).
+  // Without this, every recipe shaped like
+  //     # Title
+  //     - item 1
+  //     - item 2
+  //     Step 1.
+  //     Step 2.
+  // ends up with everything dumped into ingredients and an empty
+  // instructions field.
+  if (
+    ingredientsHeader < 0 &&
+    instructionsHeader < 0 &&
+    notesHeader < 0
+  ) {
+    let firstBullet = -1;
+    let lastBulletInRun = -1;
+    for (let i = headStart; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const isBullet = /^([•\-*–—·]|\(?\d+[.)])\s+/.test(line);
+      if (isBullet) {
+        if (firstBullet < 0) firstBullet = i;
+        lastBulletInRun = i;
+      } else if (firstBullet >= 0) {
+        // Bullets ended; everything from here on is prose.
+        break;
+      }
+    }
+    if (firstBullet >= 0) {
+      // Confirm there's at least one non-blank line after the bullet run.
+      let hasProseAfter = false;
+      for (let i = lastBulletInRun + 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          hasProseAfter = true;
+          break;
+        }
+      }
+      if (hasProseAfter) {
+        // Slice directly — synthesizing header indices for the standard
+        // slicer below would consume the first prose line as a "header"
+        // and drop it. The ingredient slice INCLUDES the last bullet
+        // line; the instruction slice starts at the line immediately
+        // after (typically blank, which parseItemsWithSubsections
+        // filters out).
+        const ing = parseItemsWithSubsections(
+          lines.slice(firstBullet, lastBulletInRun + 1),
+        );
+        const inst = parseItemsWithSubsections(
+          lines.slice(lastBulletInRun + 1),
+        );
+        if (ing.length > 0) result.ingredients = ing;
+        if (inst.length > 0) result.instructions = inst;
+        return result;
+      }
+    }
+  }
+
   // ---- Ingredients slice ----
   // If no ingredients header but there's an instructions header, ingredients
   // are everything between the title (+ metadata) and the instructions header.

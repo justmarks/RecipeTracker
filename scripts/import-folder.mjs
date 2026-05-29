@@ -220,6 +220,51 @@ function parseMarkdown(text) {
     }
   }
 
+  // Shape fallback: when there are no section headers anywhere,
+  // recognize the canonical "bulleted ingredient list followed by
+  // prose instructions" layout common in hand-written / OneNote
+  // recipes. Without this, every header-less recipe ends up with
+  // everything dumped into ingredients.
+  if (
+    ingredientsHeader < 0 &&
+    instructionsHeader < 0 &&
+    notesHeader < 0
+  ) {
+    let firstBullet = -1;
+    let lastBulletInRun = -1;
+    for (let i = headStart; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const isBullet = /^([•\-*–—·]|\(?\d+[.)])\s+/.test(line);
+      if (isBullet) {
+        if (firstBullet < 0) firstBullet = i;
+        lastBulletInRun = i;
+      } else if (firstBullet >= 0) {
+        break;
+      }
+    }
+    if (firstBullet >= 0) {
+      let hasProseAfter = false;
+      for (let i = lastBulletInRun + 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          hasProseAfter = true;
+          break;
+        }
+      }
+      if (hasProseAfter) {
+        const ing = parseItemsWithSubsections(
+          lines.slice(firstBullet, lastBulletInRun + 1),
+        );
+        const inst = parseItemsWithSubsections(
+          lines.slice(lastBulletInRun + 1),
+        );
+        if (ing.length > 0) result.ingredients = ing;
+        if (inst.length > 0) result.instructions = inst;
+        return result;
+      }
+    }
+  }
+
   const ingStart = ingredientsHeader >= 0 ? ingredientsHeader + 1 : headStart;
   const ingEnd =
     instructionsHeader >= 0
