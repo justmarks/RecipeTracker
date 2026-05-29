@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router";
 import { useAuth } from "../lib/useAuth";
 import {
   addChapter,
   deleteChapter,
   moveChapter,
+  reorderChapters,
   renameChapter,
   useChapters,
 } from "../lib/categories";
@@ -12,10 +13,10 @@ import { Button, ConfirmDialog, Field, Icon, Input } from "../components/ui";
 
 /**
  * Chapters management — list as a single card with paper-faint
- * dividers between rows. Each row carries reorder arrows
- * (chevron-up / chevron-down icons), the capitalized chapter name,
- * and ghost Rename + danger Delete actions. Add-a-chapter form sits
- * below the card.
+ * dividers between rows. Each row has a drag handle for reordering,
+ * up/down arrow buttons (keyboard/accessibility fallback), the
+ * capitalized chapter name, and ghost Rename + danger Delete actions.
+ * Add-a-chapter form sits below the card.
  */
 export function Chapters() {
   const { user, loading: authLoading } = useAuth();
@@ -30,6 +31,79 @@ export function Chapters() {
   const [busyChapter, setBusyChapter] = useState<string | null>(null);
   const [confirmDeleteName, setConfirmDeleteName] = useState<string | null>(null);
 
+  // DnD state
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  // Refs to keep startDrag's closure fresh without re-creating the callback.
+  const chaptersRef = useRef(chapters);
+  const userRef = useRef(user);
+  useEffect(() => { chaptersRef.current = chapters; }, [chapters]);
+  useEffect(() => { userRef.current = user; }, [user]);
+
+  // Per-row DOM refs so pointermove can hit-test rows.
+  const rowRefs = useRef<(HTMLLIElement | null)[]>([]);
+
+  // Stores the cleanup fn for outstanding drag listeners so unmount is safe.
+  const cleanupDragRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => { cleanupDragRef.current?.(); }, []);
+
+  // Stable callback — uses only refs internally so dep array is empty.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const startDrag = useCallback((startIdx: number) => {
+    setDraggingIdx(startIdx);
+    setDragOverIdx(startIdx);
+
+    let currentOverIdx = startIdx;
+
+    function onMove(e: PointerEvent) {
+      const y = e.clientY;
+      const rows = rowRefs.current;
+      for (let i = 0; i < chaptersRef.current.length; i++) {
+        const el = rows[i];
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (y >= rect.top && y < rect.bottom) {
+          if (i !== currentOverIdx) {
+            currentOverIdx = i;
+            setDragOverIdx(i);
+          }
+          break;
+        }
+      }
+    }
+
+    function onUp() {
+      cleanup();
+      setDraggingIdx(null);
+      setDragOverIdx(null);
+
+      const uid = userRef.current?.uid;
+      if (!uid || currentOverIdx === startIdx) return;
+
+      const current = chaptersRef.current;
+      const newOrder = [...current];
+      const [item] = newOrder.splice(startIdx, 1);
+      newOrder.splice(currentOverIdx, 0, item);
+
+      setError(null);
+      reorderChapters(uid, newOrder).catch((err) => {
+        setError(err instanceof Error ? err.message : "Reorder failed.");
+      });
+    }
+
+    function cleanup() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      cleanupDragRef.current = null;
+    }
+
+    cleanupDragRef.current = cleanup;
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, []);
+
+  // All hooks must be above these early returns.
   if (authLoading) return null;
   if (!user) return <Navigate to="/" replace />;
 
@@ -80,6 +154,8 @@ export function Chapters() {
     if (!user) return;
     await withBusy(name, () => moveChapter(user.uid, name, direction));
   }
+
+  const isDragging = draggingIdx !== null;
 
   return (
     <div className="mx-auto max-w-[640px] px-6 py-8 lg:px-10 lg:py-10">
@@ -134,22 +210,60 @@ export function Chapters() {
           No chapters yet. Add one below to get started.
         </p>
       ) : (
-        <ul className="list-none m-0 p-0 bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden">
+        <ul
+          className={[
+            "list-none m-0 p-0 bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden",
+            isDragging ? "select-none" : "",
+          ].join(" ")}
+        >
           {chapters.map((chapter, idx) => {
             const isRenaming = renamingChapter === chapter;
             const isBusy = busyChapter === chapter;
             const isLast = idx === chapters.length - 1;
+            const isBeingDragged = draggingIdx === idx;
+            const isDropTarget =
+              dragOverIdx === idx && draggingIdx !== null && draggingIdx !== idx;
+
             return (
               <li
                 key={chapter}
+                ref={(el) => { rowRefs.current[idx] = el; }}
                 className={[
-                  "flex items-center gap-3 px-4 py-3.5",
+                  "flex items-center gap-3 px-4 py-3.5 transition-colors duration-100",
                   isLast ? "" : "border-b border-[var(--border-faint)]",
+                  isBeingDragged ? "opacity-40 bg-paper-100" : "",
+                  isDropTarget ? "bg-tomato-50 border-l-2 border-l-tomato-400" : "",
                 ].join(" ")}
               >
+                {/* Drag handle — touch-action none prevents scroll hijack */}
+                <button
+                  type="button"
+                  aria-label={`Drag to reorder ${chapter}`}
+                  disabled={isRenaming || isBusy}
+                  onPointerDown={
+                    isRenaming || isBusy
+                      ? undefined
+                      : (e) => {
+                          e.preventDefault();
+                          startDrag(idx);
+                        }
+                  }
+                  className={[
+                    "flex-none p-0.5 rounded transition-colors duration-100",
+                    isRenaming || isBusy
+                      ? "opacity-30 cursor-default text-ink-400"
+                      : isBeingDragged
+                        ? "cursor-grabbing text-ink-700"
+                        : "cursor-grab text-ink-400 hover:text-ink-700",
+                  ].join(" ")}
+                  style={{ touchAction: "none" }}
+                >
+                  <Icon name="grip-vertical" size={16} />
+                </button>
+
                 <ReorderControls
-                  upDisabled={idx === 0 || isBusy}
-                  downDisabled={idx === chapters.length - 1 || isBusy}
+                  upDisabled={idx === 0 || isBusy || isDragging}
+                  downDisabled={idx === chapters.length - 1 || isBusy || isDragging}
                   onUp={() => handleMove(chapter, "up")}
                   onDown={() => handleMove(chapter, "down")}
                   ariaName={chapter}
@@ -206,7 +320,7 @@ export function Chapters() {
                         setRenamingChapter(chapter);
                         setRenameValue(chapter);
                       }}
-                      disabled={isBusy}
+                      disabled={isBusy || isDragging}
                     >
                       Rename
                     </Button>
@@ -215,7 +329,7 @@ export function Chapters() {
                       variant="danger"
                       size="sm"
                       onClick={() => setConfirmDeleteName(chapter)}
-                      disabled={isBusy}
+                      disabled={isBusy || isDragging}
                     >
                       Delete
                     </Button>
