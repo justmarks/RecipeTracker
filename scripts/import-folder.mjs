@@ -79,7 +79,13 @@ for (const filePath of walkMarkdown(rootDir)) {
   const chapter = path.basename(path.dirname(filePath)).toLowerCase().trim();
   if (!recipe.ingredients) recipe.ingredients = [];
   if (!recipe.instructions) recipe.instructions = [];
-  if (!recipe.tags) recipe.tags = [];
+  // Also tag every imported recipe with its chapter name so searches /
+  // filters that use tags surface chapter-mate recipes alongside any
+  // user-added tags. Dedup via Set so we don't double-add if the
+  // markdown's own "Tags: ..." line already listed the chapter.
+  const tagSet = new Set(recipe.tags ?? []);
+  if (chapter) tagSet.add(chapter);
+  recipe.tags = Array.from(tagSet);
 
   const doc = {
     ...recipe,
