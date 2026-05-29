@@ -648,9 +648,20 @@ function parseSections(text: string): Section[] {
   let current: Section | null = null;
 
   for (const line of lines) {
-    const hashHeading = line.match(/^#{1,3}\s+(.+?):?$/);
-    const boldHeading = line.match(/^\*\*(.+?):?\*\*$/);
-    const explicit = hashHeading || boldHeading;
+    // Hash-only heading detection. We DELIBERATELY do not treat
+    // `**Bold line**` as a heading here, even though the importer's
+    // parseItemsWithSubsections does — that detection silently drops
+    // content when a user has a bold-wrapped line as an item, e.g.
+    //
+    //     1 cup flour
+    //     **Important: don't sift**     ← would become a heading
+    //     **Use cold butter**           ← also a heading, zero-item
+    //                                     section above gets DROPPED
+    //
+    // sectionsToText round-trips headings as `## Foo`, so this won't
+    // regress edits of recipes that already have sub-headings. Users
+    // creating a new sub-section in the form should use `##` explicitly.
+    const explicit = line.match(/^#{1,3}\s+(.+?):?$/);
 
     if (explicit) {
       if (current && current.items.length > 0) sections.push(current);
