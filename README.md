@@ -34,7 +34,7 @@ A personal recipe library — installable as a PWA on desktop, Android, and iOS 
 **PWA niceties**
 - Installable to home screen / desktop with a full app icon set (including maskable variants)
 - Offline-capable app shell with Workbox-managed runtime caching (fonts, recipe photos)
-- Home-screen shortcuts: "New recipe", "Import from URL"
+- Home-screen shortcuts: "New recipe", "Import a recipe"
 - `protocol_handlers` registration of `web+recipe:` for deep links from external apps
 - `launch_handler: "navigate-existing"` so share-target activations open in the already-running window
 

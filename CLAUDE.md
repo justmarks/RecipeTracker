@@ -41,7 +41,7 @@ Declared in `web/vite.config.ts` via `vite-plugin-pwa`'s `manifest` option. The 
   ],
   shortcuts: [
     { name: "New recipe",       url: "/recipes/new",     icons: [{ src: "/icons/new-96.png", sizes: "96x96" }] },
-    { name: "Import from URL",  url: "/import?via=shortcut" },
+    { name: "Import a recipe",  url: "/import?via=shortcut" },
   ],
   share_target: {
     action: "/import",

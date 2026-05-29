@@ -137,7 +137,7 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
           onClick={() => go("/import")}
           className="w-full justify-start"
         >
-          Import from URL
+          Import
         </Button>
       </div>
 

@@ -79,7 +79,7 @@ export default defineConfig({
             ],
           },
           {
-            name: "Import from URL",
+            name: "Import a recipe",
             url: "/import?via=shortcut",
             icons: [
               { src: "/icons/shortcut-import-96.png", sizes: "96x96", type: "image/png" },
