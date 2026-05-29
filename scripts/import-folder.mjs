@@ -97,6 +97,16 @@ if (URL_IMPORT_ENABLED) {
   );
 }
 
+// Firebase ID tokens are valid for 1 hour. Cache the exchanged token
+// and reuse it across calls within that window to avoid one custom-
+// token / REST-exchange round-trip per recipe. Declared up here at
+// module-init time rather than next to getOwnerIdToken (which lives
+// after the main loop) because `let` declarations aren't hoisted —
+// the loop would otherwise hit a temporal-dead-zone error the first
+// time it called the function.
+let cachedIdToken = null;
+let cachedIdTokenExpiresAt = 0;
+
 /**
  * Look for the Firebase Web API key in web/.env at the workspace root,
  * since that's where it lives during normal development.
@@ -567,14 +577,9 @@ function tokenize(text) {
 // URL-first extraction: call the deployed importFromUrl Cloud Function.
 // Single source of truth lives in functions/src/importFromUrl.ts — this
 // script just authenticates as the owner and invokes the same callable
-// endpoint the in-app importer uses.
+// endpoint the in-app importer uses. (Token cache state lives at
+// module-init time near the top — see cachedIdToken / cachedIdTokenExpiresAt.)
 // ---------------------------------------------------------------------------
-
-// Firebase ID tokens are valid for 1 hour. Cache the exchanged token and
-// reuse it across calls within that window to avoid one custom-token /
-// REST-exchange round-trip per recipe (matters when importing 100+ files).
-let cachedIdToken = null;
-let cachedIdTokenExpiresAt = 0;
 
 /**
  * Mint a Firebase ID token for the importing user by:
