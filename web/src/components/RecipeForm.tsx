@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { RecipeInputSchema } from "shared";
 import type { RecipeInput, Section } from "shared";
 import { useAuth } from "../lib/useAuth";
@@ -48,8 +48,24 @@ export function RecipeForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [category, setCategory] = useState<string>(initial?.category ?? "");
   const [tags, setTags] = useState(initial?.tags?.join(", ") ?? "");
+  // Source is a discriminated union ({type: "url", url} | {type: "book",
+  // title, author?, page?}). We keep separate state for both branches
+  // so the user can flip the toggle back and forth without losing
+  // their typed values; only the active branch is emitted on submit.
+  const [sourceType, setSourceType] = useState<"url" | "book">(
+    initial?.source?.type === "book" ? "book" : "url",
+  );
   const [sourceUrl, setSourceUrl] = useState(
     initial?.source?.type === "url" ? initial.source.url : "",
+  );
+  const [sourceBookTitle, setSourceBookTitle] = useState(
+    initial?.source?.type === "book" ? initial.source.title : "",
+  );
+  const [sourceBookAuthor, setSourceBookAuthor] = useState(
+    initial?.source?.type === "book" ? (initial.source.author ?? "") : "",
+  );
+  const [sourceBookPage, setSourceBookPage] = useState(
+    initial?.source?.type === "book" ? (initial.source.page ?? "") : "",
   );
   const [photoUrl, setPhotoUrl] = useState(initial?.photoUrl ?? "");
   const [ingredientsText, setIngredientsText] = useState(
@@ -148,11 +164,28 @@ export function RecipeForm({
     e.preventDefault();
     setError(null);
 
+    // Emit only the active source-type's data. The other branch's state
+    // is retained in case the user toggles back, but never persisted.
+    // ignoreUndefinedProperties on the Firestore client drops any
+    // undefined fields (empty author / page) cleanly.
+    const trimmedBookTitle = sourceBookTitle.trim();
+    const trimmedBookAuthor = sourceBookAuthor.trim();
+    const trimmedBookPage = sourceBookPage.trim();
+    let source: RecipeInput["source"];
+    if (sourceType === "url" && sourceUrl.trim()) {
+      source = { type: "url", url: sourceUrl.trim() };
+    } else if (sourceType === "book" && trimmedBookTitle) {
+      source = {
+        type: "book",
+        title: trimmedBookTitle,
+        author: trimmedBookAuthor || undefined,
+        page: trimmedBookPage || undefined,
+      };
+    }
+
     const input = {
       title: title.trim(),
-      source: sourceUrl.trim()
-        ? { type: "url" as const, url: sourceUrl.trim() }
-        : undefined,
+      source,
       ingredients: parseSections(ingredientsText),
       instructions: parseSections(instructionsText),
       notes: notes.trim() || undefined,
@@ -251,15 +284,70 @@ export function RecipeForm({
       </div>
 
       <Field
-        label="Source URL"
-        hint="A link to the original recipe, if any."
+        label="Source"
+        hint={
+          sourceType === "url"
+            ? "A link to the original recipe, if any."
+            : "The book this recipe came from. Author and page are optional."
+        }
       >
-        <Input
-          type="url"
-          value={sourceUrl}
-          onChange={onChangeText(setSourceUrl)}
-          placeholder="https://..."
-        />
+        <div className="flex flex-col gap-2">
+          <div
+            role="radiogroup"
+            aria-label="Source type"
+            className="inline-flex self-start rounded-md border border-paper-400 bg-white p-0.5"
+          >
+            <SourceTypeButton
+              active={sourceType === "url"}
+              onClick={() => {
+                if (sourceType === "url") return;
+                setSourceType("url");
+                markDirty();
+              }}
+            >
+              URL
+            </SourceTypeButton>
+            <SourceTypeButton
+              active={sourceType === "book"}
+              onClick={() => {
+                if (sourceType === "book") return;
+                setSourceType("book");
+                markDirty();
+              }}
+            >
+              Book
+            </SourceTypeButton>
+          </div>
+          {sourceType === "url" ? (
+            <Input
+              type="url"
+              value={sourceUrl}
+              onChange={onChangeText(setSourceUrl)}
+              placeholder="https://..."
+            />
+          ) : (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                value={sourceBookTitle}
+                onChange={onChangeText(setSourceBookTitle)}
+                placeholder="Book title"
+                className="flex-1"
+              />
+              <Input
+                value={sourceBookAuthor}
+                onChange={onChangeText(setSourceBookAuthor)}
+                placeholder="Author"
+                className="flex-1"
+              />
+              <Input
+                value={sourceBookPage}
+                onChange={onChangeText(setSourceBookPage)}
+                placeholder="Page"
+                className="sm:w-24"
+              />
+            </div>
+          )}
+        </div>
       </Field>
 
       <Field
@@ -502,6 +590,39 @@ function AddChapterRow({
         Cancel
       </Button>
     </div>
+  );
+}
+
+/**
+ * Tiny segmented-control button for the URL/Book source-type toggle.
+ * Local to this file because it's only used here and the design system
+ * doesn't have a generic SegmentedControl primitive yet — promote it
+ * to web/src/components/ui/ if a second use case comes up.
+ */
+function SourceTypeButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      onClick={onClick}
+      className={[
+        "px-3 py-1 rounded text-xs font-sans font-semibold transition-colors duration-100",
+        active
+          ? "bg-tomato-500 text-white"
+          : "text-ink-700 hover:bg-paper-200",
+      ].join(" ")}
+    >
+      {children}
+    </button>
   );
 }
 
