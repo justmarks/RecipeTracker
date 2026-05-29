@@ -8,6 +8,20 @@
  * to the recipes collection. The IMMEDIATE PARENT FOLDER NAME becomes
  * the chapter (category).
  *
+ * URL-preferred extraction: if a markdown file contains a source URL
+ * (e.g. `Source: https://…` line) AND the deployed importFromUrl
+ * Cloud Function is reachable, the script first invokes that function
+ * with the URL — same pipeline (and prompt, and JSON-LD pre-extraction,
+ * and Claude config) the in-app URL importer uses. On any failure
+ * (site blocks the fetch, function errors, network timeout) it falls
+ * back to parsing the markdown directly.
+ *
+ * URL invocation requires a Firebase Web API key to mint an ID token
+ * for the owner UID via Identity Toolkit. The script will read it
+ * automatically from web/.env (VITE_FIREBASE_API_KEY) or take it from
+ * the FIREBASE_API_KEY env var. Without one set, URL extraction is
+ * skipped entirely and every file is parsed as markdown.
+ *
  * Uses Firebase Admin SDK — bypasses security rules. You need:
  *   1. A service account JSON from Firebase Console
  *      (Project settings → Service accounts → Generate new private key)
@@ -18,14 +32,20 @@
  *   node scripts/import-folder.mjs <root-dir> <owner-uid>
  *
  * Env:
- *   FIREBASE_SERVICE_ACCOUNT  Path to service-account.json (default:
- *                             scripts/service-account.json)
+ *   FIREBASE_SERVICE_ACCOUNT     Path to service-account.json (default:
+ *                                scripts/service-account.json)
+ *   FIREBASE_API_KEY             Firebase Web API key (optional —
+ *                                falls back to web/.env if present).
+ *                                Required for URL-first extraction.
+ *   FIREBASE_FUNCTIONS_REGION    Region the functions are deployed to
+ *                                (default: us-central1).
  *
  * Example:
  *   node scripts/import-folder.mjs "C:/recipes" "abc123uid"
  */
 
 import {initializeApp, cert} from "firebase-admin/app";
+import {getAuth as getAdminAuth} from "firebase-admin/auth";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import fs from "node:fs";
 import path from "node:path";
@@ -58,6 +78,39 @@ const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
 initializeApp({credential: cert(serviceAccount)});
 const db = getFirestore();
 
+// URL-first extraction calls the deployed importFromUrl Cloud Function
+// over HTTPS, authed as the owner. Requires a Firebase Web API key to
+// mint an ID token. Read from env, fall back to web/.env so users with
+// the standard workspace layout don't have to set anything.
+const webApiKey = process.env.FIREBASE_API_KEY || readWebApiKeyFromDotEnv();
+const functionsRegion = process.env.FIREBASE_FUNCTIONS_REGION || "us-central1";
+const projectId = serviceAccount.project_id;
+const URL_IMPORT_ENABLED = Boolean(webApiKey && projectId);
+
+if (URL_IMPORT_ENABLED) {
+  console.log(
+    `URL-first extraction: ENABLED (will call importFromUrl in ${functionsRegion}/${projectId})`,
+  );
+} else {
+  console.log(
+    "URL-first extraction: disabled (set FIREBASE_API_KEY env var or have web/.env with VITE_FIREBASE_API_KEY)",
+  );
+}
+
+/**
+ * Look for the Firebase Web API key in web/.env at the workspace root,
+ * since that's where it lives during normal development.
+ *
+ * @return {string | null} The key, or null if .env isn't present / doesn't have it
+ */
+function readWebApiKeyFromDotEnv() {
+  const envPath = path.join(__dirname, "..", "web", ".env");
+  if (!fs.existsSync(envPath)) return null;
+  const content = fs.readFileSync(envPath, "utf8");
+  const match = content.match(/^\s*VITE_FIREBASE_API_KEY\s*=\s*["']?(.+?)["']?\s*$/m);
+  return match ? match[1].trim() : null;
+}
+
 let imported = 0;
 let skipped = 0;
 // Track every chapter we write a recipe into. After the import loop we
@@ -69,12 +122,37 @@ const importedChapters = new Set();
 for (const filePath of walkMarkdown(rootDir)) {
   const relPath = path.relative(rootDir, filePath);
   const text = fs.readFileSync(filePath, "utf8");
-  const recipe = parseMarkdown(text);
-  if (!recipe.title) {
+  const mdRecipe = parseMarkdown(text);
+  if (!mdRecipe.title) {
     console.warn(`SKIP  ${relPath}  (no title detected)`);
     skipped++;
     continue;
   }
+
+  // URL-first: if the markdown declared a source URL and we can reach
+  // the deployed importFromUrl Cloud Function, call IT (single source
+  // of truth for the extraction pipeline — same prompt, same JSON-LD
+  // pre-extraction, same Claude config the in-app importer uses). On
+  // any failure we log the reason and fall through to the markdown
+  // parse — never block an import on a flaky URL.
+  let recipe = mdRecipe;
+  let usedSource = "markdown";
+  const sourceUrl = mdRecipe.source?.type === "url" ? mdRecipe.source.url : null;
+  if (sourceUrl && URL_IMPORT_ENABLED) {
+    try {
+      const extracted = await callImportFromUrl(sourceUrl);
+      // The deployed function already pins source.url to the input
+      // URL, but be defensive in case that ever changes.
+      extracted.source = {type: "url", url: sourceUrl};
+      recipe = extracted;
+      usedSource = "url";
+    } catch (err) {
+      console.warn(
+        `  URL extraction failed for ${sourceUrl}: ${err.message}. Falling back to markdown.`,
+      );
+    }
+  }
+
   // Immediate parent folder = chapter name. Normalize: lowercase + trim.
   const chapter = path.basename(path.dirname(filePath)).toLowerCase().trim();
   if (!recipe.ingredients) recipe.ingredients = [];
@@ -100,7 +178,7 @@ for (const filePath of walkMarkdown(rootDir)) {
   for (const k of Object.keys(doc)) if (doc[k] === undefined) delete doc[k];
 
   const ref = await db.collection("recipes").add(doc);
-  console.log(`OK    ${relPath} → ${chapter} (${ref.id})`);
+  console.log(`OK    ${relPath} → ${chapter} via ${usedSource} (${ref.id})`);
   imported++;
   importedChapters.add(chapter);
 }
@@ -484,3 +562,92 @@ function tokenize(text) {
     .split(/\s+/)
     .filter((w) => w.length >= 2);
 }
+
+// ---------------------------------------------------------------------------
+// URL-first extraction: call the deployed importFromUrl Cloud Function.
+// Single source of truth lives in functions/src/importFromUrl.ts — this
+// script just authenticates as the owner and invokes the same callable
+// endpoint the in-app importer uses.
+// ---------------------------------------------------------------------------
+
+// Firebase ID tokens are valid for 1 hour. Cache the exchanged token and
+// reuse it across calls within that window to avoid one custom-token /
+// REST-exchange round-trip per recipe (matters when importing 100+ files).
+let cachedIdToken = null;
+let cachedIdTokenExpiresAt = 0;
+
+/**
+ * Mint a Firebase ID token for the importing user by:
+ *   1. Creating a custom token via Admin SDK (signed with the service
+ *      account, no user interaction needed)
+ *   2. Exchanging it for an ID token via Identity Toolkit REST
+ *      (needs the project's Web API key — same value as the web SDK
+ *      config)
+ *
+ * @return {Promise<string>} Bearer token to send to the callable function
+ */
+async function getOwnerIdToken() {
+  if (cachedIdToken && Date.now() < cachedIdTokenExpiresAt) {
+    return cachedIdToken;
+  }
+  const customToken = await getAdminAuth().createCustomToken(ownerUid);
+  const resp = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${webApiKey}`,
+    {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({token: customToken, returnSecureToken: true}),
+    },
+  );
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`token exchange failed (HTTP ${resp.status}): ${text}`);
+  }
+  const data = await resp.json();
+  cachedIdToken = data.idToken;
+  // Refresh 10 min before expiry to dodge clock skew.
+  cachedIdTokenExpiresAt = Date.now() + 50 * 60 * 1000;
+  return cachedIdToken;
+}
+
+/**
+ * Invoke the deployed importFromUrl callable function with the given
+ * URL, returning the structured recipe the same way the in-app
+ * importer does. Throws on any failure so the caller can fall back
+ * to markdown parsing.
+ *
+ * @param {string} url Recipe URL to extract
+ * @return {Promise<object>} Structured recipe matching RecipeInput shape
+ */
+async function callImportFromUrl(url) {
+  const idToken = await getOwnerIdToken();
+  const fnUrl =
+    `https://${functionsRegion}-${projectId}.cloudfunctions.net/importFromUrl`;
+  const resp = await fetch(fnUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${idToken}`,
+    },
+    // Callable functions wrap the input as {data: <args>} on the wire.
+    body: JSON.stringify({data: {url}}),
+    // The function itself has a 60s timeout; give the round-trip a
+    // little extra headroom for network + cold-start.
+    signal: AbortSignal.timeout(75_000),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`function returned HTTP ${resp.status}: ${text.slice(0, 300)}`);
+  }
+  const json = await resp.json();
+  // Callable response: success → {result: <returned-value>}, error →
+  // {error: {code, message, details?}}. Surface either cleanly.
+  if (json.error) {
+    throw new Error(`${json.error.code ?? "error"}: ${json.error.message ?? "unknown"}`);
+  }
+  if (!json.result || !json.result.recipe) {
+    throw new Error("function returned no recipe in response");
+  }
+  return json.result.recipe;
+}
+
