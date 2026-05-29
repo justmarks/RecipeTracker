@@ -40,7 +40,7 @@ export function Layout() {
   return (
     <div className="min-h-screen bg-paper-100">
       {/* Mobile top bar — visible only below lg */}
-      <div className="lg:hidden print:hidden flex items-center justify-between px-4 py-3 border-b border-paper-300 bg-paper-50">
+      <div className="sticky top-0 z-30 lg:hidden print:hidden flex items-center justify-between px-4 py-3 border-b border-paper-300 bg-paper-50">
         <Link to="/" className="no-underline min-w-0">
           <Brand size={28} />
         </Link>
