@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import {describe, it, expect} from "vitest";
 import {
   extractRecipeJsonLd,
   collectRecipeNodes,
@@ -11,12 +11,12 @@ describe("extractRecipeJsonLd", () => {
   });
 
   it("returns null for JSON-LD that has no Recipe type", () => {
-    const html = `<script type="application/ld+json">{"@type":"Article","name":"Test"}</script>`;
+    const html = "<script type=\"application/ld+json\">{\"@type\":\"Article\",\"name\":\"Test\"}</script>";
     expect(extractRecipeJsonLd(html)).toBeNull();
   });
 
   it("extracts a bare Recipe object", () => {
-    const recipe = { "@type": "Recipe", name: "Pasta" };
+    const recipe = {"@type": "Recipe", "name": "Pasta"};
     const html = `<script type="application/ld+json">${JSON.stringify(recipe)}</script>`;
     const result = extractRecipeJsonLd(html);
     expect(result).not.toBeNull();
@@ -28,8 +28,8 @@ describe("extractRecipeJsonLd", () => {
   it("extracts a Recipe from an @graph wrapper", () => {
     const graph = {
       "@graph": [
-        { "@type": "Article" },
-        { "@type": "Recipe", name: "Cake" },
+        {"@type": "Article"},
+        {"@type": "Recipe", "name": "Cake"},
       ],
     };
     const html = `<script type="application/ld+json">${JSON.stringify(graph)}</script>`;
@@ -40,8 +40,8 @@ describe("extractRecipeJsonLd", () => {
   });
 
   it("returns array JSON when multiple Recipe blocks are found", () => {
-    const r1 = { "@type": "Recipe", name: "Recipe 1" };
-    const r2 = { "@type": "Recipe", name: "Recipe 2" };
+    const r1 = {"@type": "Recipe", "name": "Recipe 1"};
+    const r2 = {"@type": "Recipe", "name": "Recipe 2"};
     const html =
       `<script type="application/ld+json">${JSON.stringify(r1)}</script>` +
       `<script type="application/ld+json">${JSON.stringify(r2)}</script>`;
@@ -52,7 +52,7 @@ describe("extractRecipeJsonLd", () => {
   });
 
   it("handles Recipe type as an array of strings", () => {
-    const recipe = { "@type": ["Recipe", "Product"], name: "Fusion" };
+    const recipe = {"@type": ["Recipe", "Product"], "name": "Fusion"};
     const html = `<script type="application/ld+json">${JSON.stringify(recipe)}</script>`;
     const result = extractRecipeJsonLd(html);
     expect(result).not.toBeNull();
@@ -61,13 +61,13 @@ describe("extractRecipeJsonLd", () => {
   });
 
   it("skips invalid JSON without throwing", () => {
-    const html = `<script type="application/ld+json">{invalid json}</script>`;
+    const html = "<script type=\"application/ld+json\">{invalid json}</script>";
     expect(() => extractRecipeJsonLd(html)).not.toThrow();
     expect(extractRecipeJsonLd(html)).toBeNull();
   });
 
   it("is case-insensitive for the script type attribute", () => {
-    const recipe = { "@type": "Recipe", name: "Test" };
+    const recipe = {"@type": "Recipe", "name": "Test"};
     const html = `<SCRIPT TYPE="application/ld+json">${JSON.stringify(recipe)}</SCRIPT>`;
     const result = extractRecipeJsonLd(html);
     expect(result).not.toBeNull();
@@ -77,20 +77,20 @@ describe("extractRecipeJsonLd", () => {
 describe("collectRecipeNodes", () => {
   it("pushes a bare Recipe object into out", () => {
     const out: unknown[] = [];
-    collectRecipeNodes({ "@type": "Recipe", name: "Pasta" }, out);
+    collectRecipeNodes({"@type": "Recipe", "name": "Pasta"}, out);
     expect(out).toHaveLength(1);
   });
 
   it("ignores non-Recipe objects", () => {
     const out: unknown[] = [];
-    collectRecipeNodes({ "@type": "Article" }, out);
+    collectRecipeNodes({"@type": "Article"}, out);
     expect(out).toHaveLength(0);
   });
 
   it("handles @graph wrapper", () => {
     const out: unknown[] = [];
     collectRecipeNodes(
-      { "@graph": [{ "@type": "Recipe" }, { "@type": "Article" }] },
+      {"@graph": [{"@type": "Recipe"}, {"@type": "Article"}]},
       out,
     );
     expect(out).toHaveLength(1);
@@ -99,7 +99,7 @@ describe("collectRecipeNodes", () => {
   it("handles top-level array", () => {
     const out: unknown[] = [];
     collectRecipeNodes(
-      [{ "@type": "Recipe", name: "A" }, { "@type": "Recipe", name: "B" }],
+      [{"@type": "Recipe", "name": "A"}, {"@type": "Recipe", "name": "B"}],
       out,
     );
     expect(out).toHaveLength(2);
@@ -107,7 +107,7 @@ describe("collectRecipeNodes", () => {
 
   it("accepts type as array of strings containing Recipe", () => {
     const out: unknown[] = [];
-    collectRecipeNodes({ "@type": ["Recipe", "Product"] }, out);
+    collectRecipeNodes({"@type": ["Recipe", "Product"]}, out);
     expect(out).toHaveLength(1);
   });
 
@@ -138,7 +138,7 @@ describe("deepUnescape", () => {
   });
 
   it("converts \\\" to double-quote", () => {
-    expect(deepUnescape('say \\"hello\\"')).toBe('say "hello"');
+    expect(deepUnescape("say \\\"hello\\\"")).toBe("say \"hello\"");
   });
 
   it("converts \\\\ to single backslash", () => {
@@ -156,7 +156,7 @@ describe("deepUnescape", () => {
   });
 
   it("recurses into objects", () => {
-    const result = deepUnescape({ title: "My\\nRecipe", notes: "tip\\nhere" }) as Record<string, string>;
+    const result = deepUnescape({title: "My\\nRecipe", notes: "tip\\nhere"}) as Record<string, string>;
     expect(result.title).toBe("My\nRecipe");
     expect(result.notes).toBe("tip\nhere");
   });

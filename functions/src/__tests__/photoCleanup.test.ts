@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { pathFromDownloadUrl, isOwnedByRecipeOwner } from "../photoCleanupHelpers.js";
+import {describe, it, expect} from "vitest";
+import {pathFromDownloadUrl, isOwnedByRecipeOwner} from "../photoCleanupHelpers.js";
 
 describe("pathFromDownloadUrl", () => {
   const BUCKET = "my-project.appspot.com";
