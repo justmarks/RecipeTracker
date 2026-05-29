@@ -196,15 +196,18 @@ export function RecipeDetail() {
             });
           }}
           aria-pressed={isFavorited}
+          aria-label={isFavorited ? "Favorited" : "Favorite"}
           className={isFavorited ? "text-tomato-600" : undefined}
         >
-          {isFavorited ? "Favorited" : "Favorite"}
+          <span className="hidden sm:inline">
+            {isFavorited ? "Favorited" : "Favorite"}
+          </span>
         </Button>
       )}
       {isOwner && (
         <Link to={`/recipes/${id}/edit`} className="no-underline">
-          <Button variant="secondary" icon="pencil" size="sm" type="button">
-            Edit
+          <Button variant="secondary" icon="pencil" size="sm" type="button" aria-label="Edit">
+            <span className="hidden sm:inline">Edit</span>
           </Button>
         </Link>
       )}
@@ -215,8 +218,9 @@ export function RecipeDetail() {
           icon="share-2"
           size="sm"
           onClick={() => setShareOpen(true)}
+          aria-label="Share"
         >
-          Share
+          <span className="hidden sm:inline">Share</span>
         </Button>
       )}
       <Button
@@ -225,8 +229,9 @@ export function RecipeDetail() {
         icon="download"
         size="sm"
         onClick={handlePrint}
+        aria-label="PDF"
       >
-        PDF
+        <span className="hidden sm:inline">PDF</span>
       </Button>
       {isOwner && (
         <Button
@@ -235,8 +240,9 @@ export function RecipeDetail() {
           icon="trash"
           size="sm"
           onClick={() => setShowDeleteConfirm(true)}
+          aria-label="Delete"
         >
-          Delete
+          <span className="hidden sm:inline">Delete</span>
         </Button>
       )}
     </div>
