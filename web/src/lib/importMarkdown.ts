@@ -103,6 +103,19 @@ export function parseMarkdown(text: string): Partial<RecipeInput> {
     }
   }
 
+  // ---- Colonless metadata: "Serves 4", "Makes 12 cookies", "Yields 1 loaf"
+  // Many handwritten / OneNote-exported recipes drop the colon ("Serves 4"
+  // instead of "Yield: 4 servings"). Without this fallback those lines
+  // pollute the ingredients list below.
+  for (let i = headStart; i < headEnd; i++) {
+    if (!lines[i].trim()) continue;
+    const ym = lines[i].trim().match(/^(?:serves?|makes?|yields?)\s+(.+?)\s*$/i);
+    if (ym && !result.yield) {
+      result.yield = ym[1].trim();
+      lines[i] = "";
+    }
+  }
+
   // ---- Shape fallback: bulleted list followed by prose ----
   // When the markdown has NO section headers at all (common for hand-
   // written recipes / OneNote exports), look for the canonical shape:
@@ -156,6 +169,54 @@ export function parseMarkdown(text: string): Partial<RecipeInput> {
         );
         const inst = parseItemsWithSubsections(
           lines.slice(lastBulletInRun + 1),
+        );
+        if (ing.length > 0) result.ingredients = ing;
+        if (inst.length > 0) result.instructions = inst;
+        return result;
+      }
+    }
+  }
+
+  // ---- Shape fallback: plain prose only (no headers, no bullets) ----
+  // Many OneNote-exported recipes have neither hash headers nor bullet
+  // markers — just a sequence of one-per-line ingredient noun-phrases
+  // followed by multi-sentence instruction paragraphs. We can split
+  // them by spotting the first line that contains a sentence boundary
+  // ("period + space + capital letter"), which almost never appears in
+  // an ingredient noun-phrase but is the defining shape of instructions.
+  if (
+    ingredientsHeader < 0 &&
+    instructionsHeader < 0 &&
+    notesHeader < 0 &&
+    !result.ingredients
+  ) {
+    let firstInstructionIdx = -1;
+    for (let i = headStart; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      if (/\.\s+[A-Z]/.test(line)) {
+        firstInstructionIdx = i;
+        break;
+      }
+    }
+    if (firstInstructionIdx > headStart) {
+      // Require at least one non-blank content line BEFORE the
+      // instruction start — otherwise there's nothing to put in
+      // ingredients and the default slicer's "everything is ingredients"
+      // behavior is fine.
+      let hasIngredientsBefore = false;
+      for (let i = headStart; i < firstInstructionIdx; i++) {
+        if (lines[i].trim()) {
+          hasIngredientsBefore = true;
+          break;
+        }
+      }
+      if (hasIngredientsBefore) {
+        const ing = parseItemsWithSubsections(
+          lines.slice(headStart, firstInstructionIdx),
+        );
+        const inst = parseItemsWithSubsections(
+          lines.slice(firstInstructionIdx),
         );
         if (ing.length > 0) result.ingredients = ing;
         if (inst.length > 0) result.instructions = inst;

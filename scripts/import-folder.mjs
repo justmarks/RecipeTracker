@@ -314,6 +314,18 @@ function parseMarkdown(text) {
     }
   }
 
+  // Colonless metadata: "Serves 4" / "Makes 12 cookies" / "Yields 1 loaf"
+  // (handwritten and OneNote recipes often drop the colon — without
+  // this fallback these lines pollute the ingredients list).
+  for (let i = headStart; i < headEnd; i++) {
+    if (!lines[i].trim()) continue;
+    const ym = lines[i].trim().match(/^(?:serves?|makes?|yields?)\s+(.+?)\s*$/i);
+    if (ym && !result.yield) {
+      result.yield = ym[1].trim();
+      lines[i] = "";
+    }
+  }
+
   // Shape fallback: when there are no section headers anywhere,
   // recognize the canonical "bulleted ingredient list followed by
   // prose instructions" layout common in hand-written / OneNote
@@ -351,6 +363,48 @@ function parseMarkdown(text) {
         );
         const inst = parseItemsWithSubsections(
           lines.slice(lastBulletInRun + 1),
+        );
+        if (ing.length > 0) result.ingredients = ing;
+        if (inst.length > 0) result.instructions = inst;
+        return result;
+      }
+    }
+  }
+
+  // Shape fallback: plain prose only (no headers, no bullets). Split
+  // ingredient noun-phrases from instruction paragraphs at the first
+  // line containing a sentence boundary ("period + space + capital"),
+  // which is the defining shape of instructions and almost never
+  // appears in ingredient lines.
+  if (
+    ingredientsHeader < 0 &&
+    instructionsHeader < 0 &&
+    notesHeader < 0 &&
+    !result.ingredients
+  ) {
+    let firstInstructionIdx = -1;
+    for (let i = headStart; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      if (/\.\s+[A-Z]/.test(line)) {
+        firstInstructionIdx = i;
+        break;
+      }
+    }
+    if (firstInstructionIdx > headStart) {
+      let hasIngredientsBefore = false;
+      for (let i = headStart; i < firstInstructionIdx; i++) {
+        if (lines[i].trim()) {
+          hasIngredientsBefore = true;
+          break;
+        }
+      }
+      if (hasIngredientsBefore) {
+        const ing = parseItemsWithSubsections(
+          lines.slice(headStart, firstInstructionIdx),
+        );
+        const inst = parseItemsWithSubsections(
+          lines.slice(firstInstructionIdx),
         );
         if (ing.length > 0) result.ingredients = ing;
         if (inst.length > 0) result.instructions = inst;
