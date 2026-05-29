@@ -67,6 +67,27 @@ export function parseMarkdown(text: string): Partial<RecipeInput> {
     }
   }
 
+  // Fallback: many recipes name the instructions section after the
+  // cooking method itself ("**Roast:**", "**Grill:**", "**Assembly:**")
+  // instead of using the literal word "Instructions". If Ingredients
+  // is present but no Instructions header was matched, treat the first
+  // subsequent EXPLICIT header (hash or bold-text — not just any short
+  // line) that isn't Notes/Tips as the instructions header. The
+  // explicit-only check matters: headerText() is liberal and returns
+  // non-null for ingredient lines too ("9 lb boneless rib roast" reads
+  // as 5 short words), so without isExplicitHeader the very first
+  // ingredient would falsely become the instructions header.
+  if (ingredientsHeader >= 0 && instructionsHeader < 0) {
+    for (let i = ingredientsHeader + 1; i < lines.length; i++) {
+      if (!isExplicitHeader(lines[i])) continue;
+      const head = headerText(lines[i]);
+      if (head === null) continue;
+      if (/^(notes?|tips?)$/.test(head)) continue;
+      instructionsHeader = i;
+      break;
+    }
+  }
+
   // ---- Metadata block (between title and first section header) ----
   const headStart = titleIdx >= 0 ? titleIdx + 1 : 0;
   const headEnd = Math.min(
@@ -118,6 +139,20 @@ export function parseMarkdown(text: string): Partial<RecipeInput> {
   }
 
   return result;
+}
+
+/**
+ * True only when a line carries explicit heading markup — a leading
+ * "#"/"##"/"###" or a `**bold-wrapped**` form. Used to gate the
+ * instructions-header fallback so that ingredient/step text never gets
+ * mistaken for a section header.
+ */
+function isExplicitHeader(line: string): boolean {
+  const raw = line.trim();
+  if (!raw) return false;
+  if (/^#{1,6}\s+\S/.test(raw)) return true;
+  if (/^\*\*.+?:?\*\*$/.test(raw)) return true;
+  return false;
 }
 
 /** Strip leading "#" markers and "**" bolding, lowercase, trim trailing ":" */
@@ -244,10 +279,20 @@ function parseItemsWithSubsections(lines: string[]): Section[] {
   let current: Section | null = null;
 
   for (const line of classified) {
-    const explicit = line.text.match(/^#{1,3}\s+(.+?):?$/);
+    // Three heading shapes recognized as explicit (independent of the
+    // anyMarkers heuristic below):
+    //   1. "# Foo", "## Foo", "### Foo" with optional trailing colon
+    //   2. "**Foo**" or "**Foo:**" (bold-text headings — what OneNote and
+    //      many hand-written recipes use instead of hash headers)
+    //   3. The unmarked-line heuristic below, gated on anyMarkers
+    const hashHeading = line.text.match(/^#{1,3}\s+(.+?):?$/);
+    const boldHeading = line.text.match(/^\*\*(.+?):?\*\*$/);
+    const explicit = hashHeading || boldHeading;
+
     // Sub-heading heuristic only applies to short-ish unmarked lines among
     // marked items. A long paragraph between bullets is more likely a body
-    // line than a heading.
+    // line than a heading. Skipped entirely when nothing in the block has
+    // a list marker — too many false positives.
     const isHeuristicHeading =
       anyMarkers &&
       !line.hadMarker &&

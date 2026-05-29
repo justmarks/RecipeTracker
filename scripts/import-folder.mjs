@@ -189,6 +189,23 @@ function parseMarkdown(text) {
     }
   }
 
+  // Fallback: many recipes name the instructions section after the
+  // cooking method ("**Roast:**", "**Grill:**", "**Assembly:**") instead
+  // of using the literal word "Instructions". If Ingredients is present
+  // but no Instructions header was matched, treat the first subsequent
+  // EXPLICIT header (hash or bold-text — not just any short line) that
+  // isn't Notes/Tips as the instructions header.
+  if (ingredientsHeader >= 0 && instructionsHeader < 0) {
+    for (let i = ingredientsHeader + 1; i < lines.length; i++) {
+      if (!isExplicitHeader(lines[i])) continue;
+      const head = headerText(lines[i]);
+      if (head === null) continue;
+      if (/^(notes?|tips?)$/.test(head)) continue;
+      instructionsHeader = i;
+      break;
+    }
+  }
+
   const headStart = titleIdx >= 0 ? titleIdx + 1 : 0;
   const headEnd = Math.min(
     ingredientsHeader >= 0 ? ingredientsHeader : Infinity,
@@ -244,6 +261,23 @@ function headerText(line) {
   if (cleaned.length === 0 || cleaned.length > 60) return null;
   if (cleaned.split(/\s+/).length > 6) return null;
   return cleaned;
+}
+
+/**
+ * True only when a line carries explicit heading markup — leading
+ * "#"/"##"/"###" or "**bold-wrapped**". Used to gate the
+ * instructions-header fallback so ingredient/step text never gets
+ * mistaken for a section header.
+ *
+ * @param {string} line  Raw markdown line
+ * @return {boolean}
+ */
+function isExplicitHeader(line) {
+  const raw = line.trim();
+  if (!raw) return false;
+  if (/^#{1,6}\s+\S/.test(raw)) return true;
+  if (/^\*\*.+?:?\*\*$/.test(raw)) return true;
+  return false;
 }
 
 function matchSourceUrl(line) {
@@ -342,7 +376,13 @@ function parseItemsWithSubsections(lines) {
   let current = null;
 
   for (const line of classified) {
-    const explicit = line.text.match(/^#{1,3}\s+(.+?):?$/);
+    // Recognize both "# Foo" / "## Foo" / "### Foo" hash headings AND
+    // "**Foo**" / "**Foo:**" bold-text headings (OneNote and many
+    // hand-written recipes use the bold form rather than hashes).
+    const hashHeading = line.text.match(/^#{1,3}\s+(.+?):?$/);
+    const boldHeading = line.text.match(/^\*\*(.+?):?\*\*$/);
+    const explicit = hashHeading || boldHeading;
+
     const isHeuristicHeading =
       anyMarkers &&
       !line.hadMarker &&
