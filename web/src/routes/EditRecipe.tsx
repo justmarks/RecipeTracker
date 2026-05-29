@@ -109,9 +109,28 @@ export function EditRecipe() {
       updatedAt: serverTimestamp(),
     });
     toast.show(`Saved changes to "${input.title}"`);
-    // replace: the browser Back button should skip the edit form and
-    // return to wherever the user came from (detail / list / search).
-    navigate(`/recipes/${id}`, { replace: true });
+    // Pop the edit page off the history stack so the user returns to
+    // wherever they came from (typically the recipe detail page).
+    //
+    // Previous behavior used `navigate(path, { replace: true })` here,
+    // which REPLACED the edit entry with a detail entry — but the
+    // user was already on /recipes/foo before clicking Edit, so the
+    // history stack ended up [..., list, detail, detail-replaced].
+    // First Back press then went from one /recipes/foo entry to the
+    // other, looking like a no-op (same URL, no visible change), and
+    // only the second press got back to the list. navigate(-1) avoids
+    // creating that duplicate entry. The detail page uses a live
+    // Firestore listener, so the just-saved edits show up immediately
+    // when we land there.
+    //
+    // Fallback for the rare case where /edit was opened directly via
+    // URL (no history to go back to): replace with detail so the user
+    // lands somewhere sensible.
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(`/recipes/${id}`, { replace: true });
+    }
   }
 
   // Pop the edit entry off the history stack instead of pushing a new

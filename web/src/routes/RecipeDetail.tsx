@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link, Navigate } from "react-router";
-import { doc, getDoc, deleteDoc } from "firebase/firestore";
+import { doc, onSnapshot, deleteDoc } from "firebase/firestore";
 import type { DocumentData } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
@@ -78,19 +78,29 @@ export function RecipeDetail() {
 
   useEffect(() => {
     if (!user || !id) return;
-    getDoc(doc(db, "recipes", id))
-      .then((snap) => {
+    // Live subscription instead of one-shot getDoc so the page
+    // reflects edits the moment they save (especially important when
+    // the edit flow's "save → navigate(-1)" lands the user back on
+    // a still-mounted RecipeDetail — without a live listener the
+    // displayed data would be stale until the next manual reload).
+    const unsub = onSnapshot(
+      doc(db, "recipes", id),
+      (snap) => {
         if (snap.exists()) {
           setRecipe(snap.data() as DocumentData as StoredRecipe);
+          setError(null);
         } else {
           setError("Recipe not found.");
         }
-      })
-      .catch((err) => {
+        setLoading(false);
+      },
+      (err) => {
         console.error("Load recipe:", err);
         setError(err instanceof Error ? err.message : "Failed to load");
-      })
-      .finally(() => setLoading(false));
+        setLoading(false);
+      },
+    );
+    return unsub;
   }, [user, id]);
 
   function goBack() {

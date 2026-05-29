@@ -41,6 +41,13 @@ export function PwaPrompts() {
   const [installEvent, setInstallEvent] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
+  // Dismissal is persisted to localStorage so subsequent loads (every
+  // SW update used to re-show this toast) don't re-prompt the user
+  // who's already said "no thanks." Read once on mount and never
+  // re-check — once dismissed in this browser, the toast is gone for
+  // good. (Users who change their mind can still install via the
+  // browser's own menu.)
+  const [dismissed, setDismissed] = useState(() => readInstallDismissed());
 
   // Capture the install prompt so we can show a button when the
   // browser would otherwise show its own non-discoverable hint.
@@ -119,19 +126,48 @@ export function PwaPrompts() {
       )}
 
       {/* Install affordance — only shown when the browser fired
-          beforeinstallprompt AND we haven't already installed. */}
-      {installEvent && !installed && (
+          beforeinstallprompt AND we haven't already installed AND
+          the user hasn't previously dismissed the prompt. */}
+      {installEvent && !installed && !dismissed && (
         <PromptBanner
           tone="paper"
           icon="bookmark"
           message="Install Recipe Book to your home screen."
           primaryLabel="Install"
           onPrimary={handleInstall}
-          onDismiss={() => setInstallEvent(null)}
+          onDismiss={() => {
+            setInstallEvent(null);
+            setDismissed(true);
+            writeInstallDismissed();
+          }}
         />
       )}
     </>
   );
+}
+
+// Persisted dismissal of the "Install Recipe Book" toast. Stored in
+// localStorage so it survives reloads, SW updates, and tab restarts.
+// Wrapped in try/catch because localStorage can throw in private-mode
+// or strict-privacy browser contexts — falling through to "not
+// dismissed" is the safe default.
+const INSTALL_DISMISSED_KEY = "mrb:installPromptDismissed";
+
+function readInstallDismissed(): boolean {
+  try {
+    return localStorage.getItem(INSTALL_DISMISSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeInstallDismissed(): void {
+  try {
+    localStorage.setItem(INSTALL_DISMISSED_KEY, "1");
+  } catch {
+    // No-op: dismissal won't persist, but the in-memory state still
+    // hides the toast for the current session.
+  }
 }
 
 interface PromptBannerProps {
