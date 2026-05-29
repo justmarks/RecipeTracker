@@ -108,6 +108,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Test
+        run: pnpm test
+
       - name: Build web
         # Same secrets-OR-variables fallback as the Verify step above.
         # Vite inlines these into the bundle at build time via

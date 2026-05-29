@@ -267,7 +267,7 @@ export const importFromUrl = onCall(
  * @param {string} html  Raw HTML of the recipe page
  * @return {string | null} JSON string of one or more Recipe nodes, or null
  */
-function extractRecipeJsonLd(html: string): string | null {
+export function extractRecipeJsonLd(html: string): string | null {
   const blocks: unknown[] = [];
   const re =
     /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
@@ -300,7 +300,7 @@ function extractRecipeJsonLd(html: string): string | null {
  * @param {unknown} value  Parsed JSON-LD value (object | array | scalar)
  * @param {unknown[]} out  Mutable array to push Recipe nodes into
  */
-function collectRecipeNodes(value: unknown, out: unknown[]): void {
+export function collectRecipeNodes(value: unknown, out: unknown[]): void {
   if (Array.isArray(value)) {
     for (const item of value) collectRecipeNodes(item, out);
     return;
@@ -325,7 +325,7 @@ function collectRecipeNodes(value: unknown, out: unknown[]): void {
  * @param {unknown} value Recipe shape from the AI (object | array | string)
  * @return {unknown} Same shape with strings unescaped in place
  */
-function deepUnescape(value: unknown): unknown {
+export function deepUnescape(value: unknown): unknown {
   if (typeof value === "string") {
     // Two-char placeholder unlikely to appear in real text; replaceAll
     // with a literal string sidesteps the no-control-regex lint rule.
