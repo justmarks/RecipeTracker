@@ -319,7 +319,15 @@ export function Home() {
                     key={chapter}
                     name={chapter}
                     recipes={items}
-                    isOpen={expandedSections.has(chapter.toLowerCase())}
+                    // Force-open during search so matches are visible
+                    // without the user having to click into each chapter
+                    // that survived the filter. The user's manual
+                    // expansion state is preserved — collapses back to
+                    // whatever they had when the search clears.
+                    isOpen={
+                      searching ||
+                      expandedSections.has(chapter.toLowerCase())
+                    }
                     onToggle={() => toggleSection(chapter.toLowerCase())}
                   />
                 );
@@ -329,7 +337,7 @@ export function Home() {
                   name="Other"
                   recipes={byChapter.orphans}
                   italic
-                  isOpen={expandedSections.has("other")}
+                  isOpen={searching || expandedSections.has("other")}
                   onToggle={() => toggleSection("other")}
                 />
               )}
