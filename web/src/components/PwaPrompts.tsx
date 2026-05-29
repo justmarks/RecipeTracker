@@ -71,10 +71,24 @@ export function PwaPrompts() {
   }
 
   function reload() {
-    // Triggers postMessage → SW activates → page reloads.
+    // Two failure modes we're guarding against:
+    //   1. updateServiceWorker(true) installs a `controllerchange`
+    //      listener but if there's no waiting SW (because it already
+    //      activated, or because the registration doesn't expose one
+    //      at this moment), the listener never fires and the click
+    //      appears to do nothing.
+    //   2. Browser timing where `controllerchange` was missed by the
+    //      late-attached listener.
+    // Either way, a guaranteed-fallback reload after a short delay
+    // (long enough for the SW handoff to complete in the happy path,
+    // short enough to feel responsive) ensures the user always gets
+    // the new bundle.
     updateServiceWorker(true).catch((err) => {
       console.error("SW update failed:", err);
     });
+    setTimeout(() => {
+      window.location.reload();
+    }, 800);
   }
 
   return (
