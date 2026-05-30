@@ -287,10 +287,6 @@ export function Import() {
           <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-2">
             Import a recipe
           </h1>
-          <p className="font-sans text-sm text-ink-700 m-0 mb-7">
-            Two ways to bring a recipe in. Either works — review the result
-            before saving.
-          </p>
 
           {isIOS() && (
             <div className="mb-5 flex items-start gap-2.5 rounded-md bg-paper-200 px-3.5 py-3 text-ink-700 font-sans text-[13px]">

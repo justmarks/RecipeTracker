@@ -298,17 +298,26 @@ export function Home() {
               isOpen={expandedSections.has("recent")}
               onToggle={() => toggleSection("recent")}
             />
-            <FavoritesSection
-              recipes={recipes
-                .filter((r) => favorites.has(r.id))
-                .sort((a, b) =>
-                  a.title.localeCompare(b.title, undefined, {
-                    sensitivity: "base",
-                  }),
-                )}
-              isOpen={expandedSections.has("favorites")}
-              onToggle={() => toggleSection("favorites")}
-            />
+            {/* Favorites section is hidden during search because it
+                shows the user's full favorites list (not search-filtered)
+                — leaving it visible during search would surface recipes
+                that don't match what the user just typed. The chapter
+                sections below are search-aware (they render `sorted`,
+                which already has the query filter applied) so they're
+                fine to show. */}
+            {!searching && (
+              <FavoritesSection
+                recipes={recipes
+                  .filter((r) => favorites.has(r.id))
+                  .sort((a, b) =>
+                    a.title.localeCompare(b.title, undefined, {
+                      sensitivity: "base",
+                    }),
+                  )}
+                isOpen={expandedSections.has("favorites")}
+                onToggle={() => toggleSection("favorites")}
+              />
+            )}
             <div className="flex flex-col gap-0">
               {chapters.map((chapter) => {
                 const items =
