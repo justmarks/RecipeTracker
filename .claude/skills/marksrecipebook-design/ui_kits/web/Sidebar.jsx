@@ -1,6 +1,6 @@
 // Sidebar — chapter navigation. Always visible on desktop, drawer on mobile.
 
-function Sidebar({ chapters, activeChapter, onPickChapter, onNew, onImport, onSettings, onSignOut, user, recipeCounts }) {
+function Sidebar({ chapters, activeChapter, onPickChapter, onHome, onNew, onImport, onSettings, onSignOut, user, recipeCounts }) {
   return (
     <aside style={{
       width: "260px", flex: "0 0 260px",
@@ -10,13 +10,21 @@ function Sidebar({ chapters, activeChapter, onPickChapter, onNew, onImport, onSe
       padding: "20px 0",
       height: "100vh", position: "sticky", top: 0,
     }}>
-      <div style={{ padding: "0 20px 16px", display: "flex", alignItems: "center", gap: "10px" }}>
+      <button onClick={onHome} style={{
+        all: "unset", cursor: "pointer",
+        padding: "0 20px 16px",
+        display: "flex", alignItems: "center", gap: "10px",
+        transition: "opacity var(--dur-fast) var(--ease-out)",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.7"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+      aria-label="Go to all recipes">
         <img src="../../assets/monogram.svg" width="34" height="34" alt="" style={{ flexShrink: 0 }}/>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "15px", lineHeight: 1.25, color: "var(--ink-900)" }}>Marks Family</span>
           <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: "14px", lineHeight: 1.25, color: "var(--tomato-500)" }}>Recipe Book</span>
         </div>
-      </div>
+      </button>
 
       <div style={{ padding: "0 12px 12px", display: "flex", flexDirection: "column", gap: "6px" }}>
         <Button variant="primary" icon="plus" onClick={onNew} style={{ width: "100%", justifyContent: "flex-start" }}>

@@ -118,6 +118,7 @@ function App() {
         activeChapter={activeChapter}
         recipeCounts={recipeCounts}
         onPickChapter={(c) => { setActiveChapter(c === activeChapter ? "All" : c); setView({ name: "list" }); }}
+        onHome={() => { setActiveChapter("All"); setView({ name: "list" }); }}
         onNew={() => setView({ name: "new" })}
         onImport={() => { setParsedImport(null); setView({ name: "import" }); }}
         onSettings={() => setView({ name: "chapters" })}
