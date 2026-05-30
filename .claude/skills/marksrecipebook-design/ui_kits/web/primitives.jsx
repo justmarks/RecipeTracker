@@ -25,13 +25,18 @@ const ICON_PATHS = {
   "log-out": <><path d="M14 4 h4 a2 2 0 0 1 2 2 v12 a2 2 0 0 1-2 2 h-4"/><polyline points="9 16 4 12 9 8"/><line x1="4" y1="12" x2="16" y2="12"/></>,
   "users": <><circle cx="9" cy="8" r="3.5"/><path d="M2 21 v-1 a5 5 0 0 1 5-5 h4 a5 5 0 0 1 5 5 v1"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14 h2 a4 4 0 0 1 4 4 v1"/></>,
   "sparkles": <><path d="M12 3 L13.5 9 L19.5 10.5 L13.5 12 L12 18 L10.5 12 L4.5 10.5 L10.5 9 Z"/><path d="M19 3 L19.5 5 L21.5 5.5 L19.5 6 L19 8 L18.5 6 L16.5 5.5 L18.5 5 Z"/></>,
+  "grip-vertical": <><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></>,
+  "heart": <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>,
+  "download": <><path d="M3 17 v3 a1 1 0 0 0 1 1 h16 a1 1 0 0 0 1-1 v-3"/><polyline points="7 12 12 17 17 12"/><line x1="12" y1="3" x2="12" y2="17"/></>,
+  "mail": <><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></>,
+  "image": <><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M3 17 L9 12 L13 15 L17 11 L21 15"/></>,
 };
 
-function Icon({ name, size = 20, className = "", style = {} }) {
+function Icon({ name, size = 20, className = "", style = {}, filled = false }) {
   const path = ICON_PATHS[name];
   if (!path) return null;
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"}
          stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
          className={className} style={style} aria-hidden="true">
       {path}
@@ -56,7 +61,7 @@ const btnBase = {
   whiteSpace: "nowrap",
 };
 
-function Button({ variant = "primary", size = "md", icon, iconRight, children, ...rest }) {
+function Button({ variant = "primary", size = "md", icon, iconRight, iconFilled = false, children, ...rest }) {
   const styles = { ...btnBase };
   if (size === "sm") { styles.fontSize = "12px"; styles.padding = "7px 12px"; }
   if (size === "lg") { styles.fontSize = "15px"; styles.padding = "12px 22px"; }
@@ -92,7 +97,7 @@ function Button({ variant = "primary", size = "md", icon, iconRight, children, .
       }}
       {...rest}
     >
-      {icon && <Icon name={icon} size={size === "sm" ? 14 : 16} />}
+      {icon && <Icon name={icon} size={size === "sm" ? 14 : 16} filled={iconFilled} />}
       {children}
       {iconRight && <Icon name={iconRight} size={size === "sm" ? 14 : 16} />}
     </button>
@@ -299,6 +304,28 @@ function PhotoFrame({ src, alt = "", ratio = "4 / 3", radius = "var(--radius-lg)
   );
 }
 
+// ---------- STAR RATING ----------
+// Saffron stars, per the design system (ratings = saffron highlight).
+function StarRating({ value = 0, size = 18, showEmpty = true }) {
+  const stars = [1, 2, 3, 4, 5];
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: "2px" }} aria-label={`${value} out of 5`}>
+      {stars.map((n) => {
+        const filled = n <= value;
+        if (!filled && !showEmpty) return null;
+        return (
+          <svg key={n} width={size} height={size} viewBox="0 0 24 24"
+               fill={filled ? "var(--saffron-500)" : "none"}
+               stroke={filled ? "var(--saffron-500)" : "var(--ink-300)"}
+               strokeWidth="1.5" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/>
+          </svg>
+        );
+      })}
+    </div>
+  );
+}
+
 Object.assign(window, {
-  Icon, Button, Input, Textarea, Field, Tag, tagToneFor, Eyebrow, MetaRow, Toast, SprigDivider, PhotoFrame,
+  Icon, Button, Input, Textarea, Field, Tag, tagToneFor, Eyebrow, MetaRow, Toast, SprigDivider, PhotoFrame, StarRating,
 });

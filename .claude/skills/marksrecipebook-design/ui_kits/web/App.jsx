@@ -8,6 +8,16 @@ function App() {
   const [recipes, setRecipes] = useState(window.MOCK_RECIPES);
   const [parsedImport, setParsedImport] = useState(null);
   const [toast, setToast] = useState(null);
+  const [favorites, setFavorites] = useState(() => new Set(["r2", "r7"]));
+
+  const toggleFavorite = (id) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); setToast("Removed from favorites"); }
+      else { next.add(id); setToast("Added to favorites"); }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!toast) return;
@@ -28,6 +38,7 @@ function App() {
   }
 
   let main;
+  let overlay = null;
   if (view.name === "list") {
     main = (
       <RecipeListView
@@ -39,16 +50,36 @@ function App() {
         onImport={() => { setParsedImport(null); setView({ name: "import" }); }}
       />
     );
-  } else if (view.name === "detail") {
+  } else if (view.name === "detail" || view.name === "share" || view.name === "confirmDelete") {
     const recipe = recipes.find((r) => r.id === view.id);
     main = (
       <RecipeDetail
         recipe={recipe}
         onBack={goList}
         onEdit={() => setView({ name: "edit", id: recipe.id })}
-        onShare={() => setToast(`Shared "${recipe.title}" with the family`)}
+        onShare={() => setView({ name: "share", id: recipe.id })}
+        onDelete={() => setView({ name: "confirmDelete", id: recipe.id })}
+        onPdf={() => setToast("Opening print dialog…")}
+        isFavorited={favorites.has(recipe.id)}
+        onToggleFavorite={() => toggleFavorite(recipe.id)}
       />
     );
+    if (view.name === "share") {
+      overlay = <ShareDialog recipe={recipe} onClose={() => setView({ name: "detail", id: recipe.id })}/>;
+    } else if (view.name === "confirmDelete") {
+      overlay = (
+        <ConfirmDialog
+          title="Delete this recipe?"
+          message={`"${recipe.title}" will be permanently removed from your cookbook. This can't be undone.`}
+          onCancel={() => setView({ name: "detail", id: recipe.id })}
+          onConfirm={() => {
+            setRecipes(recipes.filter((r) => r.id !== recipe.id));
+            setToast(`Deleted "${recipe.title}"`);
+            goList();
+          }}
+        />
+      );
+    }
   } else if (view.name === "new") {
     main = (
       <RecipeForm
@@ -128,6 +159,7 @@ function App() {
       <main style={{ flex: 1, minWidth: 0 }}>
         {main}
       </main>
+      {overlay}
       <Toast visible={!!toast}>{toast}</Toast>
     </div>
   );

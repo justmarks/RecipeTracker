@@ -51,6 +51,30 @@ function ImportView({ onBack, onParsed, onSubmit }) {
     }, 600);
   };
 
+  const fakeImage = () => {
+    onParsed({
+      title: "Grandma's apple crumble",
+      category: "dessert",
+      tags: ["family", "fall"],
+      yield: "8 servings",
+      prepTime: "20 min",
+      cookTime: "40 min",
+      ingredients: [{ heading: null, items: [
+        "6 apples, peeled and sliced",
+        "1 cup flour",
+        "1 cup oats",
+        "¾ cup brown sugar",
+        "½ cup butter, cold",
+      ]}],
+      instructions: [{ heading: null, items: [
+        "Heat oven to 190°C.",
+        "Toss apples with a little sugar and cinnamon; spread in a dish.",
+        "Rub flour, oats, sugar, and butter into crumbs. Scatter over apples.",
+        "Bake 40 min until golden and bubbling.",
+      ]}],
+    });
+  };
+
   return (
     <div style={{ padding: "32px 40px", maxWidth: "640px", margin: "0 auto" }}>
       <Button variant="ghost" icon="arrow-left" onClick={onBack}
@@ -61,7 +85,7 @@ function ImportView({ onBack, onParsed, onSubmit }) {
         margin: "0 0 8px", letterSpacing: "-0.015em", color: "var(--ink-900)",
       }}>Import a recipe</h1>
       <p style={{ fontFamily: "var(--font-sans)", fontSize: "14px", color: "var(--fg-muted)", margin: "0 0 28px" }}>
-        Two ways to bring a recipe in. Either works — review the result before saving.
+        Three ways to bring a recipe in. Any works — review the result before saving.
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -81,6 +105,26 @@ function ImportView({ onBack, onParsed, onSubmit }) {
             type="url"
             style={{ paddingRight: "20px" }}
           />
+        </ImportCard>
+
+        <ImportCard
+          eyebrowIcon="image"
+          eyebrow="From a photo"
+          hint="Snap a cookbook page or a handwritten card. Claude reads the text and extracts the recipe."
+          actionLabel="Choose photo"
+          actionIcon="upload"
+          actionDisabled={false}
+          onAction={fakeImage}
+        >
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            gap: "8px", padding: "24px",
+            border: "1.5px dashed var(--border-strong)", borderRadius: "var(--radius-md)",
+            background: "var(--paper-50)", color: "var(--fg-subtle)",
+          }}>
+            <Icon name="image" size={28}/>
+            <span style={{ fontFamily: "var(--font-sans)", fontSize: "13px" }}>Drag a photo here, or use the button below</span>
+          </div>
         </ImportCard>
 
         <ImportCard

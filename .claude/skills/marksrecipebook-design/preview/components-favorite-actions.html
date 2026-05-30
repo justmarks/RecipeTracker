@@ -1,0 +1,83 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  * { box-sizing: border-box; }
+  .stage { width: 700px; padding: 28px 32px; display: flex; flex-direction: column; gap: 20px; }
+  .label { font-family: Manrope, sans-serif; font-weight:600; font-size:11px; text-transform: uppercase; letter-spacing: 0.12em; color: #7B6655; margin-bottom: 10px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    font-family: Manrope, sans-serif; font-weight:600; font-size:13px;
+    display:inline-flex; align-items:center; gap:7px;
+    padding:7px 12px; border-radius:8px; border:1px solid #D9CAAE;
+    background:transparent; color:#463528; cursor:pointer; line-height:1;
+  }
+  .btn.fav { color:#B0432D; border-color:#E89683; }
+  .btn.danger { color:#903525; border-color:#F5D2C7; }
+  .iconbtn {
+    width:34px; height:34px; border-radius:8px; border:1px solid #D9CAAE;
+    background:transparent; display:inline-flex; align-items:center; justify-content:center;
+    color:#463528; cursor:pointer;
+  }
+  .iconbtn.fav { color:#B0432D; border-color:#E89683; }
+  .heart-plain { width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer; }
+</style>
+</head><body>
+<div class="stage">
+  <div>
+    <div class="label">Favorite — button states</div>
+    <div class="row">
+      <button class="btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        Favorite
+      </button>
+      <button class="btn fav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        Favorited
+      </button>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B0A08D">outline → filled tomato when active</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="label">Favorite — icon-only (mobile / card corner)</div>
+    <div class="row">
+      <button class="iconbtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </button>
+      <button class="iconbtn fav">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div>
+    <div class="label">Recipe detail action bar</div>
+    <div class="row">
+      <button class="btn fav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        Favorited
+      </button>
+      <button class="btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3 L21 8 L8 21 L3 21 L3 16 Z"/><line x1="14" y1="5" x2="19" y2="10"/></svg>
+        Edit
+      </button>
+      <button class="btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share
+      </button>
+      <button class="btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 v3 a1 1 0 0 0 1 1 h16 a1 1 0 0 0 1-1 v-3"/><polyline points="7 12 12 17 17 12"/><line x1="12" y1="3" x2="12" y2="17"/></svg>
+        PDF
+      </button>
+      <button class="btn danger">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 21 6"/><path d="M5 6 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2-2 v-14"/><path d="M9 6 V4 a1 1 0 0 1 1-1 h4 a1 1 0 0 1 1 1 v2"/></svg>
+        Delete
+      </button>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B0A08D;margin-top:8px">Favorite + PDF for all viewers · Edit / Share / Delete owner-only · labels hide under 640px</div>
+  </div>
+</div>
+</body></html>

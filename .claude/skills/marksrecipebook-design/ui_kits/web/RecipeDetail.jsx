@@ -1,6 +1,6 @@
 // RecipeDetail — view a single recipe.
 
-function RecipeDetail({ recipe, onBack, onEdit, onShare }) {
+function RecipeDetail({ recipe, onBack, onEdit, onShare, onDelete, isFavorited, onToggleFavorite, onPdf }) {
   const hasTimes = recipe.yield || recipe.prepTime || recipe.cookTime || recipe.totalTime;
   const metaItems = [
     recipe.yield && { label: "Yield", value: recipe.yield },
@@ -9,10 +9,40 @@ function RecipeDetail({ recipe, onBack, onEdit, onShare }) {
     recipe.totalTime && { label: "Total", value: recipe.totalTime },
   ].filter(Boolean);
 
+  // Action bar: Favorite · Edit · Share · PDF · Delete.
+  // Labels collapse to icon-only under 640px (matches production's
+  // `hidden sm:inline` pattern) via the `.rd-action-label` CSS below.
+  const actions = (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
+      <Button variant="secondary" size="sm" icon="heart" iconFilled={isFavorited}
+              onClick={onToggleFavorite}
+              aria-pressed={isFavorited}
+              style={isFavorited ? { color: "var(--tomato-600)", borderColor: "var(--tomato-300)" } : undefined}>
+        <span className="rd-action-label">{isFavorited ? "Favorited" : "Favorite"}</span>
+      </Button>
+      <Button variant="secondary" size="sm" icon="pencil" onClick={onEdit}>
+        <span className="rd-action-label">Edit</span>
+      </Button>
+      <Button variant="secondary" size="sm" icon="share-2" onClick={onShare}>
+        <span className="rd-action-label">Share</span>
+      </Button>
+      <Button variant="secondary" size="sm" icon="download" onClick={onPdf}>
+        <span className="rd-action-label">PDF</span>
+      </Button>
+      <Button variant="danger" size="sm" icon="trash" onClick={onDelete}>
+        <span className="rd-action-label">Delete</span>
+      </Button>
+    </div>
+  );
+
   return (
     <div style={{ padding: "32px 40px", maxWidth: "720px", margin: "0 auto" }}>
-      <Button variant="ghost" icon="arrow-left" onClick={onBack}
-              style={{ padding: "4px 0", marginBottom: "16px" }}>Back</Button>
+      <style>{`@media (max-width: 640px) { .rd-action-label { display: none; } }`}</style>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "16px" }}>
+        <Button variant="ghost" icon="arrow-left" onClick={onBack}
+                style={{ padding: "4px 0" }}>Back</Button>
+        {actions}
+      </div>
 
       {/* Hero photo */}
       <PhotoFrame
@@ -25,17 +55,27 @@ function RecipeDetail({ recipe, onBack, onEdit, onShare }) {
 
       <Eyebrow style={{ textTransform: "uppercase" }}>{recipe.category}</Eyebrow>
 
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", marginTop: "6px" }}>
-        <h1 style={{
-          fontFamily: "var(--font-display)", fontWeight: 500, fontSize: "44px",
-          lineHeight: 1.05, letterSpacing: "-0.02em",
-          color: "var(--ink-900)", margin: 0, flex: 1,
-        }}>{recipe.title}</h1>
-        <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-          <Button variant="secondary" icon="share" size="sm" onClick={onShare}>Share</Button>
-          <Button variant="secondary" icon="pencil" size="sm" onClick={onEdit}>Edit</Button>
+      <h1 style={{
+        fontFamily: "var(--font-display)", fontWeight: 500, fontSize: "44px",
+        lineHeight: 1.05, letterSpacing: "-0.02em",
+        color: "var(--ink-900)", margin: "6px 0 0",
+      }}>{recipe.title}</h1>
+
+      {/* Rating + last made */}
+      {(recipe.rating || recipe.lastMadeDate) && (
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "14px", flexWrap: "wrap" }}>
+          {recipe.rating && <StarRating value={recipe.rating} size={20}/>}
+          {recipe.rating && recipe.lastMadeDate && (
+            <span style={{ width: "1px", height: "16px", background: "var(--border-default)" }}/>
+          )}
+          {recipe.lastMadeDate && (
+            <span style={{ fontFamily: "var(--font-sans)", fontSize: "13px", color: "var(--fg-subtle)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <Icon name="clock" size={14}/>
+              Last made {formatMadeDate(recipe.lastMadeDate)}
+            </span>
+          )}
         </div>
-      </div>
+      )}
 
       {recipe.tags.length > 0 && (
         <div style={{ display: "flex", gap: "6px", marginTop: "12px", flexWrap: "wrap" }}>
@@ -43,21 +83,34 @@ function RecipeDetail({ recipe, onBack, onEdit, onShare }) {
         </div>
       )}
 
-      {recipe.source && (
-        <p style={{ fontFamily: "var(--font-sans)", fontSize: "13px", color: "var(--fg-subtle)", marginTop: "16px" }}>
-          {recipe.source.type === "url" ? (
-            <a href={recipe.source.url} target="_blank" rel="noreferrer"
-               style={{ color: "var(--fg-link)" }}>
-              <Icon name="link" size={12} style={{ verticalAlign: "-2px", marginRight: "4px" }}/>
+      {recipe.source && recipe.source.type === "url" && (
+        <div style={{ marginTop: "18px" }}>
+          <a href={recipe.source.url} target="_blank" rel="noreferrer"
+             style={{
+               display: "inline-flex", alignItems: "center", gap: "7px",
+               padding: "7px 12px",
+               background: "transparent", border: "1px solid var(--border-strong)",
+               borderRadius: "var(--radius-md)", textDecoration: "none",
+               fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: "13px",
+               color: "var(--ink-700)",
+               transition: "background var(--dur-fast), border-color var(--dur-fast)",
+             }}
+             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; }}
+             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+            <span style={{ color: "var(--tomato-600)", display: "flex" }}><Icon name="link" size={15}/></span>
+            View source
+            <span style={{ fontFamily: "var(--font-mono)", fontWeight: 400, fontSize: "12px", color: "var(--fg-subtle)" }}>
               {new URL(recipe.source.url).hostname.replace("www.", "")}
-            </a>
-          ) : (
-            <span>
-              From <em style={{ fontFamily: "var(--font-display)" }}>{recipe.source.title}</em>
-              {recipe.source.author && ` by ${recipe.source.author}`}
-              {recipe.source.page && `, p. ${recipe.source.page}`}
             </span>
-          )}
+          </a>
+        </div>
+      )}
+
+      {recipe.source && recipe.source.type === "book" && (
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: "13px", color: "var(--fg-subtle)", marginTop: "16px" }}>
+          From <em style={{ fontFamily: "var(--font-display)" }}>{recipe.source.title}</em>
+          {recipe.source.author && ` by ${recipe.source.author}`}
+          {recipe.source.page && `, p. ${recipe.source.page}`}
         </p>
       )}
 
@@ -155,6 +208,14 @@ function RecipeDetail({ recipe, onBack, onEdit, onShare }) {
       )}
     </div>
   );
+}
+
+function formatMadeDate(iso) {
+  // iso = YYYY-MM-DD → "May 24, 2026"
+  const [y, m, d] = iso.split("-").map(Number);
+  const months = ["January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"];
+  return `${months[m - 1]} ${d}, ${y}`;
 }
 
 window.RecipeDetail = RecipeDetail;

@@ -131,9 +131,17 @@ function RecipeCard({ recipe, onPick }) {
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
           overflow: "hidden",
         }}>{recipe.title}</div>
-        {recipe.totalTime && (
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--fg-subtle)", marginTop: "4px" }}>
-            {recipe.totalTime}
+        {(recipe.rating || recipe.totalTime) && (
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px", flexWrap: "wrap" }}>
+            {recipe.rating && <StarRating value={recipe.rating} size={13} showEmpty={false}/>}
+            {recipe.rating && recipe.totalTime && (
+              <span style={{ color: "var(--fg-faint)", fontSize: "11px" }}>·</span>
+            )}
+            {recipe.totalTime && (
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--fg-subtle)" }}>
+                {recipe.totalTime}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -210,17 +218,29 @@ function RecipeRow({ recipe, onPick }) {
         <div style={{
           fontFamily: "var(--font-display)", fontWeight: 500, fontSize: "18px",
           color: "var(--ink-900)", letterSpacing: "-0.005em",
-          marginBottom: recipe.tags.length || recipe.totalTime ? "3px" : 0,
+          marginBottom: "3px",
         }}>
           {recipe.title}
         </div>
-        <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+          {recipe.rating && <StarRating value={recipe.rating} size={14} showEmpty={false}/>}
+          {recipe.rating && recipe.totalTime && (
+            <span style={{ color: "var(--fg-faint)", fontSize: "11px" }}>·</span>
+          )}
           {recipe.totalTime && (
             <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--fg-subtle)" }}>
               {recipe.totalTime}
             </span>
           )}
-          {recipe.totalTime && recipe.tags.length > 0 && (
+          {recipe.lastMadeDate && (
+            <>
+              <span style={{ color: "var(--fg-faint)", fontSize: "11px" }}>·</span>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: "12px", color: "var(--fg-subtle)" }}>
+                made {shortMadeDate(recipe.lastMadeDate)}
+              </span>
+            </>
+          )}
+          {(recipe.totalTime || recipe.rating || recipe.lastMadeDate) && recipe.tags.length > 0 && (
             <span style={{ color: "var(--fg-faint)", fontSize: "11px" }}>·</span>
           )}
           {recipe.tags.map((t) => <Tag key={t} tone={tagToneFor(t)}>{t}</Tag>)}
@@ -229,6 +249,12 @@ function RecipeRow({ recipe, onPick }) {
       <Icon name="chevron-right" size={18} style={{ color: "var(--fg-faint)", flex: "0 0 18px" }}/>
     </button>
   );
+}
+
+function shortMadeDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[m - 1]} ${d}`;
 }
 
 window.RecipeListView = RecipeListView;

@@ -36,7 +36,7 @@ MarksRecipeBook is a **personal recipe library** for the Marks family. One perso
 | `fonts/` | Local font files. Newsreader upright + italic variable fonts. Manrope and JetBrains Mono load from Google Fonts CDN. |
 | `assets/` | Logo, monogram, wordmark, sprig divider, app icon source. SVGs — copy out what you need. |
 | `preview/` | 19 small HTML cards that render in the Design System tab — brand lockup, color palettes, type specimens, spacing, components. Reference these to see tokens in use. |
-| `ui_kits/web/` | Pixel-recreation of the web app: 9 React components, an interactive `index.html`, and a kit README. Routes-as-state-machine, no router. |
+| `ui_kits/web/` | Pixel-recreation of the web app: React components + interactive `index.html` + kit README. Routes-as-state-machine, no router. Covers favorites, share + delete dialogs, three import methods, the full recipe action bar. |
 | `ui_kits/mobile/` | Pixel-recreation of the installed-PWA mobile experience. 5 key screens shown side-by-side on a design canvas inside iOS 26 device frames. |
 
 **Quick map of the cards in `preview/`** (these populate the Design System tab):
@@ -47,7 +47,7 @@ MarksRecipeBook is a **personal recipe library** for the Marks family. One perso
 | Colors | paper + ink, tomato + olive, saffron + plum, semantic |
 | Type | display (Newsreader), body (Manrope), mono (JetBrains), applied to a recipe |
 | Spacing | scale, radii, shadows + focus |
-| Components | buttons, form inputs, tags + chips, recipe card, list row, banners + toast, web kit, mobile kit |
+| Components | buttons, form inputs, tags + chips, recipe card, list row, rating + source, favorite + actions, share dialog, PWA prompts, banners + toast, web kit, mobile kit |
 
 ---
 
@@ -64,7 +64,10 @@ The brand voice was extracted from the README and CLAUDE.md in the source repo �
 
 ### Casing
 - Sentence case for **all** UI: headings, buttons, menu items. ("New recipe", not "New Recipe".)
-- Lowercase for tags and chapter slugs (`vegetarian`, `gluten-free`, `entree`) — display uses CSS `text-transform: capitalize`. This is enforced in the source data model.
+- **Chapter names preserve the case the user types, in storage.** Production stores "BBQ" or "Pasta Night" exactly as entered (don't `.toLowerCase()` on save); uniqueness is enforced case-insensitively (so "BBQ" and "bbq" can't both exist). Default chapters are seeded lowercase ("appetizer", "entree").
+- **For display, `text-transform: capitalize` is correct and used throughout.** It only uppercases the first letter of each word without touching the rest, so lowercase defaults render as "Appetizer" while a user's "BBQ" stays "BBQ". (Earlier this system *also* forced `.toLowerCase()` on save, which would have destroyed "BBQ" → "bbq" → "Bbq". That's been corrected — preserve case on save, capitalize only on display.)
+- Tags are still lowercase by convention (`vegetarian`, `gluten-free`).
+- The **`uncategorized`** chapter is a reserved fallback: it can't be deleted, and recipes whose chapter is deleted are rehomed into it automatically.
 - ALL CAPS only for eyebrow labels at `12px` with `0.12em` tracking ("INGREDIENTS", "PREP", "COOK").
 
 ### Punctuation
@@ -185,26 +188,61 @@ If a recipe has no photo, the row still renders cleanly with the camera-glyph pl
 
 ---
 
-## ICONOGRAPHY
+## PRODUCT PATTERNS
 
-The source codebase **has no icons** today — it uses Unicode glyphs (`▲`, `▼`, `✕`, `←`, `+`) inline as text. The design system formalizes this with a small **Lucide icon set** loaded from CDN, plus the codebase's existing text-glyph approach for ASCII-grade affordances.
+Interaction patterns that have appeared in the live app since v1. Each has a preview card and is wired into the web UI kit.
+
+### Favorites
+- Per-user, not per-recipe (two people can independently favorite the same shared recipe). Stored in a separate `favorites/{uid}_{recipeId}` collection.
+- UI is a **heart** — outline when off, **filled tomato-600** when on. Available to *everyone who can see a recipe* (owners and shared viewers), unlike Edit/Share/Delete which are owner-only.
+- Appears as a labelled button in the detail action bar ("Favorite" / "Favorited") and can appear icon-only on cards / mobile.
+
+### Recipe action bar
+The detail page's action row, in order: **Favorite · Edit · Share · PDF · Delete**.
+- Favorite + PDF: available to all viewers. Edit / Share / Delete: owner-only.
+- Buttons are `secondary` size `sm` with a leading icon; **labels collapse to icon-only below 640px** (`hidden sm:inline` in production). Delete is the `danger` variant.
+- PDF triggers the browser's native print → "Save as PDF" (see the print stylesheet in `index.css`); the kit stubs it with a toast.
+
+### Sharing
+- **Per-recipe share** — the `ShareDialog`: email input, resolves to a family member, lists who has access with Remove buttons. Built on the native `<dialog>` element (focus trap, Esc, backdrop click).
+- **Blanket auto-share** — Settings → Sharing, everyone there sees every recipe you own, past and future.
+- Copy: "anyone you add can see this recipe but not edit or delete it."
+
+### Import — three methods
+Presented as three equal cards (no primary/fallback hierarchy):
+1. **From URL** — fetch + AI extract (`sparkles` icon).
+2. **From a photo** — snap a cookbook page or handwritten card; drag-drop zone + "Choose photo" (`image` / `upload` icons). New since v1.
+3. **From markdown** — paste with `## Headings` for sections (`file-text` icon).
+
+All three land on the same review-before-save form (`RecipeForm` with the "Review the parsed recipe…" banner).
+
+### PWA prompts
+Three bottom-center banners, never more than one relevant at a time:
+- **Update available** — tomato (`brand` tone), "A new version of Recipe Book is ready." + Reload.
+- **Offline ready** — olive tone, auto-hides after 5s.
+- **Install** — ink tone, "Install Recipe Book to your home screen." + Install; dismissal persists in `localStorage`.
+
+### PDF / print
+The app has no separate "export" UI — the PDF button calls `window.print()`, and a print stylesheet in `index.css` handles paper sizing, color preservation (so tomato dots and the saffron notes card don't print gray), page-break hints, and hides all chrome via `print:hidden`. Any new full-page chrome must add `print:hidden`.
+
+---
+
+The production codebase ships its **own inlined Lucide-style icon set** — `web/src/components/ui/Icon.tsx`, a `<Icon name="…" size filled>` component with ~30 hand-inlined stroke paths (no Lucide runtime dependency). The design system mirrors this exact approach: inline SVG, stroke-based, `currentColor`, outline by default with an optional `filled` flag for stateful icons.
 
 ### Approach
-1. **Primary icon library: Lucide** (https://lucide.dev), loaded from CDN as inline SVGs.
+1. **Inline Lucide-style icons** — copied as SVG paths into the kit's `Icon` component, matching `Icon.tsx` in the codebase. No CDN, no runtime.
    - Stroke-based, 1.5px stroke at 20px display size.
-   - Use the **outline** variants only — never filled. Matches the editorial / book vibe.
+   - **Outline by default.** One exception: the **favorite heart** uses `filled` (fill = `currentColor`, tomato-600) when active. The `filled` prop exists precisely for stateful icons like this.
    - Always color icons with `currentColor` so they inherit the surrounding text color.
-2. **Sizes**: 16, 20, 24. Default in UI is 20px next to text, 24px for tab bar and section headers.
+2. **Sizes**: 14, 16, 20, 24. Default in UI is 20px next to text, 16px in `size="sm"` buttons, 24px for tab bar and section headers.
 3. **Recipe content uses no icons.** Ingredient lists, instructions, notes — pure typography. Icons are nav and chrome only.
 4. **No emoji ever** — see Content Fundamentals.
-5. **Unicode-as-icon is still allowed** for these specific cases, lifted from the existing codebase:
-   - `▲ ▼` for reorder controls in the chapter list (kept for accessibility — they're screen-reader-friendly text)
-   - `←` for back link
+5. **Unicode-as-icon is still allowed** for these specific cases:
    - `·` (middle dot) as metadata separator
-   - `✕` for clear-search button
+   - `★` for the star rating (production renders ratings as `★`-repeat strings; the kit uses matched SVG stars — either is fine)
 
-### Lucide icons used in the kit
-Tag the icons we lean on so designers don't reinvent: `book-open`, `plus`, `search`, `share-2`, `link`, `upload`, `file-text`, `chevron-right`, `chevron-left`, `chevron-up`, `chevron-down`, `pencil`, `trash-2`, `settings`, `user`, `log-out`, `check`, `x`, `clock`, `users` (auto-share), `bookmark`.
+### Icons used in the kit
+`book-open`, `plus`, `search`, `share-2`, `share`, `link`, `upload`, `file-text`, `image`, `chevron-right`, `chevron-left`, `chevron-up`, `chevron-down`, `arrow-left`, `pencil`, `trash`, `settings`, `user`, `users` (auto-share), `log-out`, `check`, `x`, `clock`, `heart` (favorite), `download` (PDF), `mail` (share list), `bookmark` (install), `sparkles` (AI import), `grip-vertical` (drag reorder).
 
 ### Logo and brand assets
 Real assets, not redrawn:

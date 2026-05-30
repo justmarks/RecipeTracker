@@ -1,0 +1,55 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  * { box-sizing: border-box; }
+  .stage { width: 700px; padding: 28px 32px; display:flex; flex-direction:column; gap:14px; }
+  .label { font-family: Manrope, sans-serif; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:#7B6655; }
+  .banner {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 14px; border-radius:14px;
+    font-family: Manrope, sans-serif; font-size:14px;
+    box-shadow:0 12px 30px rgba(70,53,40,.14);
+  }
+  .banner.brand { background:#C8553D; color:#fff; }
+  .banner.olive { background:#7C8F5B; color:#fff; }
+  .banner.ink   { background:#2A1F18; color:#FBF6EE; }
+  .msg { flex:1; }
+  .pill {
+    font-family: Manrope, sans-serif; font-weight:600; font-size:12px;
+    padding:6px 12px; border-radius:8px;
+    background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.3); cursor:pointer;
+  }
+  .x { color:rgba(255,255,255,.7); background:transparent; border:0; cursor:pointer; display:flex; padding:4px; }
+</style>
+</head><body>
+<div class="stage">
+  <div class="label">PWA prompt banners — bottom-center, z-50</div>
+
+  <div class="banner brand">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L13.5 9 L19.5 10.5 L13.5 12 L12 18 L10.5 12 L4.5 10.5 L10.5 9 Z"/><path d="M19 3 L19.5 5 L21.5 5.5 L19.5 6 L19 8 L18.5 6 L16.5 5.5 L18.5 5 Z"/></svg>
+    <span class="msg">A new version of Recipe Book is ready.</span>
+    <button class="pill">Reload</button>
+    <button class="x"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+  </div>
+
+  <div class="banner olive">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"/></svg>
+    <span class="msg">Recipe Book is ready to use offline.</span>
+    <button class="x"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+  </div>
+
+  <div class="banner ink">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M19 21 l-7-5 -7 5 V5 a2 2 0 0 1 2-2 h10 a2 2 0 0 1 2 2 z"/></svg>
+    <span class="msg">Install Recipe Book to your home screen.</span>
+    <button class="pill">Install</button>
+    <button class="x"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+  </div>
+
+  <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B0A08D;margin-top:2px">
+    brand = update · olive = offline-ready (auto-hides 5s) · ink = install (dismissal persists)
+  </div>
+</div>
+</body></html>

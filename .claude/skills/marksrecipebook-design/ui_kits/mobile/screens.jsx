@@ -157,8 +157,32 @@ function MRecipeRow({ recipe }) {
 // ─────────────────────────────────────────────────────────────
 // 3. RECIPE DETAIL
 // ─────────────────────────────────────────────────────────────
+function MStarRating({ value = 0, size = 18 }) {
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 2 }} aria-label={`${value} out of 5`}>
+      {[1, 2, 3, 4, 5].map((n) => {
+        const filled = n <= value;
+        return (
+          <svg key={n} width={size} height={size} viewBox="0 0 24 24"
+               fill={filled ? "var(--saffron-500)" : "none"}
+               stroke={filled ? "var(--saffron-500)" : "var(--ink-300)"}
+               strokeWidth="1.5" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/>
+          </svg>
+        );
+      })}
+    </div>
+  );
+}
+
+function mFormatMadeDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[m - 1]} ${d}, ${y}`;
+}
+
 function MRecipeDetail() {
-  const recipe = window.MOCK_RECIPES.find((r) => r.id === "r2"); // roast chicken — has sections & photo
+  const recipe = window.MOCK_RECIPES.find((r) => r.id === "r1"); // buttermilk pancakes — rating + URL source
 
   const FloatingButton = ({ icon, size = 17 }) => (
     <button style={{
@@ -231,7 +255,43 @@ function MRecipeDetail() {
           </div>
         )}
 
-        {/* Source */}
+        {/* Rating + last made */}
+        {(recipe.rating || recipe.lastMadeDate) && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+            {recipe.rating && <MStarRating value={recipe.rating} size={18}/>}
+            {recipe.rating && recipe.lastMadeDate && (
+              <span style={{ width: 1, height: 14, background: "var(--border-default)" }}/>
+            )}
+            {recipe.lastMadeDate && (
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--fg-subtle)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <MIcon name="clock" size={13}/>
+                Last made {mFormatMadeDate(recipe.lastMadeDate)}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Source — URL button */}
+        {recipe.source && recipe.source.type === "url" && (
+          <div style={{ marginTop: 16 }}>
+            <a href={recipe.source.url} target="_blank" rel="noreferrer" style={{
+              display: "inline-flex", alignItems: "center", gap: 7,
+              padding: "8px 12px",
+              background: "transparent", border: "1px solid var(--border-strong)",
+              borderRadius: 10, textDecoration: "none",
+              fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13,
+              color: "var(--ink-700)",
+            }}>
+              <span style={{ color: "var(--tomato-600)", display: "flex" }}><MIcon name="link" size={15}/></span>
+              View source
+              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 400, fontSize: 12, color: "var(--fg-subtle)" }}>
+                {new URL(recipe.source.url).hostname.replace("www.", "")}
+              </span>
+            </a>
+          </div>
+        )}
+
+        {/* Source — book */}
         {recipe.source && recipe.source.type === "book" && (
           <p style={{
             fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400,

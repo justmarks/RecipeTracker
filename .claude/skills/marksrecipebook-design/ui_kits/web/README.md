@@ -8,13 +8,14 @@ A pixel-recreation of the desktop / tablet web experience of MarksRecipeBook. Bu
 - `App.jsx` — top-level router-like state machine (no real react-router, just `useState` for view).
 - `Sidebar.jsx` — left chapter navigation. Lists the user's chapters in order; highlights the active chapter; "+ New" and "Import" buttons pinned at the top.
 - `RecipeListView.jsx` — Home page. Search field, recipe rows grouped by chapter.
-- `RecipeDetail.jsx` — single-recipe view. Eyebrow / title / source / times grid / ingredients / instructions / notes.
-- `RecipeForm.jsx` — shared form for new + edit + import preview.
-- `ImportView.jsx` — URL-AI / markdown-paste import screen.
-- `ChaptersView.jsx` — chapter management (reorder / rename / delete).
+- `RecipeDetail.jsx` — single-recipe view. Action bar (Favorite / Edit / Share / PDF / Delete, responsive icon-only under 640px), eyebrow / title / source / rating + last-made / times grid / ingredients / instructions / notes.
+- `RecipeForm.jsx` — shared form for new + edit + import preview. Sticky action bar.
+- `ImportView.jsx` — three import methods as equal cards: URL (AI), photo (drag-drop), markdown.
+- `ChaptersView.jsx` — chapter management: drag-handle + up/down reorder, click-name-to-rename, icon delete with confirm dialog, inline add-row.
+- `Dialogs.jsx` — `<ShareDialog>` (email + access list) and `<ConfirmDialog>` (delete), both as centered modal overlays.
 - `SignInView.jsx` — Google + Microsoft sign-in.
-- `primitives.jsx` — `<Button>`, `<Input>`, `<Field>`, `<Tag>`, `<Icon>`, `<Eyebrow>`, `<Toast>`.
-- `data.js` — mock recipes + chapters used by every view.
+- `primitives.jsx` — `<Button>` (with `iconFilled` for stateful icons), `<Input>`, `<Field>`, `<Tag>`, `<Icon>` (with `filled`), `<Eyebrow>`, `<MetaRow>`, `<Toast>`, `<PhotoFrame>`, `<StarRating>`.
+- `data.js` — mock recipes + chapters (with `photo`, `rating`, `lastMadeDate`).
 
 ## Notes
 

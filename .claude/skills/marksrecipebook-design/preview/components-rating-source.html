@@ -1,0 +1,81 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  * { box-sizing: border-box; }
+  .stage { width: 700px; padding: 28px 32px; display: flex; flex-direction: column; gap: 18px; }
+  .label { font-family: Manrope, sans-serif; font-weight:600; font-size:11px; text-transform: uppercase; letter-spacing: 0.12em; color: #7B6655; }
+
+  /* rating row */
+  .rating-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+  .stars { display: inline-flex; gap: 2px; }
+  .divider { width:1px; height:16px; background:#EADFC9; }
+  .lastmade { font-family: Manrope, sans-serif; font-size:13px; color:#7B6655; display:inline-flex; align-items:center; gap:6px; }
+
+  /* empty rating */
+  .empty-stars { display:inline-flex; gap:2px; }
+
+  /* url button — small, secondary */
+  .urlbtn {
+    display:inline-flex; align-items:center; gap:7px;
+    padding:7px 12px; background:transparent; border:1px solid #D9CAAE;
+    border-radius:8px; text-decoration:none; margin-top:6px;
+    font-family: Manrope, sans-serif; font-weight:600; font-size:13px; color:#463528;
+  }
+  .urlbtn .ic { color:#B0432D; display:flex; }
+  .urlbtn .dom { font-family:"JetBrains Mono", monospace; font-weight:400; font-size:12px; color:#7B6655; }
+
+  /* book source */
+  .book { font-family: Manrope, sans-serif; font-size:13px; color:#7B6655; margin-top:6px; }
+  .book em { font-family: Newsreader, serif; font-style: italic; color:#463528; }
+</style>
+</head><body>
+<div class="stage">
+  <div>
+    <div class="label">Rating · made</div>
+    <div class="rating-row">
+      <span class="stars">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#D9A441" stroke="#D9A441" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#D9A441" stroke="#D9A441" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#D9A441" stroke="#D9A441" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#D9A441" stroke="#D9A441" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#D9A441" stroke="#D9A441" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/></svg>
+      </span>
+      <span class="divider"></span>
+      <span class="lastmade">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
+        Last made May 24, 2026
+      </span>
+    </div>
+  </div>
+
+  <div>
+    <div class="label">Rating · unrated</div>
+    <div class="rating-row">
+      <span class="empty-stars">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0A08D" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0A08D" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0A08D" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0A08D" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0A08D" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div>
+    <div class="label">Source · URL</div>
+    <a class="urlbtn" href="#">
+      <span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M10 14 a4 4 0 0 1 0-6 l3-3 a4 4 0 0 1 6 6 l-1 1"/><path d="M14 10 a4 4 0 0 1 0 6 l-3 3 a4 4 0 0 1-6-6 l1-1"/></svg></span>
+      View source
+      <span class="dom">cooking.nytimes.com</span>
+    </a>
+  </div>
+
+  <div>
+    <div class="label">Source · book</div>
+    <div class="book">From <em>Salt, Fat, Acid, Heat</em> by Samin Nosrat, p. 232</div>
+  </div>
+</div>
+</body></html>

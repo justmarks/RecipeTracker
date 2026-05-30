@@ -1,0 +1,55 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#F4ECDD; margin:0; }
+  * { box-sizing: border-box; }
+  .stage { width: 700px; padding: 32px; display:flex; align-items:center; justify-content:center; }
+  .dialog {
+    background:#fff; border-radius:20px; box-shadow:0 12px 30px rgba(70,53,40,.18);
+    width:480px; padding:28px;
+  }
+  h2 { font-family: Newsreader, serif; font-weight:500; font-size:24px; color:#2A1F18; margin:0 0 4px; }
+  .sub { font-family: Manrope, sans-serif; font-size:14px; color:#463528; margin:0 0 20px; }
+  .sub em { font-family: Newsreader, serif; font-style: italic; }
+  .field-row { display:flex; gap:8px; }
+  .input { flex:1; font-family: Manrope, sans-serif; font-size:14px; padding:10px 12px; border:1px solid #D9CAAE; border-radius:8px; color:#B0A08D; background:#fff; }
+  .share-btn { font-family: Manrope, sans-serif; font-weight:600; font-size:13px; color:#fff; background:#C8553D; border:0; border-radius:8px; padding:0 16px; display:inline-flex; align-items:center; gap:7px; cursor:pointer; }
+  .eyebrow { font-family: Manrope, sans-serif; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:#7B6655; margin:24px 0 8px; }
+  ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  li { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:#FBF6EE; }
+  .email { flex:1; font-family: Manrope, sans-serif; font-size:13px; color:#463528; }
+  .remove { font-family: Manrope, sans-serif; font-size:12px; color:#903525; background:transparent; border:0; cursor:pointer; }
+  .done-row { display:flex; justify-content:flex-end; margin-top:24px; }
+  .done { font-family: Manrope, sans-serif; font-weight:600; font-size:13px; color:#B0432D; background:transparent; border:0; cursor:pointer; padding:8px 10px; }
+</style>
+</head><body>
+<div class="stage">
+  <div class="dialog">
+    <h2>Share recipe</h2>
+    <p class="sub"><em>Roast chicken with lemon and thyme</em> — anyone you add can see this recipe but not edit or delete it.</p>
+    <div class="field-row">
+      <div class="input">family@example.com</div>
+      <button class="share-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share
+      </button>
+    </div>
+    <div class="eyebrow">Shared with</div>
+    <ul>
+      <li>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7B6655" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>
+        <span class="email">mom@marksfamily.test</span>
+        <button class="remove">Remove</button>
+      </li>
+      <li>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7B6655" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>
+        <span class="email">eli@marksfamily.test</span>
+        <button class="remove">Remove</button>
+      </li>
+    </ul>
+    <div class="done-row"><button class="done">Done</button></div>
+  </div>
+</div>
+</body></html>
