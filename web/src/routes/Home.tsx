@@ -293,11 +293,16 @@ export function Home() {
           <RecipeList recipes={sorted} />
         ) : (
           <>
-            <RecentlyAdded
-              recipes={recipes}
-              isOpen={expandedSections.has("recent")}
-              onToggle={() => toggleSection("recent")}
-            />
+            {/* RecentlyAdded shows the newest recipes regardless of the
+                search query, so hide it during search — otherwise it'd
+                surface recipes that don't match what the user typed. */}
+            {!searching && (
+              <RecentlyAdded
+                recipes={recipes}
+                isOpen={expandedSections.has("recent")}
+                onToggle={() => toggleSection("recent")}
+              />
+            )}
             {/* Favorites section is hidden during search because it
                 shows the user's full favorites list (not search-filtered)
                 — leaving it visible during search would surface recipes
