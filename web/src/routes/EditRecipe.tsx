@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import {
+  deleteField,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
 import { useToast } from "../lib/useToast";
@@ -103,11 +109,34 @@ export function EditRecipe() {
   // are preserved by Firestore's merge semantics, which keeps the security
   // rule's "ownership immutable" check satisfied.
   async function onSubmit(input: RecipeInput) {
-    await updateDoc(doc(db, "recipes", id!), {
+    // Build the update payload. Optional fields the user cleared come
+    // through as `undefined` — but ignoreUndefinedProperties on the
+    // Firestore client *drops* those from the write rather than
+    // deleting the existing value. We have to explicitly map cleared
+    // optionals to deleteField() so they actually disappear from the
+    // stored doc (otherwise "remove source URL" silently no-ops, etc).
+    const updates: Record<string, unknown> = {
       ...input,
       searchTokens: buildSearchTokens(input),
       updatedAt: serverTimestamp(),
-    });
+    };
+    const optionalFields = [
+      "source",
+      "notes",
+      "yield",
+      "prepTime",
+      "cookTime",
+      "totalTime",
+      "photoUrl",
+      "rating",
+      "lastMadeDate",
+    ] as const;
+    for (const field of optionalFields) {
+      if (input[field] === undefined) {
+        updates[field] = deleteField();
+      }
+    }
+    await updateDoc(doc(db, "recipes", id!), updates);
     toast.show(`Saved changes to "${input.title}"`);
     // Pop the edit page off the history stack so the user returns to
     // wherever they came from (typically the recipe detail page).

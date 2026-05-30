@@ -1,6 +1,11 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, OAuthProvider, connectAuthEmulator } from "firebase/auth";
-import { initializeFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import {
+  connectFirestoreEmulator,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 
@@ -15,9 +20,27 @@ const config = {
 
 export const app = initializeApp(config);
 export const auth = getAuth(app);
-// ignoreUndefinedProperties so optional fields with no value (notes, yield,
-// prepTime, etc.) drop silently instead of throwing on addDoc/setDoc.
-export const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
+// Firestore with IndexedDB-backed persistent cache so cold starts show
+// cached data instantly and sync the delta from network in the
+// background. Critical for the installed-PWA / mobile experience —
+// without this, every launch re-fetches every recipe document over
+// the wire before anything renders.
+//
+// `persistentMultipleTabManager` opts into shared cache across tabs
+// (some users keep recipes open in multiple tabs while cooking) and is
+// the modern replacement for the legacy enableMultiTabIndexedDbPersistence.
+//
+// ignoreUndefinedProperties keeps optional fields with no value (notes,
+// yield, prepTime, etc.) from throwing on addDoc/setDoc — they drop
+// silently from the write. Pair this with deleteField() in update
+// paths when the user explicitly clears a field that previously had a
+// value (see EditRecipe.tsx).
+export const db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true,
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
+});
 export const functions = getFunctions(app);
 export const storage = getStorage(app);
 

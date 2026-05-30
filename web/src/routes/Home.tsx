@@ -45,22 +45,57 @@ export function Home() {
   const { chapters } = useChapters(user?.uid);
   const { favorites, toggle: toggleFavorite } = useFavorites(user?.uid);
   const toast = useToast();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const activeChapter = params.get("chapter") ?? "";
   const favoritesOnly = params.get("favorites") === "1";
   const otherOnly = params.get("view") === "other";
+  // Search lives in the URL (?q=…) so the browser's back button restores
+  // it for free — clicking a recipe and hitting Back lands you with the
+  // same search active.
+  const search = params.get("q") ?? "";
+  const setSearch = (value: string) => {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value) next.set("q", value);
+        else next.delete("q");
+        return next;
+      },
+      // replace: each keystroke would otherwise stack a history entry
+      // and Back would walk character-by-character through the query.
+      { replace: true },
+    );
+  };
 
   // Merged stream of recipes I own + recipes explicitly shared with me +
   // recipes auto-shared with me. The hook handles the three-way fan-out.
   const { recipes } = useRecipeList(user?.uid);
-  const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("alpha");
 
-  // Which sections are expanded on the full TOC view.
-  // "recent" and "favorites" start open; all chapters start collapsed.
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    () => new Set(["recent", "favorites"]),
-  );
+  // Expanded sections persist to sessionStorage so back navigation
+  // (RecipeDetail → Home) lands the user with their TOC view exactly
+  // as they left it — recent + favorites open, the specific chapters
+  // they had unfolded still unfolded. "recent" and "favorites" start
+  // open on first visit.
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
+    try {
+      const raw = sessionStorage.getItem("mrb:home:expanded");
+      if (raw) return new Set(JSON.parse(raw) as string[]);
+    } catch {
+      // sessionStorage unavailable (private mode, etc) — fall through
+    }
+    return new Set(["recent", "favorites"]);
+  });
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        "mrb:home:expanded",
+        JSON.stringify([...expandedSections]),
+      );
+    } catch {
+      // no-op
+    }
+  }, [expandedSections]);
 
   const toggleSection = (key: string) => {
     setExpandedSections((prev) => {
@@ -82,6 +117,48 @@ export function Home() {
       setExpandedSections((s) => new Set([...s, prev.toLowerCase()]));
     }
   }, [activeChapter]);
+
+  // Scroll restoration: save the window scrollY continuously, then restore
+  // it once recipes have loaded after a Home re-mount. Without this, the
+  // user clicks a recipe in the middle of a long list, hits back, and
+  // lands at the top — losing their place. We wait for recipes.length > 0
+  // before restoring so the page actually has scrollable content to
+  // restore *to* (otherwise scrollTo(0, 1200) silently does nothing).
+  const restoredScrollRef = useRef(false);
+  useEffect(() => {
+    if (restoredScrollRef.current) return;
+    if (recipes.length === 0) return;
+    const saved = sessionStorage.getItem("mrb:home:scrollY");
+    if (saved) {
+      // requestAnimationFrame so React has flushed the recipe list to the
+      // DOM before we measure / scroll. Without this the scrollY may
+      // exceed the document height and silently get clamped to 0.
+      requestAnimationFrame(() => {
+        window.scrollTo(0, parseInt(saved, 10));
+      });
+    }
+    restoredScrollRef.current = true;
+  }, [recipes.length]);
+  useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      // rAF coalesces rapid-fire scroll events; one write per frame max.
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        try {
+          sessionStorage.setItem("mrb:home:scrollY", String(window.scrollY));
+        } catch {
+          // no-op
+        }
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
 
   const queryTokens = useMemo(
     () =>
@@ -208,47 +285,54 @@ export function Home() {
       </header>
 
       {recipes.length > 0 && (
-        <div className="mb-8 flex items-start gap-3">
-          <div className="relative flex-1">
-            <span
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none"
-              aria-hidden="true"
-            >
-              <Icon name="search" size={16} />
-            </span>
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by title or ingredient…"
-              className="w-full font-sans text-sm text-ink-900 bg-white border border-paper-400 rounded-md pl-10 pr-9 py-2.5 outline-none transition-colors duration-100 focus:border-tomato-500 focus:shadow-[var(--shadow-focus)] placeholder:text-ink-300"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-900 p-1"
-                aria-label="Clear search"
+        <div className="mb-8">
+          <div className="flex items-start gap-3">
+            {/* Input + icons live in their OWN relative wrapper so the
+                absolute-positioned icons center against the input's
+                height alone — not the input + matches caption, which
+                used to make the magnifying glass drift downward when
+                the user started typing. */}
+            <div className="relative flex-1">
+              <span
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none"
+                aria-hidden="true"
               >
-                <Icon name="x" size={14} />
-              </button>
-            )}
-            {searching && (
-              <p className="mt-1 text-xs text-ink-500">
-                {matchCount} match{matchCount === 1 ? "" : "es"}
-              </p>
-            )}
+                <Icon name="search" size={16} />
+              </span>
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by title or ingredient…"
+                className="w-full font-sans text-sm text-ink-900 bg-white border border-paper-400 rounded-md pl-10 pr-9 py-2.5 outline-none transition-colors duration-100 focus:border-tomato-500 focus:shadow-[var(--shadow-focus)] placeholder:text-ink-300"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-900 p-1"
+                  aria-label="Clear search"
+                >
+                  <Icon name="x" size={14} />
+                </button>
+              )}
+            </div>
+            <div className="shrink-0">
+              <Select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                aria-label="Sort order"
+              >
+                <option value="alpha">A → Z</option>
+                <option value="recent">Recent first</option>
+              </Select>
+            </div>
           </div>
-          <div className="shrink-0">
-            <Select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-              aria-label="Sort order"
-            >
-              <option value="alpha">A → Z</option>
-              <option value="recent">Recent first</option>
-            </Select>
-          </div>
+          {searching && (
+            <p className="mt-1 text-xs text-ink-500">
+              {matchCount} match{matchCount === 1 ? "" : "es"}
+            </p>
+          )}
         </div>
       )}
 

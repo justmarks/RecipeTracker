@@ -364,6 +364,18 @@
     background: var(--tomato-100);
     color: var(--ink-900);
   }
+
+  /* Suppress WebKit's built-in search clear button — we render our own
+     × inside the input via an absolutely-positioned button, and having
+     both visible is confusing (two adjacent X icons that do the same
+     thing). Firefox doesn't add one in the first place. */
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-results-button,
+  input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+  }
 }
 
 /* =============================================================
