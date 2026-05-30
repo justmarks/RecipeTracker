@@ -59,6 +59,8 @@ No native Android or iOS builds. No Expo, no React Native, no EAS, no Apple Deve
 
 ```
 recipe-tracker/
+├── .claude/skills/marksrecipebook-design
+│   └── SKILL.md                    # design system files
 ├── .github/workflows/
 │   └── deploy.yml                  # CI/CD: push to main → full Firebase deploy
 ├── web/                            # Vite + React PWA
@@ -116,8 +118,6 @@ See [CLAUDE.md](CLAUDE.md) for the full schema and reasoning.
 
 - Node 20+ and pnpm 9+
 - Firebase CLI — `npm i -g firebase-tools`
-
-That's it. No Android SDK, no Xcode, no Java.
 
 ## Setup
 
@@ -189,8 +189,10 @@ Tracked here so they don't get lost:
 
 - **Grocery list generation** — multi-select recipes → consolidated list
 - **Meal plan** — pick N recipes and produce a plan for the week
-- **Unit conversion** — cups / tsp ↔ grams
-- **Photo upload to recipe** (currently photo-URL only; Storage-backed upload for `photoUrl` pending — note that the photo *importer* described above is a different feature, it reads recipe text from a photo)
+- **Unit conversion** — cups / tsp ↔ grams for common ingredients (flour, sugar, etc.)
+- **PDF import**
+- **Tag management**
+- **Design system updates**
 
 ## Known issues
 
