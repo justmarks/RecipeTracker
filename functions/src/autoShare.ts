@@ -49,17 +49,38 @@ export const grantAutoShare = onCall<{
     );
   }
 
+  // The token's email is the owner's own email — denormalize it onto the
+  // autoShare doc so the grantee's Sharing UI can render "Shared by
+  // alice@example.com" instead of a generic placeholder. Falls back to a
+  // server-side lookup if the token doesn't include email (rare — Firebase
+  // ID tokens always carry email for password / Google / Microsoft sign-in).
+  let ownerEmail = request.auth?.token.email ?? null;
+  if (!ownerEmail) {
+    try {
+      const ownerRecord = await getAuth().getUser(uid);
+      ownerEmail = ownerRecord.email ?? null;
+    } catch {
+      // Leave ownerEmail null — grantee will see the fallback label.
+    }
+  }
+
   const db = getFirestore();
   const shareId = `${uid}_${grantee.uid}`;
   const ref = db.collection("autoShares").doc(shareId);
   const existing = await ref.get();
   if (existing.exists) {
-    // Already granted — return the current record without rewriting createdAt.
+    // Already granted. Backfill ownerEmail if the existing doc is from
+    // before we stored it — cheap one-field merge, doesn't disturb the
+    // existing createdAt.
+    if (ownerEmail && !existing.data()?.ownerEmail) {
+      await ref.set({ownerEmail}, {merge: true});
+    }
     return {grantee, alreadyGranted: true};
   }
 
   await ref.set({
     ownerId: uid,
+    ownerEmail,
     granteeUid: grantee.uid,
     granteeEmail: grantee.email,
     createdAt: FieldValue.serverTimestamp(),

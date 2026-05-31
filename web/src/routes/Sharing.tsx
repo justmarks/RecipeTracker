@@ -32,7 +32,11 @@ type AutoShareRow = {
 type IncomingShareRow = {
   id: string;
   ownerId: string;
-  ownerEmail?: string; // we don't denormalize owner email, so this stays undefined
+  // grantAutoShare denormalizes the owner's email onto each autoShare
+  // doc so the grantee can see who shared with them without a separate
+  // user lookup. Optional because docs created before that change exist
+  // without the field (re-grant repopulates it).
+  ownerEmail?: string;
   createdAt?: Timestamp;
 };
 
@@ -97,6 +101,7 @@ export function Sharing() {
             return {
               id: d.id,
               ownerId: data.ownerId,
+              ownerEmail: data.ownerEmail as string | undefined,
               createdAt: data.createdAt as Timestamp | undefined,
             };
           }),
@@ -269,8 +274,13 @@ export function Sharing() {
                 <span className="text-ink-500 shrink-0">
                   <Icon name="users" size={14} />
                 </span>
-                <span className="flex-1 min-w-0 font-sans text-sm text-ink-700 truncate">
-                  A cookbook you have access to
+                <span className="flex-1 min-w-0 font-sans text-sm text-ink-900 truncate">
+                  {row.ownerEmail ?? (
+                    <span className="text-ink-500 italic">
+                      Shared with you (owner unknown — ask them to re-share to
+                      populate their email)
+                    </span>
+                  )}
                 </span>
               </li>
             ))}

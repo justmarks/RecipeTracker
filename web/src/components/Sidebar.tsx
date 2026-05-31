@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import {
-  collection,
-  onSnapshot,
-  query,
-  where,
-} from "firebase/firestore";
-import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
 import { useFavorites } from "../lib/favorites";
+import { useRecipeList } from "../lib/queryRecipes";
 import { Brand } from "./Brand";
 import { Button, Eyebrow, Icon } from "./ui";
 
@@ -42,31 +36,24 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
   const favoritesActive = params.get("favorites") === "1";
   const otherActive = params.get("view") === "other";
 
-  // Subscribe to recipe counts for the badge next to each chapter.
-  // Lightweight — we only need the category strings.
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [totalCount, setTotalCount] = useState(0);
-
-  useEffect(() => {
-    if (!user) return;
-    const q = query(
-      collection(db, "recipes"),
-      where("ownerId", "==", user.uid),
-    );
-    return onSnapshot(
-      q,
-      (snap) => {
-        const next: Record<string, number> = {};
-        snap.docs.forEach((d) => {
-          const c = (d.data().category ?? "").toLowerCase();
-          if (c) next[c] = (next[c] ?? 0) + 1;
-        });
-        setCounts(next);
-        setTotalCount(snap.size);
-      },
-      (err) => console.error("Sidebar counts:", err),
-    );
-  }, [user]);
+  // Counts come from the same three-way fan-out (owned + explicitly
+  // shared + auto-shared) that powers the Home list, so a user who's
+  // ONLY a grantee — owns zero recipes themselves — still sees real
+  // chapter counts in the sidebar. The previous implementation queried
+  // `where ownerId == me`, which made every count read 0 for grantees.
+  //
+  // This subscribes a second time to the same data Home subscribes to,
+  // which adds three Firestore listeners. Acceptable at this scale; if
+  // it becomes wasteful we'd lift `useRecipeList` into a context.
+  const { recipes } = useRecipeList(user?.uid);
+  const { counts, totalCount } = useMemo(() => {
+    const next: Record<string, number> = {};
+    for (const r of recipes) {
+      const c = r.category?.toLowerCase();
+      if (c) next[c] = (next[c] ?? 0) + 1;
+    }
+    return { counts: next, totalCount: recipes.length };
+  }, [recipes]);
 
   const userInitial = useMemo(() => {
     const name = user?.displayName ?? user?.email ?? "";
