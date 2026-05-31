@@ -23,6 +23,10 @@ export type RecipeListItem = {
   searchTokens: string[];
   totalTime?: string;
   photoUrl?: string;
+  /** 1–5, present when the user has rated the recipe. */
+  rating?: number;
+  /** ISO YYYY-MM-DD, present when the user has logged a cook date. */
+  lastMadeDate?: string;
   createdAt?: Timestamp;
   /**
    * How this recipe became visible to the current user:
@@ -49,6 +53,8 @@ function summarize(
     searchTokens: d.searchTokens ?? [],
     totalTime: d.totalTime as string | undefined,
     photoUrl: d.photoUrl as string | undefined,
+    rating: d.rating as number | undefined,
+    lastMadeDate: d.lastMadeDate as string | undefined,
     createdAt: d.createdAt as Timestamp | undefined,
     access,
   };

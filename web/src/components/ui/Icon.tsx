@@ -38,7 +38,8 @@ export type IconName =
   | "mail"
   | "download"
   | "heart"
-  | "grip-vertical";
+  | "grip-vertical"
+  | "image";
 
 const ICON_PATHS: Record<IconName, ReactElement> = {
   plus: (
@@ -193,6 +194,13 @@ const ICON_PATHS: Record<IconName, ReactElement> = {
       <circle cx="15" cy="12" r="1.25" stroke="none" fill="currentColor" />
       <circle cx="9" cy="17" r="1.25" stroke="none" fill="currentColor" />
       <circle cx="15" cy="17" r="1.25" stroke="none" fill="currentColor" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="2" />
+      <path d="M3 17 L9 12 L13 15 L17 11 L21 15" />
     </>
   ),
 };

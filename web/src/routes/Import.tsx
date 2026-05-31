@@ -73,6 +73,10 @@ export function Import() {
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [autoPhoto, setAutoPhoto] = useState(false);
+  // Drag-hover state for the photo drop-zone — toggled on dragenter /
+  // dragleave so the visual treatment changes only while a drag is
+  // actively over the zone.
+  const [photoDragOver, setPhotoDragOver] = useState(false);
 
   const mdFileRef = useRef<HTMLInputElement>(null);
   const photoFileRef = useRef<HTMLInputElement>(null);
@@ -335,45 +339,90 @@ export function Import() {
 
             {!showOnlyUrlFetcher && (
               <ImportCard
-                eyebrowIcon="upload"
+                eyebrowIcon="image"
                 eyebrow="Extract w/AI from photo"
-                hint="Snap a cookbook page, magazine clipping, or recipe card. Works on handwriting too."
+                hint="JPEG, PNG, WebP, or GIF — up to about 5 MB after the in-app resize."
                 error={photoError}
                 action={
-                  <div className="flex items-center gap-3">
-                    <Button
-                      type="button"
-                      variant="primary"
-                      icon="upload"
-                      onClick={() => photoFileRef.current?.click()}
-                      disabled={photoBusy}
-                    >
-                      {photoBusy ? "Reading…" : "Choose photo"}
-                    </Button>
-                    <input
-                      ref={photoFileRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      // On mobile this prefers the rear camera and opens it
-                      // directly; desktop browsers ignore the attribute and
-                      // fall back to a normal file picker.
-                      capture="environment"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) void processPhoto(file);
-                        if (photoFileRef.current) {
-                          photoFileRef.current.value = "";
-                        }
-                      }}
-                      className="hidden"
-                    />
-                  </div>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    icon="upload"
+                    onClick={() => photoFileRef.current?.click()}
+                    disabled={photoBusy}
+                  >
+                    {photoBusy ? "Reading…" : "Choose photo"}
+                  </Button>
                 }
               >
-                <p className="font-sans text-sm text-ink-500 m-0">
-                  JPEG, PNG, WebP, or GIF — up to about 5 MB after the in-app
-                  resize.
-                </p>
+                {/*
+                  Clickable drop-zone — primary visual affordance per the
+                  design-system spec. Clicking anywhere on the zone opens
+                  the same file picker the button does; dragging a file
+                  over it gives a hover treatment, and dropping kicks off
+                  the same processPhoto pipeline. The button below is the
+                  always-discoverable fallback for browsers / inputs that
+                  don't surface drag-and-drop (touch devices, screen
+                  readers).
+                */}
+                <button
+                  type="button"
+                  onClick={() => photoFileRef.current?.click()}
+                  onDragEnter={(e) => {
+                    e.preventDefault();
+                    setPhotoDragOver(true);
+                  }}
+                  onDragOver={(e) => {
+                    // Required to allow drop — without preventDefault the
+                    // drop event never fires.
+                    e.preventDefault();
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setPhotoDragOver(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setPhotoDragOver(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) void processPhoto(file);
+                  }}
+                  disabled={photoBusy}
+                  className={[
+                    "flex flex-col items-center justify-center gap-2 w-full",
+                    "px-6 py-8 rounded-md",
+                    "border-[1.5px] border-dashed",
+                    "transition-colors duration-100",
+                    photoDragOver
+                      ? "border-tomato-500 bg-tomato-50 text-tomato-700"
+                      : "border-paper-400 bg-paper-50 text-ink-500 hover:border-paper-400 hover:bg-paper-100",
+                    photoBusy ? "cursor-default opacity-60" : "cursor-pointer",
+                  ].join(" ")}
+                  aria-label="Drag a photo here or click to choose one"
+                >
+                  <Icon name="image" size={28} />
+                  <span className="font-sans text-[13px]">
+                    Snap a cookbook page, magazine clipping, or recipe card —
+                    drag here, or use the button below
+                  </span>
+                </button>
+                <input
+                  ref={photoFileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  // On mobile this prefers the rear camera and opens it
+                  // directly; desktop browsers ignore the attribute and
+                  // fall back to a normal file picker.
+                  capture="environment"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void processPhoto(file);
+                    if (photoFileRef.current) {
+                      photoFileRef.current.value = "";
+                    }
+                  }}
+                  className="hidden"
+                />
               </ImportCard>
             )}
 

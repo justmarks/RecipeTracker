@@ -1,11 +1,13 @@
 import {
   createContext,
+  Fragment,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
@@ -20,6 +22,7 @@ import {
   PhotoFrame,
   Select,
   SprigDivider,
+  StarRating,
   Tag,
   tagToneFor,
 } from "../components/ui";
@@ -749,9 +752,42 @@ function RecipeList({ recipes }: { recipes: RecipeSummary[] }) {
 
 function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
   const hasMeta =
-    recipe.totalTime || recipe.tags.length > 0 || recipe.access !== "owned";
+    recipe.totalTime ||
+    recipe.rating ||
+    recipe.lastMadeDate ||
+    recipe.tags.length > 0 ||
+    recipe.access !== "owned";
   const favoriteCtx = useContext(FavoriteContext);
   const isFav = favoriteCtx?.favorites.has(recipe.id) ?? false;
+
+  // Compact meta-line items, rendered with `·` separators between them.
+  // Order matches the design-system spec: rating → time → last made,
+  // then tags + the "Shared" badge tail. Each entry is only pushed if
+  // the corresponding data exists, so an unrated recipe with no date
+  // collapses cleanly to just "time · tags".
+  const metaLeadItems: ReactNode[] = [];
+  if (recipe.rating) {
+    metaLeadItems.push(
+      <StarRating key="rating" value={recipe.rating} size={13} showEmpty={false} />,
+    );
+  }
+  if (recipe.totalTime) {
+    metaLeadItems.push(
+      <span
+        key="time"
+        className="font-mono text-[11px] text-ink-500 [font-feature-settings:'tnum']"
+      >
+        {recipe.totalTime}
+      </span>,
+    );
+  }
+  if (recipe.lastMadeDate) {
+    metaLeadItems.push(
+      <span key="made" className="text-[11px] text-ink-500">
+        made {shortMadeDate(recipe.lastMadeDate)}
+      </span>,
+    );
+  }
 
   // Overlay-link pattern: the row is a relative-positioned div, the
   // `<Link>` is absolutely positioned across the whole row at z-0, and
@@ -793,13 +829,20 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
         </div>
         {hasMeta && (
           <div className="flex items-center gap-1.5 flex-wrap">
-            {recipe.totalTime && (
-              <span className="font-mono text-[11px] text-ink-500 [font-feature-settings:'tnum']">
-                {recipe.totalTime}
+            {metaLeadItems.map((node, i) => (
+              <Fragment key={i}>
+                {i > 0 && (
+                  <span aria-hidden="true" className="text-[11px] text-ink-300">
+                    ·
+                  </span>
+                )}
+                {node}
+              </Fragment>
+            ))}
+            {metaLeadItems.length > 0 && recipe.tags.length > 0 && (
+              <span aria-hidden="true" className="text-[11px] text-ink-300">
+                ·
               </span>
-            )}
-            {recipe.totalTime && recipe.tags.length > 0 && (
-              <span className="text-[11px] text-ink-300">·</span>
             )}
             {recipe.tags.map((t) => (
               <Tag key={t} tone={tagToneFor(t)}>
@@ -850,4 +893,33 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
       </span>
     </div>
   );
+}
+
+/**
+ * Short "made Apr 12" format for the list row meta — month abbreviation +
+ * day, no year. RecipeDetail uses the longer "May 27, 2026" form via
+ * locale-aware formatting; this stays compact because list rows fight
+ * for horizontal space alongside time, stars, tags, and the heart.
+ * Manual parsing avoids the off-by-one when a UTC midnight ISO string
+ * is rendered in a negative-UTC timezone.
+ */
+function shortMadeDate(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  const [, , mo, d] = m;
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${months[Number(mo) - 1]} ${Number(d)}`;
 }
