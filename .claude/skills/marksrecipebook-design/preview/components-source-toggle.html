@@ -1,0 +1,42 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  * { box-sizing: border-box; }
+  .stage { width: 700px; padding: 28px 32px; display:flex; flex-direction:column; gap:22px; }
+  .lbl { font-family: Manrope, sans-serif; font-weight:600; font-size:13px; color:#463528; display:block; margin-bottom:8px; }
+  .seg { display:inline-flex; padding:3px; gap:2px; background:#F4ECDD; border-radius:8px; border:1px solid #E5DCCC; }
+  .seg button { font-family: Manrope, sans-serif; font-weight:600; font-size:13px; padding:6px 16px; border-radius:5px; border:0; cursor:pointer; background:transparent; color:#7B6655; }
+  .seg button.active { background:#fff; color:#2A1F18; box-shadow:0 1px 2px rgba(70,53,40,.06); }
+  .input { font-family: Manrope, sans-serif; font-size:14px; color:#B0A08D; background:#fff; border:1px solid #D9CAAE; border-radius:8px; padding:10px 12px; width:100%; }
+  .book { display:grid; grid-template-columns:2fr 1.4fr 0.8fr; gap:10px; }
+  .render { font-family: Manrope, sans-serif; font-size:13px; color:#7B6655; margin-top:10px; }
+  .render em { font-family: Newsreader, serif; font-style:italic; color:#463528; }
+  .urlbtn { display:inline-flex; align-items:center; gap:7px; padding:7px 12px; background:transparent; border:1px solid #D9CAAE; border-radius:8px; font-family: Manrope, sans-serif; font-weight:600; font-size:13px; color:#463528; margin-top:10px; }
+  .urlbtn .dom { font-family:"JetBrains Mono", monospace; font-weight:400; font-size:12px; color:#7B6655; }
+</style>
+</head><body>
+<div class="stage">
+  <div>
+    <label class="lbl">Source — URL mode</label>
+    <div class="seg"><button class="active">URL</button><button>Book</button></div>
+    <div style="margin-top:10px"><input class="input" placeholder="https://..."></div>
+    <div class="lbl" style="margin:14px 0 4px; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:#7B6655">Detail renders</div>
+    <a class="urlbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B0432D" stroke-width="1.6" stroke-linecap="round"><path d="M10 14 a4 4 0 0 1 0-6 l3-3 a4 4 0 0 1 6 6 l-1 1"/><path d="M14 10 a4 4 0 0 1 0 6 l-3 3 a4 4 0 0 1-6-6 l1-1"/></svg>View source <span class="dom">cooking.nytimes.com</span></a>
+  </div>
+
+  <div>
+    <label class="lbl">Source — Book mode</label>
+    <div class="seg"><button>URL</button><button class="active">Book</button></div>
+    <div class="book" style="margin-top:10px">
+      <input class="input" placeholder="Book title">
+      <input class="input" placeholder="Author">
+      <input class="input" placeholder="Page">
+    </div>
+    <div class="lbl" style="margin:14px 0 4px; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:#7B6655">Detail renders</div>
+    <div class="render">From <em>Joy of Cooking</em> by Rombauer, p. 142</div>
+  </div>
+</div>
+</body></html>

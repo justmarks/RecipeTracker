@@ -5,36 +5,35 @@ function ImportView({ onBack, onParsed, onSubmit }) {
   const [fetching, setFetching] = useState(false);
   const [markdown, setMarkdown] = useState("");
   const [parsing, setParsing] = useState(false);
+  const [share, setShare] = useState(null); // {mode:"url"|"photo"} → full-page overlay
+
+  const salmon = {
+    title: "Sheet-pan miso salmon",
+    category: "entree",
+    tags: ["weeknight", "gluten-free"],
+    source: { type: "url", url: urlInput || "https://example.com/miso-salmon" },
+    yield: "4 servings", prepTime: "10 min", cookTime: "12 min", totalTime: "22 min",
+    ingredients: [{ heading: null, items: [
+      "4 salmon fillets", "3 tablespoons white miso", "2 tablespoons mirin",
+      "1 tablespoon soy sauce", "1 tablespoon honey", "1 bunch broccolini",
+    ]}],
+    instructions: [{ heading: null, items: [
+      "Heat oven to 220°C.",
+      "Whisk miso, mirin, soy, honey.",
+      "Brush onto salmon. Add broccolini to the sheet with a glug of oil.",
+      "Roast 12 min until salmon flakes.",
+    ]}],
+  };
+
+  // Share-target auto-fire → full-page overlay, then hand off to review form.
+  const simulateShare = (mode) => {
+    setShare({ mode });
+    setTimeout(() => { setShare(null); onParsed(salmon); }, 1800);
+  };
 
   const fakeFetch = async () => {
     setFetching(true);
-    setTimeout(() => {
-      setFetching(false);
-      onParsed({
-        title: "Sheet-pan miso salmon",
-        category: "entree",
-        tags: ["weeknight", "gluten-free"],
-        source: { type: "url", url: urlInput || "https://example.com/miso-salmon" },
-        yield: "4 servings",
-        prepTime: "10 min",
-        cookTime: "12 min",
-        totalTime: "22 min",
-        ingredients: [{ heading: null, items: [
-          "4 salmon fillets",
-          "3 tablespoons white miso",
-          "2 tablespoons mirin",
-          "1 tablespoon soy sauce",
-          "1 tablespoon honey",
-          "1 bunch broccolini",
-        ]}],
-        instructions: [{ heading: null, items: [
-          "Heat oven to 220°C.",
-          "Whisk miso, mirin, soy, honey.",
-          "Brush onto salmon. Add broccolini to the sheet with a glug of oil.",
-          "Roast 12 min until salmon flakes.",
-        ]}],
-      });
-    }, 1100);
+    setTimeout(() => { setFetching(false); onParsed(salmon); }, 1100);
   };
 
   const fakeParse = async () => {
@@ -84,9 +83,19 @@ function ImportView({ onBack, onParsed, onSubmit }) {
         fontFamily: "var(--font-display)", fontWeight: 500, fontSize: "38px",
         margin: "0 0 8px", letterSpacing: "-0.015em", color: "var(--ink-900)",
       }}>Import a recipe</h1>
-      <p style={{ fontFamily: "var(--font-sans)", fontSize: "14px", color: "var(--fg-muted)", margin: "0 0 28px" }}>
+      <p style={{ fontFamily: "var(--font-sans)", fontSize: "14px", color: "var(--fg-muted)", margin: "0 0 16px" }}>
         Three ways to bring a recipe in. Any works — review the result before saving.
       </p>
+
+      {/* Demo affordance: in production these fire automatically from the OS share sheet. */}
+      <div style={{ marginBottom: "28px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <button type="button" onClick={() => simulateShare("url")} style={demoLinkStyle}>
+          <Icon name="share-2" size={13}/> Preview: shared link
+        </button>
+        <button type="button" onClick={() => simulateShare("photo")} style={demoLinkStyle}>
+          <Icon name="image" size={13}/> Preview: shared photo
+        </button>
+      </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         <ImportCard
@@ -146,9 +155,47 @@ function ImportView({ onBack, onParsed, onSubmit }) {
           />
         </ImportCard>
       </div>
+
+      {share && <ImportOverlay mode={share.mode}/>}
     </div>
   );
 }
+
+const demoLinkStyle = {
+  display: "inline-flex", alignItems: "center", gap: "6px",
+  background: "transparent", border: "1px dashed var(--border-strong)",
+  borderRadius: "var(--radius-pill)", padding: "5px 12px", cursor: "pointer",
+  fontFamily: "var(--font-sans)", fontSize: "12px", fontWeight: 600, color: "var(--fg-subtle)",
+};
+
+function ImportOverlay({ mode }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 200,
+      background: "rgba(251, 246, 238, 0.96)",
+      backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      gap: "20px", textAlign: "center", padding: "32px",
+    }}>
+      <style>{`@keyframes mfrb-spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ color: "var(--tomato-500)", animation: "mfrb-spin 1.4s linear infinite", display: "flex" }}>
+        <Icon name="sparkles" size={40}/>
+      </div>
+      <div>
+        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 500, fontSize: "30px", color: "var(--ink-900)", margin: "0 0 8px" }}>
+          {mode === "photo" ? "Reading photo…" : "Importing recipe…"}
+        </h2>
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: "14px", color: "var(--fg-muted)", margin: 0, maxWidth: "320px", lineHeight: 1.55 }}>
+          {mode === "photo"
+            ? "Claude is reading the text from your photo and pulling out the ingredients and steps."
+            : "Claude is reading the page and pulling out the ingredients and steps."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+window.ImportView = ImportView;
 
 function ImportCard({ eyebrowIcon, eyebrow, hint, children, actionLabel, actionIcon, actionDisabled, onAction }) {
   return (

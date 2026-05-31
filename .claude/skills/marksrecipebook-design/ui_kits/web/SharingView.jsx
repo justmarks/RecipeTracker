@@ -1,18 +1,22 @@
-// SharingView — blanket auto-share settings. Everyone listed sees every recipe
-// you own (past and future), distinct from per-recipe sharing in ShareDialog.
+// SharingView — blanket auto-share settings. Two directions:
+// outgoing (people who see everything you own) and incoming (cookbooks shared with you).
 
 function SharingView({ onBack }) {
   const [email, setEmail] = useState("");
-  const [people, setPeople] = useState([
-    { uid: "u_mom", name: "Susan Marks", email: "mom@marksfamily.test" },
-    { uid: "u_eli", name: "Eli Marks", email: "eli@marksfamily.test" },
+  const [outgoing, setOutgoing] = useState([
+    { uid: "u_mom", email: "mom@marksfamily.test" },
+    { uid: "u_eli", email: "eli@marksfamily.test" },
   ]);
+  const incoming = [
+    { uid: "u_carol", email: "carol@marksfamily.test" },
+    { uid: "u_dad", email: "dad@marksfamily.test" },
+  ];
 
   const add = () => {
     const v = email.trim();
     if (!v) return;
-    if (!people.some((p) => p.email === v)) {
-      setPeople([...people, { uid: "u_" + Date.now(), name: v.split("@")[0], email: v }]);
+    if (!outgoing.some((p) => p.email === v)) {
+      setOutgoing([...outgoing, { uid: "u_" + Date.now(), email: v }]);
     }
     setEmail("");
   };
@@ -26,56 +30,87 @@ function SharingView({ onBack }) {
         fontFamily: "var(--font-display)", fontWeight: 500, fontSize: "38px",
         margin: "0 0 8px", letterSpacing: "-0.015em", color: "var(--ink-900)",
       }}>Sharing</h1>
-      <p style={{ fontFamily: "var(--font-sans)", fontSize: "14px", color: "var(--fg-muted)", margin: "0 0 24px", maxWidth: "460px", lineHeight: 1.55 }}>
-        People here see <em style={{ fontFamily: "var(--font-display)" }}>every</em> recipe you own — past and future. For one-off sharing, use the Share button on a recipe instead.
+      <p style={{ fontFamily: "var(--font-sans)", fontSize: "14px", color: "var(--fg-muted)", margin: "0 0 28px", maxWidth: "480px", lineHeight: 1.55 }}>
+        Share your whole cookbook with family. For a single recipe, use the Share button on the recipe instead.
       </p>
 
-      <Field label="Add a family member">
+      {/* Share your cookbook */}
+      <section style={{
+        background: "var(--bg-card)", borderRadius: "var(--radius-lg)",
+        border: "1px solid var(--border-faint)", boxShadow: "var(--shadow-sm)",
+        padding: "20px 22px", marginBottom: "28px",
+      }}>
+        <Eyebrow style={{ marginBottom: "10px" }}>Share your cookbook</Eyebrow>
         <div style={{ display: "flex", gap: "8px" }}>
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                  placeholder="family@example.com"
                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}/>
-          <Button variant="primary" icon="plus" onClick={add} disabled={!email.trim()}>Add</Button>
+          <Button variant="primary" icon="share-2" onClick={add} disabled={!email.trim()}>Share</Button>
         </div>
-      </Field>
+      </section>
 
-      <div style={{ marginTop: "28px" }}>
-        <Eyebrow style={{ marginBottom: "10px" }}>Auto-shared with {people.length}</Eyebrow>
-        {people.length === 0 ? (
-          <p style={{ fontFamily: "var(--font-sans)", fontSize: "14px", color: "var(--fg-subtle)", padding: "24px 0", textAlign: "center" }}>
-            No one yet. Your recipes are private until you add someone.
-          </p>
+      {/* Outgoing grants */}
+      <section style={{ marginBottom: "28px" }}>
+        <Eyebrow style={{ marginBottom: "10px" }}>People who can see all your recipes</Eyebrow>
+        {outgoing.length === 0 ? (
+          <EmptyNote>No one yet. Add a family member above and they'll see every recipe you own.</EmptyNote>
         ) : (
-          <ul style={{
-            listStyle: "none", margin: 0, padding: 0,
-            background: "var(--bg-card)", borderRadius: "var(--radius-lg)",
-            border: "1px solid var(--border-faint)", overflow: "hidden",
-            boxShadow: "var(--shadow-xs)",
-          }}>
-            {people.map((p, i) => (
-              <li key={p.uid} style={{
-                display: "flex", alignItems: "center", gap: "12px",
-                padding: "14px 16px",
-                borderBottom: i === people.length - 1 ? 0 : "1px solid var(--border-faint)",
-              }}>
-                <div style={{
-                  width: "36px", height: "36px", borderRadius: "var(--radius-pill)",
-                  background: "var(--olive-100)", color: "var(--olive-700)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px",
-                  flexShrink: 0, textTransform: "capitalize",
-                }}>{(p.name || "?").charAt(0)}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: "14px", color: "var(--ink-900)", textTransform: "capitalize", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
-                  <div style={{ fontFamily: "var(--font-sans)", fontSize: "12px", color: "var(--fg-subtle)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.email}</div>
-                </div>
-                <Button variant="danger" size="sm" onClick={() => setPeople(people.filter((x) => x.uid !== p.uid))}>Remove</Button>
-              </li>
+          <GrantList>
+            {outgoing.map((p, i) => (
+              <GrantRow key={p.uid} icon="mail" email={p.email} last={i === outgoing.length - 1}
+                action={<Button variant="danger" size="sm" onClick={() => setOutgoing(outgoing.filter((x) => x.uid !== p.uid))}>Remove</Button>}/>
             ))}
-          </ul>
+          </GrantList>
         )}
-      </div>
+      </section>
+
+      {/* Incoming grants */}
+      <section>
+        <Eyebrow style={{ marginBottom: "10px" }}>People who shared their cookbook with you</Eyebrow>
+        {incoming.length === 0 ? (
+          <EmptyNote>No one has shared their cookbook with you yet.</EmptyNote>
+        ) : (
+          <GrantList>
+            {incoming.map((p, i) => (
+              <GrantRow key={p.uid} icon="users" email={p.email} last={i === incoming.length - 1}/>
+            ))}
+          </GrantList>
+        )}
+      </section>
     </div>
+  );
+}
+
+function GrantList({ children }) {
+  return (
+    <ul style={{
+      listStyle: "none", margin: 0, padding: 0,
+      background: "var(--bg-card)", borderRadius: "var(--radius-lg)",
+      border: "1px solid var(--border-faint)", overflow: "hidden",
+      boxShadow: "var(--shadow-xs)",
+    }}>{children}</ul>
+  );
+}
+
+function GrantRow({ icon, email, action, last }) {
+  return (
+    <li style={{
+      display: "flex", alignItems: "center", gap: "12px",
+      padding: "12px 16px",
+      borderBottom: last ? 0 : "1px solid var(--border-faint)",
+    }}>
+      <span style={{ color: "var(--fg-subtle)", display: "flex", flexShrink: 0 }}><Icon name={icon} size={16}/></span>
+      <span style={{ flex: 1, minWidth: 0, fontFamily: "var(--font-sans)", fontSize: "14px", color: "var(--ink-700)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{email}</span>
+      {action}
+    </li>
+  );
+}
+
+function EmptyNote({ children }) {
+  return (
+    <p style={{ fontFamily: "var(--font-sans)", fontSize: "13px", color: "var(--fg-subtle)", padding: "16px 4px", margin: 0, lineHeight: 1.55 }}>
+      {children}
+    </p>
   );
 }
 

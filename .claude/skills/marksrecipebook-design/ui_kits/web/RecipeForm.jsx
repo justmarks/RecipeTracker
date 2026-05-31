@@ -4,7 +4,14 @@ function RecipeForm({ initial = {}, chapters, onCancel, onSubmit, submitLabel = 
   const [title, setTitle] = useState(initial.title || "");
   const [category, setCategory] = useState(initial.category || chapters[0] || "");
   const [tagsInput, setTagsInput] = useState((initial.tags || []).join(", "));
+  const [sourceType, setSourceType] = useState(initial.source?.type === "book" ? "book" : "url");
   const [sourceUrl, setSourceUrl] = useState(initial.source?.type === "url" ? initial.source.url : "");
+  const [bookTitle, setBookTitle] = useState(initial.source?.type === "book" ? initial.source.title : "");
+  const [bookAuthor, setBookAuthor] = useState(initial.source?.type === "book" ? (initial.source.author || "") : "");
+  const [bookPage, setBookPage] = useState(initial.source?.type === "book" ? (initial.source.page || "") : "");
+  const [photo, setPhoto] = useState(initial.photo || "");
+  const [rating, setRating] = useState(initial.rating || 0);
+  const [lastMade, setLastMade] = useState(initial.lastMadeDate || "");
   const [ingredients, setIngredients] = useState(
     initial.ingredients ? sectionsToText(initial.ingredients) : ""
   );
@@ -17,9 +24,17 @@ function RecipeForm({ initial = {}, chapters, onCancel, onSubmit, submitLabel = 
   const [totalTime, setTotalTime] = useState(initial.totalTime || "");
   const [notes, setNotes] = useState(initial.notes || "");
 
+  // Simulate a file upload → Storage URL.
+  const fileRef = React.useRef(null);
+  const onFile = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    setPhoto(URL.createObjectURL(f)); // in production: upload to Storage, store the returned URL
+  };
+
   const submit = (e) => {
     e.preventDefault();
-    onSubmit({ title, category, tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean), sourceUrl, ingredients, instructions, yieldF, prepTime, cookTime, totalTime, notes });
+    onSubmit({ title, category, tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean), sourceType, sourceUrl, bookTitle, bookAuthor, bookPage, photo, rating, lastMade, ingredients, instructions, yieldF, prepTime, cookTime, totalTime, notes });
   };
 
   return (
@@ -68,9 +83,55 @@ function RecipeForm({ initial = {}, chapters, onCancel, onSubmit, submitLabel = 
             </Field>
           </div>
 
-          <Field label="Source URL (optional)" hint="A link to the original recipe, if any.">
-            <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} type="url" placeholder="https://..."/>
+          {/* Source: URL or book reference */}
+          <Field label="Source">
+            <Segmented
+              value={sourceType}
+              onChange={setSourceType}
+              options={[{ value: "url", label: "URL" }, { value: "book", label: "Book" }]}
+            />
+            {sourceType === "url" ? (
+              <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} type="url"
+                     placeholder="https://..." style={{ marginTop: "10px" }}/>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1.4fr 0.8fr", gap: "10px", marginTop: "10px" }}>
+                <Input value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} placeholder="Book title"/>
+                <Input value={bookAuthor} onChange={(e) => setBookAuthor(e.target.value)} placeholder="Author"/>
+                <Input value={bookPage} onChange={(e) => setBookPage(e.target.value)} placeholder="Page"/>
+              </div>
+            )}
           </Field>
+
+          {/* Photo: URL or upload, with thumbnail preview */}
+          <Field label="Photo" hint="Paste an image URL, or upload a photo of the dish.">
+            <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+              <Input value={photo} onChange={(e) => setPhoto(e.target.value)} placeholder="https://… or upload →"/>
+              <input ref={fileRef} type="file" accept="image/*" onChange={onFile} style={{ display: "none" }}/>
+              <Button type="button" variant="secondary" icon="upload" onClick={() => fileRef.current && fileRef.current.click()}>
+                Choose file
+              </Button>
+            </div>
+            {photo && (
+              <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                <PhotoFrame src={photo} alt="" ratio="1 / 1" radius="var(--radius-sm)"
+                            style={{ width: "56px", height: "56px", flex: "0 0 56px" }}/>
+                <button type="button" onClick={() => setPhoto("")} style={{
+                  background: "transparent", border: 0, cursor: "pointer",
+                  fontFamily: "var(--font-sans)", fontSize: "12px", color: "var(--tomato-700)",
+                }}>Remove photo</button>
+              </div>
+            )}
+          </Field>
+
+          {/* Rating + last made */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", alignItems: "start" }}>
+            <Field label="Rating">
+              <div style={{ paddingTop: "2px" }}><StarRatingInput value={rating} onChange={setRating} size={26}/></div>
+            </Field>
+            <Field label="Last made" hint="Optional — when you last cooked it.">
+              <Input value={lastMade} onChange={(e) => setLastMade(e.target.value)} type="date"/>
+            </Field>
+          </div>
 
           <Field label="Ingredients" hint="One per line. Use ## Heading for sections.">
             <Textarea value={ingredients} onChange={(e) => setIngredients(e.target.value)} rows={8} mono/>

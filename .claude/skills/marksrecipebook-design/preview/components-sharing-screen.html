@@ -1,0 +1,43 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  * { box-sizing: border-box; }
+  .stage { width: 700px; padding: 28px 32px; display:flex; flex-direction:column; gap:20px; }
+  .eyebrow { font-family: Manrope, sans-serif; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:#7B6655; margin-bottom:8px; }
+  .card { background:#fff; border:1px solid #E5DCCC; border-radius:14px; box-shadow:0 2px 6px rgba(70,53,40,.08); padding:18px 20px; }
+  .field { display:flex; gap:8px; }
+  .input { flex:1; font-family: Manrope, sans-serif; font-size:14px; color:#B0A08D; background:#fff; border:1px solid #D9CAAE; border-radius:8px; padding:10px 12px; }
+  .share { font-family: Manrope, sans-serif; font-weight:600; font-size:13px; color:#fff; background:#C8553D; border:0; border-radius:8px; padding:0 16px; display:inline-flex; align-items:center; gap:7px; cursor:pointer; }
+  .list { list-style:none; margin:0; padding:0; background:#fff; border:1px solid #EADFC9; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(70,53,40,.06); }
+  .list li { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid #EADFC9; }
+  .list li:last-child { border-bottom:0; }
+  .email { flex:1; font-family: Manrope, sans-serif; font-size:14px; color:#463528; }
+  .remove { font-family: Manrope, sans-serif; font-weight:600; font-size:12px; color:#903525; background:transparent; border:0; cursor:pointer; }
+  .pill { display:inline-flex; align-items:center; gap:4px; font-family: Manrope, sans-serif; font-size:11px; font-weight:600; padding:2px 8px; border-radius:4px; background:#E1E5D0; color:#5A6A3F; }
+</style>
+</head><body>
+<div class="stage">
+  <div>
+    <div class="eyebrow">Share your cookbook</div>
+    <div class="card"><div class="field"><div class="input">family@example.com</div><button class="share"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</button></div></div>
+  </div>
+
+  <div>
+    <div class="eyebrow">People who can see all your recipes <span style="color:#B0A08D">· outgoing</span></div>
+    <ul class="list">
+      <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7B6655" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg><span class="email">mom@marksfamily.test</span><button class="remove">Remove</button></li>
+      <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7B6655" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg><span class="email">eli@marksfamily.test</span><button class="remove">Remove</button></li>
+    </ul>
+  </div>
+
+  <div>
+    <div class="eyebrow">People who shared their cookbook with you <span style="color:#B0A08D">· incoming, no action</span></div>
+    <ul class="list">
+      <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7B6655" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 21 v-1 a5 5 0 0 1 5-5 h4 a5 5 0 0 1 5 5 v1"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14 h2 a4 4 0 0 1 4 4 v1"/></svg><span class="email">carol@marksfamily.test</span><span class="pill"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Shared</span></li>
+    </ul>
+  </div>
+</div>
+</body></html>

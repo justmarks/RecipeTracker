@@ -1,0 +1,54 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  * { box-sizing: border-box; }
+  .stage { width: 700px; padding: 28px 32px; display:flex; flex-direction:column; gap:20px; }
+  .label { font-family: Manrope, sans-serif; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:#7B6655; margin-bottom:10px; }
+  .row { display:flex; gap:24px; align-items:center; }
+  .item { display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .heart-btn { width:36px; height:36px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:transparent; border:0; cursor:pointer; }
+  .cap { font-family:"JetBrains Mono", monospace; font-size:10px; color:#7B6655; }
+  .onphoto { position:relative; width:120px; height:90px; border-radius:12px; overflow:hidden; background:#F4ECDD; }
+  .onphoto img { width:100%; height:100%; object-fit:cover; }
+  .onphoto .corner { position:absolute; top:6px; right:6px; background:rgba(251,246,238,0.86); border-radius:999px; }
+</style>
+</head><body>
+<div class="stage">
+  <div>
+    <div class="label">Heart toggle — states</div>
+    <div class="row">
+      <div class="item">
+        <span class="heart-btn" style="color:#B0A08D">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </span>
+        <span class="cap">off · ink-300</span>
+      </div>
+      <div class="item">
+        <span class="heart-btn" style="color:#C8553D">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </span>
+        <span class="cap">hover · tomato-500</span>
+      </div>
+      <div class="item">
+        <span class="heart-btn" style="color:#B0432D">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </span>
+        <span class="cap">on · filled tomato-600</span>
+      </div>
+      <div class="item">
+        <div class="onphoto">
+          <img src="https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=300&h=220&fit=crop&q=80" alt="">
+          <span class="corner heart-btn" style="color:#B0432D">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </span>
+        </div>
+        <span class="cap">on card photo (glass)</span>
+      </div>
+    </div>
+  </div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B0A08D">Appears on every list row (right of meta), card photo corners, and the detail action bar. Per-user state.</div>
+</div>
+</body></html>

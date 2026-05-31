@@ -304,6 +304,49 @@ function PhotoFrame({ src, alt = "", ratio = "4 / 3", radius = "var(--radius-lg)
   );
 }
 
+// ---------- FAVORITE TOGGLE ----------
+// Heart button. Outline (ink-300) when off, filled tomato when on.
+// stopPropagation so it works inside clickable rows/cards.
+function FavoriteToggle({ active, onToggle, size = 18, style = {} }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onToggle && onToggle(); }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      aria-pressed={active}
+      aria-label={active ? "Remove from favorites" : "Add to favorites"}
+      title={active ? "Favorited" : "Favorite"}
+      style={{
+        background: "transparent", border: 0, cursor: "pointer",
+        padding: "6px", borderRadius: "var(--radius-pill)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        color: active ? "var(--tomato-600)" : (hover ? "var(--tomato-500)" : "var(--ink-300)"),
+        transition: "color var(--dur-fast) var(--ease-out)",
+        ...style,
+      }}>
+      <Icon name="heart" size={size} filled={active}/>
+    </button>
+  );
+}
+
+// ---------- SHARED PILL ----------
+// Olive pill shown in a recipe's meta line when it's visible via a share
+// (not owned by the current user).
+function SharedPill() {
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: "4px",
+      fontFamily: "var(--font-sans)", fontSize: "11px", fontWeight: 600,
+      padding: "2px 8px", borderRadius: "var(--radius-sm)",
+      background: "var(--olive-100)", color: "var(--olive-700)",
+    }}>
+      <Icon name="share-2" size={10}/>
+      Shared
+    </span>
+  );
+}
+
 // ---------- STAR RATING ----------
 // Saffron stars, per the design system (ratings = saffron highlight).
 function StarRating({ value = 0, size = 18, showEmpty = true }) {
@@ -326,6 +369,74 @@ function StarRating({ value = 0, size = 18, showEmpty = true }) {
   );
 }
 
+// ---------- STAR RATING INPUT ----------
+// Click a star to set 1–5; click the current value to clear.
+function StarRatingInput({ value = 0, onChange, size = 28 }) {
+  const [hoverVal, setHoverVal] = useState(0);
+  const shown = hoverVal || value;
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: "2px" }} role="radiogroup" aria-label="Rating">
+      {[1, 2, 3, 4, 5].map((n) => {
+        const filled = n <= shown;
+        return (
+          <button key={n} type="button"
+            onMouseEnter={() => setHoverVal(n)}
+            onMouseLeave={() => setHoverVal(0)}
+            onClick={() => onChange(value === n ? 0 : n)}
+            aria-label={`${n} star${n > 1 ? "s" : ""}`}
+            aria-pressed={n === value}
+            style={{ background: "transparent", border: 0, cursor: "pointer", padding: "2px", display: "flex" }}>
+            <svg width={size} height={size} viewBox="0 0 24 24"
+                 fill={filled ? "var(--saffron-500)" : "none"}
+                 stroke={filled ? "var(--saffron-500)" : "var(--ink-300)"}
+                 strokeWidth="1.5" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/>
+            </svg>
+          </button>
+        );
+      })}
+      {value > 0 && (
+        <button type="button" onClick={() => onChange(0)}
+          style={{ background: "transparent", border: 0, cursor: "pointer", marginLeft: "8px", fontFamily: "var(--font-sans)", fontSize: "12px", color: "var(--fg-subtle)" }}>
+          Clear
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ---------- SEGMENTED CONTROL ----------
+// Small two/three-option toggle (e.g. URL / Book).
+function Segmented({ value, onChange, options }) {
+  return (
+    <div style={{
+      display: "inline-flex", padding: "3px", gap: "2px",
+      background: "var(--paper-200)", borderRadius: "var(--radius-md)",
+      border: "1px solid var(--border-faint)",
+    }}>
+      {options.map((opt) => {
+        const active = opt.value === value;
+        return (
+          <button key={opt.value} type="button" onClick={() => onChange(opt.value)}
+            aria-pressed={active}
+            style={{
+              fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: "13px",
+              padding: "6px 16px", borderRadius: "calc(var(--radius-md) - 3px)",
+              border: 0, cursor: "pointer",
+              background: active ? "var(--bg-card)" : "transparent",
+              color: active ? "var(--ink-900)" : "var(--fg-subtle)",
+              boxShadow: active ? "var(--shadow-xs)" : "none",
+              transition: "background var(--dur-fast), color var(--dur-fast)",
+            }}>
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 Object.assign(window, {
-  Icon, Button, Input, Textarea, Field, Tag, tagToneFor, Eyebrow, MetaRow, Toast, SprigDivider, PhotoFrame, StarRating,
+  Icon, Button, Input, Textarea, Field, Tag, tagToneFor, Eyebrow, MetaRow, Toast, SprigDivider, PhotoFrame,
+  FavoriteToggle, SharedPill, StarRating, StarRatingInput, Segmented,
 });

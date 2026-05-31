@@ -1,6 +1,6 @@
 // Sidebar — chapter navigation. Always visible on desktop, drawer on mobile.
 
-function Sidebar({ chapters, activeChapter, onPickChapter, onHome, onNew, onImport, onSettings, onSharing, onSignOut, user, recipeCounts }) {
+function Sidebar({ chapters, activeChapter, onPickChapter, onPickAll, onPickFavorites, onPickOther, onHome, onNew, onImport, onSettings, onSharing, onSignOut, user, recipeCounts, favCount, orphanCount }) {
   return (
     <aside style={{
       width: "260px", flex: "0 0 260px",
@@ -38,28 +38,32 @@ function Sidebar({ chapters, activeChapter, onPickChapter, onHome, onNew, onImpo
       <Eyebrow style={{ padding: "16px 24px 8px" }}>Chapters</Eyebrow>
 
       <nav style={{ flex: 1, overflowY: "auto", padding: "0 8px" }}>
-        {chapters.map((c) => {
-          const isActive = activeChapter === c;
-          const count = recipeCounts[c] || 0;
-          return (
-            <button key={c} onClick={() => onPickChapter(c)} style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              width: "100%", border: 0, background: isActive ? "var(--paper-200)" : "transparent",
-              padding: "9px 14px", borderRadius: "var(--radius-md)",
-              fontFamily: "var(--font-sans)", fontSize: "14px",
-              fontWeight: isActive ? 600 : 500,
-              color: isActive ? "var(--ink-900)" : "var(--ink-700)",
-              textTransform: "capitalize",
-              cursor: "pointer", marginBottom: "1px",
-              transition: "background var(--dur-fast)",
-            }}
-            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--paper-200)"; }}
-            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}>
-              <span>{c}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--fg-faint)" }}>{count}</span>
-            </button>
-          );
-        })}
+        {/* All recipes */}
+        <NavItem
+          label="All recipes" italic
+          active={activeChapter === "All"} count={recipeCounts.All || 0}
+          onClick={onPickAll}/>
+
+        {/* Favorites */}
+        <NavItem
+          label="Favorites" icon="heart"
+          active={activeChapter === "Favorites"} count={favCount}
+          onClick={onPickFavorites}/>
+
+        <div style={{ height: "8px" }}/>
+
+        {chapters.map((c) => (
+          <NavItem key={c} label={c} capitalize
+            active={activeChapter === c} count={recipeCounts[c] || 0}
+            onClick={() => onPickChapter(c)}/>
+        ))}
+
+        {/* Other — only when orphan recipes exist */}
+        {orphanCount > 0 && (
+          <NavItem label="Other" italic
+            active={activeChapter === "Other"} count={orphanCount}
+            onClick={onPickOther}/>
+        )}
       </nav>
 
       <div style={{ padding: "12px 14px 0", borderTop: "1px solid var(--border-faint)" }}>
@@ -100,6 +104,35 @@ function Sidebar({ chapters, activeChapter, onPickChapter, onHome, onNew, onImpo
 }
 
 window.Sidebar = Sidebar;
+
+function NavItem({ label, count, icon, italic, capitalize, active, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px",
+      width: "100%", border: 0, background: active ? "var(--paper-200)" : "transparent",
+      padding: "9px 14px", borderRadius: "var(--radius-md)",
+      fontFamily: "var(--font-sans)", fontSize: "14px",
+      fontWeight: active ? 600 : 500,
+      color: active ? "var(--ink-900)" : "var(--ink-700)",
+      cursor: "pointer", marginBottom: "1px",
+      transition: "background var(--dur-fast)",
+    }}
+    onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--paper-200)"; }}
+    onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}>
+      <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+        {icon && <Icon name={icon} size={15} filled={icon === "heart" && active} style={{ color: active ? "var(--tomato-500)" : "var(--fg-subtle)", flexShrink: 0 }}/>}
+        <span style={{
+          fontStyle: italic ? "italic" : "normal",
+          fontFamily: italic ? "var(--font-display)" : "var(--font-sans)",
+          fontSize: italic ? "15px" : "14px",
+          textTransform: capitalize ? "capitalize" : "none",
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        }}>{label}</span>
+      </span>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--fg-faint)", flexShrink: 0 }}>{count}</span>
+    </button>
+  );
+}
 
 const navBtnStyle = {
   width: "100%", display: "flex", alignItems: "center", gap: "10px",

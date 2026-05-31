@@ -242,4 +242,51 @@ window.MOCK_RECIPES = [
       "Spoon tomatoes on top with basil and a glug of oil.",
     ]}],
   },
+  {
+    // Orphan: category "drinks" isn't in MOCK_CHAPTERS → appears under "Other".
+    id: "r9",
+    title: "Cucumber agua fresca",
+    category: "drinks",
+    tags: ["summer", "vegetarian"],
+    rating: 4,
+    yield: "4 glasses",
+    prepTime: "10 min",
+    ingredients: [{ heading: null, items: [
+      "2 cucumbers, chopped",
+      "3 cups water",
+      "juice of 1 lime",
+      "2 tablespoons honey",
+      "mint",
+    ]}],
+    instructions: [{ heading: null, items: [
+      "Blend everything until smooth.",
+      "Strain, chill, and serve over ice.",
+    ]}],
+  },
+  {
+    // Visible to this user via a share (not owned) → shows the "Shared" pill.
+    id: "r10",
+    title: "Aunt Carol's cornbread",
+    category: "side",
+    tags: ["thanksgiving"],
+    sharedBy: "carol@marksfamily.test",
+    rating: 5,
+    photo: "https://images.unsplash.com/photo-1601979031925-424e53b6caaa?w=800&h=600&fit=crop&q=80",
+    yield: "9 squares",
+    prepTime: "10 min",
+    cookTime: "25 min",
+    ingredients: [{ heading: null, items: [
+      "1 cup cornmeal",
+      "1 cup flour",
+      "1 tablespoon baking powder",
+      "1 cup buttermilk",
+      "2 eggs",
+      "4 tablespoons melted butter",
+    ]}],
+    instructions: [{ heading: null, items: [
+      "Heat oven to 200°C and butter an 8-inch pan.",
+      "Whisk dry, then wet; combine.",
+      "Pour in and bake 25 min until golden.",
+    ]}],
+  },
 ];

@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  * { box-sizing: border-box; }
+  .stage { width: 700px; padding: 28px 32px; display:flex; flex-direction:column; gap:18px; }
+  .label { font-family: Manrope, sans-serif; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:#7B6655; }
+  .row { display:flex; align-items:center; gap:16px; }
+  .stars { display:inline-flex; gap:2px; }
+  .tag { font-family:"JetBrains Mono", monospace; font-size:11px; color:#7B6655; }
+</style>
+</head><body>
+<div class="stage">
+  <div>
+    <div class="label" style="margin-bottom:10px">Rating — display (read-only)</div>
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <!-- 5 -->
+      <div class="row"><span class="stars" id="s5"></span><span class="tag">5 · detail + card + row</span></div>
+      <!-- 4 -->
+      <div class="row"><span class="stars" id="s4"></span><span class="tag">4</span></div>
+      <!-- 3 -->
+      <div class="row"><span class="stars" id="s3"></span><span class="tag">3</span></div>
+      <!-- 0 -->
+      <div class="row"><span class="stars" id="s0"></span><span class="tag">unrated · empty outline</span></div>
+    </div>
+  </div>
+  <div>
+    <div class="label" style="margin-bottom:10px">Rating — input (form, size 28)</div>
+    <div class="row"><span class="stars" id="inp"></span><span class="tag">click to set 1–5 · click current value to clear</span></div>
+  </div>
+</div>
+<script>
+  const star = (filled, size) =>
+    `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${filled?'#D9A441':'none'}" stroke="${filled?'#D9A441':'#B0A08D'}" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 L14.5 8.7 L20.5 9.3 L16 13.4 L17.4 19.3 L12 16.1 L6.6 19.3 L8 13.4 L3.5 9.3 L9.5 8.7 Z"/></svg>`;
+  const fill = (id, n, size, showEmpty=true) => {
+    let html = '';
+    for (let i=1;i<=5;i++){ if (i<=n) html += star(true,size); else if (showEmpty) html += star(false,size); }
+    document.getElementById(id).innerHTML = html;
+  };
+  fill('s5',5,18); fill('s4',4,18); fill('s3',3,18); fill('s0',0,18);
+  fill('inp',3,28);
+</script>
+</body></html>

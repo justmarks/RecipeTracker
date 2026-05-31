@@ -30,6 +30,8 @@ function App() {
     acc[r.category] = (acc[r.category] || 0) + 1;
     return acc;
   }, { All: recipes.length });
+  const favCount = recipes.filter((r) => favorites.has(r.id)).length;
+  const orphanCount = recipes.filter((r) => !chapters.includes(r.category)).length;
 
   const goList = () => setView({ name: "list" });
 
@@ -43,8 +45,10 @@ function App() {
     main = (
       <RecipeListView
         recipes={recipes}
-        chapters={activeChapter === "All" ? chapters : [activeChapter]}
+        chapters={chapters}
         activeChapter={activeChapter}
+        favorites={favorites}
+        onToggleFavorite={toggleFavorite}
         onPickRecipe={(r) => setView({ name: "detail", id: r.id })}
         onNew={() => setView({ name: "new" })}
         onImport={() => { setParsedImport(null); setView({ name: "import" }); }}
@@ -86,14 +90,23 @@ function App() {
         chapters={chapters}
         onCancel={goList}
         onSubmit={(input) => {
+          let source;
+          if (input.sourceType === "url" && input.sourceUrl) {
+            source = { type: "url", url: input.sourceUrl };
+          } else if (input.sourceType === "book" && input.bookTitle) {
+            source = { type: "book", title: input.bookTitle, author: input.bookAuthor || undefined, page: input.bookPage || undefined };
+          }
           const newRecipe = {
             id: "r_" + Date.now(),
             title: input.title,
             category: input.category,
             tags: input.tags,
+            photo: input.photo || undefined,
+            rating: input.rating || undefined,
+            lastMadeDate: input.lastMade || undefined,
             yield: input.yieldF, prepTime: input.prepTime, cookTime: input.cookTime, totalTime: input.totalTime,
             notes: input.notes || undefined,
-            source: input.sourceUrl ? { type: "url", url: input.sourceUrl } : undefined,
+            source,
             ingredients: [{ heading: null, items: input.ingredients.split("\n").filter(Boolean) }],
             instructions: [{ heading: null, items: input.instructions.split("\n").filter(Boolean) }],
           };
@@ -124,7 +137,7 @@ function App() {
           chapters={chapters}
           initial={parsedImport}
           submitLabel="Save imported recipe"
-          banner="Review the parsed recipe below and save when you're happy with it."
+          banner="Claude returned the recipe below. Tweak anything that looks off, then save."
           onCancel={goList}
           onSubmit={() => { setToast(`Saved "${parsedImport.title}"`); goList(); setParsedImport(null); }}
         />
@@ -150,7 +163,12 @@ function App() {
         chapters={chapters}
         activeChapter={activeChapter}
         recipeCounts={recipeCounts}
+        favCount={favCount}
+        orphanCount={orphanCount}
         onPickChapter={(c) => { setActiveChapter(c === activeChapter ? "All" : c); setView({ name: "list" }); }}
+        onPickAll={() => { setActiveChapter("All"); setView({ name: "list" }); }}
+        onPickFavorites={() => { setActiveChapter("Favorites"); setView({ name: "list" }); }}
+        onPickOther={() => { setActiveChapter("Other"); setView({ name: "list" }); }}
         onHome={() => { setActiveChapter("All"); setView({ name: "list" }); }}
         onNew={() => setView({ name: "new" })}
         onImport={() => { setParsedImport(null); setView({ name: "import" }); }}

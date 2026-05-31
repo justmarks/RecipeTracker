@@ -47,7 +47,7 @@ MarksRecipeBook is a **personal recipe library** for the Marks family. One perso
 | Colors | paper + ink, tomato + olive, saffron + plum, semantic |
 | Type | display (Newsreader), body (Manrope), mono (JetBrains), applied to a recipe |
 | Spacing | scale, radii, shadows + focus |
-| Components | buttons, form inputs, tags + chips, recipe card, list row, rating + source, favorite + actions, share dialog, PWA prompts, banners + toast, web kit, mobile kit |
+| Components | buttons, form inputs, tags + chips, recipe card, list row, rating + source, favorite + actions, favorites (heart), star rating, photo upload, source toggle, share dialog, sharing screen, PWA prompts, banners + toast, web kit, mobile kit |
 
 ---
 
@@ -69,6 +69,8 @@ The brand voice was extracted from the README and CLAUDE.md in the source repo �
 - Tags are still lowercase by convention (`vegetarian`, `gluten-free`).
 - The **`uncategorized`** chapter is a reserved fallback: it can't be deleted, and recipes whose chapter is deleted are rehomed into it automatically.
 - ALL CAPS only for eyebrow labels at `12px` with `0.12em` tracking ("INGREDIENTS", "PREP", "COOK").
+
+> **Capitalize CSS, carefully.** Chapter names use `text-transform: capitalize` for display so lowercased data ("main course") renders as "Main Course" while user-typed "BBQ" stays "BBQ". **Do not apply that same rule to system-generated text** — the page-title fallback "All recipes" must stay sentence case, not become "All Recipes". Scope `capitalize` to the chapter-name data only.
 
 ### Punctuation
 - Em dashes — like this — for parenthetical asides. Always with spaces around them.
@@ -121,6 +123,8 @@ Cards are **white on cream paper**, not cream on white — that single inversion
 > All three families are fully self-hosted. No CDN dependency.
 
 Type scale is 1.2 ratio, 12 / 14 / 16 / 18 / 20 / 24 / 30 / 38 / 48 / 64. Recipe titles are 38px on the detail page, 24px in list cards. Body steps are 18px with `line-height: 1.7` — *deliberately loose* so a wet finger can find its place again.
+
+> **Baseline vs. inter-scale.** The numbers above are the baseline — use them by default. The kit's primitives also reach for inter-scale values (11, 13, 15, 17, 22, 26, 32, 34, 44) where the visual rhythm needs finesse: 22px for the italic "Recently added" / section h2s, 17px for compact card titles, 34px for the mobile recipe-detail hero, 44px for the desktop hero. These are acceptable for typographic finesse — don't invent values outside this combined set.
 
 ### Backgrounds
 - **No gradients in product UI.** The only gradient is a subtle paper texture on the splash icon.
@@ -194,8 +198,23 @@ Interaction patterns that have appeared in the live app since v1. Each has a pre
 
 ### Favorites
 - Per-user, not per-recipe (two people can independently favorite the same shared recipe). Stored in a separate `favorites/{uid}_{recipeId}` collection.
-- UI is a **heart** — outline when off, **filled tomato-600** when on. Available to *everyone who can see a recipe* (owners and shared viewers), unlike Edit/Share/Delete which are owner-only.
-- Appears as a labelled button in the detail action bar ("Favorite" / "Favorited") and can appear icon-only on cards / mobile.
+- UI is a **heart** — outline (ink-300) when off, **filled tomato-600** when on (tomato-500 on hover). Available to *everyone who can see a recipe* (owners and shared viewers), unlike Edit/Share/Delete which are owner-only.
+- **Where it appears:** every list row (right of the meta line), each card's photo corner (on a frosted-glass pill), and the detail action bar as a labelled button ("Favorite" / "Favorited").
+- **Navigation:** a "Favorites" entry in the sidebar between "All recipes" and the chapters, with a heart icon and a live count. A standalone favorites view (`/?favorites=1`) titled "Favorites", always sorted alphabetically.
+- **On Home:** a collapsible "Favorites" section sits between "Recently added" and the chapter sections.
+- **Empty state** (filtered to favorites, none yet): "No favorites yet. Tap the heart on any recipe to keep it within easy reach here."
+
+### "Other" pseudo-chapter (orphan recipes)
+- Recipes whose `category` isn't a current chapter are **orphans**. They surface under a system "Other" grouping — never lost.
+- Sidebar: an "Other" entry (italic, like "All recipes") *after* the chapters, shown only when orphan count > 0, active at `/?view=other`.
+- Home: a collapsible "Other" section after the chapter sections. Same row styling as a chapter.
+- Distinct from **"Uncategorized"**: that's a real, system-managed chapter auto-created (and appended to the user's chapter list) when a chapter is deleted while it still holds recipes — those recipes are reassigned to it. "Other" is a *view-time* grouping of orphans; "Uncategorized" is a *stored* chapter.
+
+### Collapsible Home sections
+- Every section header on Home (chapter h2s plus "Recently added" / "Favorites" / "Other") doubles as a collapse toggle.
+- A disclosure chevron rotates 90° between states (`chevron-right` → pointing down when open).
+- **During search, all sections force-expand** regardless of stored collapsed state.
+- Collapsed state persists across navigation for the session (the kit uses `sessionStorage`; production may use the same or per-user prefs).
 
 ### Recipe action bar
 The detail page's action row, in order: **Favorite · Edit · Share · PDF · Delete**.
@@ -203,24 +222,45 @@ The detail page's action row, in order: **Favorite · Edit · Share · PDF · De
 - Buttons are `secondary` size `sm` with a leading icon; **labels collapse to icon-only below 640px** (`hidden sm:inline` in production). Delete is the `danger` variant.
 - PDF triggers the browser's native print → "Save as PDF" (see the print stylesheet in `index.css`); the kit stubs it with a toast.
 
+### Source — URL or book reference
+- The form has a **URL / Book segmented toggle** above the source input (`Segmented` primitive).
+- **URL mode:** a single URL field. Detail renders the small "View source · domain" button.
+- **Book mode:** three inline inputs — Book title (required), Author (optional), Page (optional). Detail renders "From *Joy of Cooking* by Rombauer, p. 142" (book title in Newsreader italic).
+
+### Photo — URL or upload
+- The form's Photo field pairs a URL input with a **"Choose file"** upload button.
+- Uploaded files go to Firebase Storage; the returned URL is then stored (the kit fakes this with an object URL). `photoUrl` (a pasted link) and an uploaded file resolve to the same stored field.
+- Once a photo is set, a **1:1 thumbnail** (radius-sm) shows below the field with a "Remove photo" action.
+- Missing-photo placeholder everywhere: italic Newsreader "*No photo yet*" on `--paper-200` with a camera glyph (`PhotoFrame` empty state).
+
+### Rating + last made
+- **Rating:** five saffron stars. Form is an input (`StarRatingInput`) — click to set 1–5, click the current value to clear. Detail and list rows show the read-only `StarRating`.
+- **Last made:** an optional native date picker in the form (`YYYY-MM-DD`). Detail pairs it with a clock icon after the rating ("★★★★ · ⏱ Last made May 27, 2026"); list rows show a short "made Apr 12".
+
 ### Sharing
 - **Per-recipe share** — the `ShareDialog`: email input, resolves to a family member, lists who has access with Remove buttons. Built on the native `<dialog>` element (focus trap, Esc, backdrop click).
-- **Blanket auto-share** — Settings → Sharing (sidebar "Sharing" entry in the web kit → `SharingView`), everyone there sees every recipe you own, past and future.
-- Copy: "anyone you add can see this recipe but not edit or delete it."
+- **Blanket auto-share** — Settings → Sharing (sidebar "Sharing" entry → `SharingView`). Two directions: **outgoing** ("People who can see all your recipes", each with a danger Remove) and **incoming** ("People who shared their cookbook with you", read-only). Top of the screen is a "Share your cookbook" card with email + Share.
+- **Shared pill:** any recipe row visible via a share (not owned) shows an olive pill — `olive-100` bg, `olive-700` fg, a `share-2` icon at 10px — in its meta line.
 
 ### Import — three methods
 Presented as three equal cards (no primary/fallback hierarchy):
 1. **From URL** — fetch + AI extract (`sparkles` icon).
-2. **From a photo** — snap a cookbook page or handwritten card; drag-drop zone + "Choose photo" (`image` / `upload` icons). New since v1.
+2. **From a photo** — snap a cookbook page or handwritten card; drag-drop zone + "Choose photo" (`image` / `upload` icons).
 3. **From markdown** — paste with `## Headings` for sections (`file-text` icon).
 
-All three land on the same review-before-save form (`RecipeForm` with the "Review the parsed recipe…" banner).
+**Loading states:** when import auto-fires from an OS share-target (URL or photo), show a **full-page overlay** — spinning `sparkles`, headline "Importing recipe…" / "Reading photo…", short hint. During *interactive* import (the user clicked Fetch), an inline button-busy state is enough — no overlay.
+
+**Anti-fabrication banner** above the review form: `saffron-100` with `saffron-700` text and a `sparkles` icon — "Claude returned the recipe below. Tweak anything that looks off, then save." All methods land on the same `RecipeForm` review screen.
 
 ### PWA prompts
-Three bottom-center banners, never more than one relevant at a time:
-- **Update available** — tomato (`brand` tone), "A new version of Recipe Book is ready." + Reload.
-- **Offline ready** — olive tone, auto-hides after 5s.
-- **Install** — ink tone, "Install Recipe Book to your home screen." + Install; dismissal persists in `localStorage`.
+Three bottom-center banners (max-width 92vw, rounded-lg, soft shadow, slide-up + fade), never more than one relevant at a time:
+- **Update available** — tomato (`brand` tone), sparkles icon, "A new version of Recipe Book is ready." + Reload + dismiss.
+- **Offline ready** — olive tone, check icon, auto-hides after 5s.
+- **Install** — ink tone (`ink-900` bg), bookmark icon, "Install Recipe Book to your home screen." + Install; dismissal persists in `localStorage` so it doesn't reappear on every service-worker update.
+
+### Mobile shell — current vs. future
+The production app today reuses the **desktop sidebar as a drawer** on mobile (the sidebar slides in). The mobile UI kit in this system instead shows a **bottom tab bar** (Recipes / Import / You), which feels more native but would require a routing/shell refactor in production.
+- **Document both:** *current implementation is the drawer; the tab-bar is the intended future direction.* The mobile kit is a forward-looking target, not a description of today's shipped shell — don't treat the tab bar as production-accurate until that refactor lands.
 
 ### PDF / print
 The app has no separate "export" UI — the PDF button calls `window.print()`, and a print stylesheet in `index.css` handles paper sizing, color preservation (so tomato dots and the saffron notes card don't print gray), page-break hints, and hides all chrome via `print:hidden`. Any new full-page chrome must add `print:hidden`.
@@ -242,7 +282,7 @@ The production codebase ships its **own inlined Lucide-style icon set** — `web
    - `★` for the star rating (production renders ratings as `★`-repeat strings; the kit uses matched SVG stars — either is fine)
 
 ### Icons used in the kit
-`book-open`, `plus`, `search`, `share-2`, `share`, `link`, `upload`, `file-text`, `image`, `chevron-right`, `chevron-left`, `chevron-up`, `chevron-down`, `arrow-left`, `pencil`, `trash`, `settings`, `user`, `users` (auto-share), `log-out`, `check`, `x`, `clock`, `heart` (favorite), `download` (PDF), `mail` (share list), `bookmark` (install), `sparkles` (AI import), `grip-vertical` (drag reorder).
+`book-open`, `plus`, `search`, `share-2`, `share`, `link`, `upload`, `file-text`, `image`, `chevron-right`, `chevron-left`, `chevron-up`, `chevron-down`, `arrow-left`, `pencil`, `trash`, `settings`, `user`, `users` (auto-share), `log-out`, `check`, `x`, `clock`, `heart` (favorite — needs `filled`), `download` (PDF), `mail` (share list), `bookmark` (install), `sparkles` (AI import), `grip-vertical` (drag reorder). The five added for the features above — `heart`, `download`, `mail`, `image`, `grip-vertical` — are all present in the production icon set and now inventoried in the kit's `ICON_PATHS`.
 
 ### Logo and brand assets
 Real assets, not redrawn:
