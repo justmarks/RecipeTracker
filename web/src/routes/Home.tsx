@@ -246,7 +246,22 @@ export function Home() {
       <header className="mb-6">
         <Eyebrow>Cookbook</Eyebrow>
         <div className="mt-1 flex items-end justify-between gap-3 sm:gap-5">
-          <h1 className="font-display text-[28px] sm:text-[38px] font-medium leading-[1.1] tracking-[-0.015em] text-ink-900 m-0 capitalize truncate min-w-0 flex-1">
+          {/*
+            `capitalize` is only applied when rendering a chapter name —
+            chapter slugs are stored lowercase ("entree") so CSS capitalize
+            turns them into "Entree". Applying that same rule to the
+            system-managed fallbacks ("All recipes", "Favorites", "Other")
+            would flip "All recipes" to "All Recipes", violating the
+            sentence-case rule in the design system voice spec.
+          */}
+          <h1
+            className={[
+              "font-display text-[28px] sm:text-[38px] font-medium leading-[1.1] tracking-[-0.015em] text-ink-900 m-0 truncate min-w-0 flex-1",
+              activeChapter && !favoritesOnly && !otherOnly
+                ? "capitalize"
+                : "",
+            ].join(" ")}
+          >
             {favoritesOnly
               ? "Favorites"
               : otherOnly
@@ -763,6 +778,7 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
         alt=""
         ratio="1 / 1"
         radius="sm"
+        showCaption={false}
         className="shrink-0 w-16 h-16"
       />
       <div className="min-w-0 flex-1">

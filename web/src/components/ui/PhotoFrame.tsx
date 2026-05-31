@@ -14,6 +14,14 @@ interface PhotoFrameProps {
   radius?: "sm" | "lg" | "none";
   /** Hairline border around the frame. Defaults to true; pass false for full-bleed. */
   border?: boolean;
+  /**
+   * Whether the empty-state placeholder shows the italic "No photo yet"
+   * caption alongside the camera glyph. Defaults to true (the system's
+   * "honest about missing data" stance). Set to false for tiny frames
+   * — 64px row thumbs, 32px avatars — where the caption text wouldn't
+   * fit and just clips awkwardly.
+   */
+  showCaption?: boolean;
   /** Extra Tailwind classes (e.g. fixed width for thumbs). */
   className?: string;
   /** Inline style for cases where Tailwind can't express the layout (rare). */
@@ -43,6 +51,7 @@ export function PhotoFrame({
   ratio = "4 / 3",
   radius = "lg",
   border = true,
+  showCaption = true,
   className = "",
   style,
 }: PhotoFrameProps) {
@@ -69,13 +78,19 @@ export function PhotoFrame({
           className="w-full h-full object-cover block"
         />
       ) : (
-        <EmptyPhotoStamp />
+        <EmptyPhotoStamp showCaption={showCaption} />
       )}
     </div>
   );
 }
 
-function EmptyPhotoStamp() {
+/**
+ * Italic-Newsreader "No photo yet" caption with a small camera glyph
+ * above it — the design system's honest empty-state language. Caption
+ * is suppressed when the parent passes `showCaption={false}` so tiny
+ * thumbnails don't clip the text awkwardly.
+ */
+function EmptyPhotoStamp({ showCaption }: { showCaption: boolean }) {
   return (
     <div className="flex flex-col items-center gap-1.5 text-ink-300 font-display italic text-[13px]">
       <svg
@@ -91,6 +106,7 @@ function EmptyPhotoStamp() {
         <circle cx="12" cy="13" r="2" />
         <path d="M4 22 L11 16 L17 21 L22 17 L28 22" />
       </svg>
+      {showCaption && <span>No photo yet</span>}
     </div>
   );
 }

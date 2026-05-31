@@ -14,7 +14,9 @@ import {
   Eyebrow,
   Icon,
   MetaRow,
+  PhotoFrame,
   SprigDivider,
+  StarRating,
   Tag,
   tagToneFor,
 } from "../components/ui";
@@ -262,6 +264,30 @@ export function RecipeDetail() {
         {actionButtons}
       </div>
 
+      {/*
+        Hero photo — full-bleed at the top per the design system's
+        recipe-detail spec. Negative horizontal margins escape the
+        article's px-6 mobile padding so the photo runs edge-to-edge;
+        at lg+ it sits inside the 720px content column with a 20px
+        radius and a paper-300 hairline.
+        Only rendered when the recipe has a photo. The system spec
+        says to always show the slot with an empty-state placeholder,
+        but at 3:2 of a 720px column that's ~480px of dead space for
+        the many text-only recipes in this library — a worse default
+        than just hiding the slot. The Eyebrow + title still sit at
+        the top of the article when no photo exists.
+      */}
+      {recipe.photoUrl && (
+        <PhotoFrame
+          src={recipe.photoUrl}
+          alt={recipe.title}
+          ratio="3 / 2"
+          radius="none"
+          border={false}
+          className="-mx-6 lg:mx-0 mb-6 lg:rounded-[20px] lg:border lg:border-paper-300 print:hidden"
+        />
+      )}
+
       <Eyebrow>{recipe.category}</Eyebrow>
 
       <h1 className="mt-1.5 font-display text-[32px] sm:text-[44px] font-medium leading-[1.05] tracking-[-0.02em] text-ink-900 m-0">
@@ -295,15 +321,6 @@ export function RecipeDetail() {
         </p>
       )}
 
-      {recipe.photoUrl && (
-        <img
-          src={recipe.photoUrl}
-          alt=""
-          loading="lazy"
-          className="mt-6 w-full max-h-[420px] rounded-lg object-cover border border-paper-300 shadow-sm"
-        />
-      )}
-
       {metaItems.length > 0 && (
         <div className="mt-6 px-5 py-4 bg-paper-50 rounded-lg border border-[var(--border-faint)]">
           <MetaRow items={metaItems} />
@@ -311,18 +328,18 @@ export function RecipeDetail() {
       )}
 
       {(recipe.rating || recipe.lastMadeDate) && (
-        <div className="mt-4 flex items-center gap-3 text-xs text-ink-500 font-sans">
-          {recipe.rating && (
-            <span aria-label={`Rated ${recipe.rating} out of 5`}>
-              <span className="text-saffron-500">{"★".repeat(recipe.rating)}</span>
-              <span className="text-ink-300">{"★".repeat(5 - recipe.rating)}</span>
+        <div className="mt-4 flex items-center gap-3 font-sans text-ink-500">
+          {recipe.rating && <StarRating value={recipe.rating} size={18} />}
+          {recipe.rating && recipe.lastMadeDate && (
+            <span aria-hidden="true" className="text-ink-300">
+              ·
             </span>
           )}
-          {recipe.rating && recipe.lastMadeDate && (
-            <span className="text-ink-300">·</span>
-          )}
           {recipe.lastMadeDate && (
-            <span>Last made {formatDate(recipe.lastMadeDate)}</span>
+            <span className="inline-flex items-center gap-1.5 text-[13px]">
+              <Icon name="clock" size={14} />
+              Last made {formatDate(recipe.lastMadeDate)}
+            </span>
           )}
         </div>
       )}
