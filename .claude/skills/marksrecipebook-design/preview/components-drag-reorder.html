@@ -1,0 +1,47 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- @dsCard group="Components" -->
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 0; background:#FBF6EE; margin:0; }
+  * { box-sizing: border-box; }
+  .stage { width: 700px; padding: 28px 32px; }
+  .label { font-family: Manrope, sans-serif; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:#7B6655; margin-bottom:12px; }
+  .list { list-style:none; margin:0; padding:0; background:#fff; border:1px solid #EADFC9; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(70,53,40,.06); position:relative; }
+  .row { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid #EADFC9; background:#fff; }
+  .row:last-child { border-bottom:0; }
+  .row.dragging { box-shadow:0 4px 14px rgba(70,53,40,.14); border:1px solid rgba(232,150,131,.4); border-radius:10px; position:relative; z-index:2; }
+  .row.shifted { background:#FDFAF4; }
+  .grip { color:#2A1F18; display:flex; cursor:grabbing; }
+  .grip.idle { color:#B0A08D; cursor:grab; }
+  .name { flex:1; font-family: Manrope, sans-serif; font-weight:500; font-size:15px; color:#2A1F18; text-transform:capitalize; }
+  .arrows { display:flex; flex-direction:column; gap:2px; color:#7B6655; }
+  .trash { color:#B0A08D; display:flex; }
+  .cap { font-family:"JetBrains Mono", monospace; font-size:10px; color:#B0A08D; margin-top:10px; }
+</style>
+</head><body>
+<div class="stage">
+  <div class="label">Chapter reorder — live drag preview</div>
+  <ul class="list">
+    <li class="row shifted">
+      <span class="grip idle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg></span>
+      <span class="arrows"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 15 12 9 18 15"/></svg><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg></span>
+      <span class="name">Appetizer</span>
+      <span class="trash"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 21 6"/><path d="M5 6 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2-2 v-14"/></svg></span>
+    </li>
+    <li class="row dragging">
+      <span class="grip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg></span>
+      <span class="arrows"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 15 12 9 18 15"/></svg><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg></span>
+      <span class="name">Dessert &nbsp;<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#B0432D;text-transform:none">← dragging</span></span>
+      <span class="trash"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 21 6"/><path d="M5 6 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2-2 v-14"/></svg></span>
+    </li>
+    <li class="row shifted">
+      <span class="grip idle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg></span>
+      <span class="arrows"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 15 12 9 18 15"/></svg><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg></span>
+      <span class="name">Entree</span>
+      <span class="trash"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 21 6"/><path d="M5 6 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2-2 v-14"/></svg></span>
+    </li>
+  </ul>
+  <div class="cap">dragged row: shadow-md + ring-tomato-300/40 · neighbors reflow (paper-50) · hit-test uses uniform row height + listTop, not per-row rects</div>
+</div>
+</body></html>

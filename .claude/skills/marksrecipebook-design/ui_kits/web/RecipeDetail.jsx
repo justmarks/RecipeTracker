@@ -44,14 +44,19 @@ function RecipeDetail({ recipe, onBack, onEdit, onShare, onDelete, isFavorited, 
         {actions}
       </div>
 
-      {/* Hero photo */}
-      <PhotoFrame
-        src={recipe.photo}
-        alt={recipe.title}
-        ratio="3 / 2"
-        radius="var(--radius-xl)"
-        style={{ marginBottom: "24px" }}
-      />
+      {/* Hero photo — conditionally rendered: only when a photo exists.
+          A 3:2 empty-state placeholder at 720px is too much dead space for
+          text-only recipes, so we skip the slot entirely here. (Cards and
+          thumbnails keep their placeholders — the slot is small there.) */}
+      {recipe.photo && (
+        <PhotoFrame
+          src={recipe.photo}
+          alt={recipe.title}
+          ratio="3 / 2"
+          radius="var(--radius-xl)"
+          style={{ marginBottom: "24px" }}
+        />
+      )}
 
       <Eyebrow style={{ textTransform: "uppercase" }}>{recipe.category}</Eyebrow>
 

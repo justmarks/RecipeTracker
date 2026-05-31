@@ -125,15 +125,7 @@ function ImportView({ onBack, onParsed, onSubmit }) {
           actionDisabled={false}
           onAction={fakeImage}
         >
-          <div style={{
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            gap: "8px", padding: "24px",
-            border: "1.5px dashed var(--border-strong)", borderRadius: "var(--radius-md)",
-            background: "var(--paper-50)", color: "var(--fg-subtle)",
-          }}>
-            <Icon name="image" size={28}/>
-            <span style={{ fontFamily: "var(--font-sans)", fontSize: "13px" }}>Drag a photo here, or use the button below</span>
-          </div>
+          <PhotoDropZone onDrop={fakeImage}/>
         </ImportCard>
 
         <ImportCard
@@ -167,6 +159,32 @@ const demoLinkStyle = {
   borderRadius: "var(--radius-pill)", padding: "5px 12px", cursor: "pointer",
   fontFamily: "var(--font-sans)", fontSize: "12px", fontWeight: 600, color: "var(--fg-subtle)",
 };
+
+// Clickable dashed drop-zone with a drag-hover state.
+function PhotoDropZone({ onDrop }) {
+  const [over, setOver] = useState(false);
+  return (
+    <div
+      onClick={onDrop}
+      onDragOver={(e) => { e.preventDefault(); setOver(true); }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => { e.preventDefault(); setOver(false); onDrop && onDrop(); }}
+      style={{
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        gap: "8px", padding: "24px", cursor: "pointer",
+        border: `1.5px dashed ${over ? "var(--tomato-500)" : "var(--border-strong)"}`,
+        borderRadius: "var(--radius-md)",
+        background: over ? "var(--tomato-50)" : "var(--paper-50)",
+        color: over ? "var(--tomato-700)" : "var(--fg-subtle)",
+        transition: "background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast)",
+      }}>
+      <Icon name="image" size={28}/>
+      <span style={{ fontFamily: "var(--font-sans)", fontSize: "13px" }}>
+        {over ? "Drop to read the recipe" : "Drag a photo here, or click to choose"}
+      </span>
+    </div>
+  );
+}
 
 function ImportOverlay({ mode }) {
   return (

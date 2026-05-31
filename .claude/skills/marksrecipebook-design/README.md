@@ -208,13 +208,22 @@ Interaction patterns that have appeared in the live app since v1. Each has a pre
 - Recipes whose `category` isn't a current chapter are **orphans**. They surface under a system "Other" grouping — never lost.
 - Sidebar: an "Other" entry (italic, like "All recipes") *after* the chapters, shown only when orphan count > 0, active at `/?view=other`.
 - Home: a collapsible "Other" section after the chapter sections. Same row styling as a chapter.
-- Distinct from **"Uncategorized"**: that's a real, system-managed chapter auto-created (and appended to the user's chapter list) when a chapter is deleted while it still holds recipes — those recipes are reassigned to it. "Other" is a *view-time* grouping of orphans; "Uncategorized" is a *stored* chapter.
+- Distinct from **"Uncategorized"**: that's a real, system-managed chapter. When a chapter is deleted *while it still holds recipes*, those recipes' `category` is reassigned to `uncategorized` **in the same Firestore batch as the delete** (never a separate write that could half-fail), and the chapter is appended to the user's `categories` list if absent. The Uncategorized chapter is the safety net and **cannot itself be deleted**. "Other" is a *view-time* grouping of orphans (category not in your list); "Uncategorized" is a *stored* chapter that recipes actually live in.
 
 ### Collapsible Home sections
 - Every section header on Home (chapter h2s plus "Recently added" / "Favorites" / "Other") doubles as a collapse toggle.
 - A disclosure chevron rotates 90° between states (`chevron-right` → pointing down when open).
 - **During search, all sections force-expand** regardless of stored collapsed state.
 - Collapsed state persists across navigation for the session (the kit uses `sessionStorage`; production may use the same or per-user prefs).
+
+### Navigation state persistence
+The Home → RecipeDetail → back loop must land the user exactly where they left off. This is a *pattern*, not an implementation detail — it affects every collapsible and scrollable surface.
+- **Search query lives in the URL** as `?q=…`, so the browser back button restores it on return from a recipe. Each keystroke updates with `replace: true` so typing doesn't stack history entries.
+- **Expanded sections + scroll position** persist to `sessionStorage` (`mrb:home:expanded`, `mrb:home:scrollY`), restored on back-navigation. The user's manual expand/collapse is preserved across the round-trip.
+- **View scopes are URL-addressable** too: `/?favorites=1` (Favorites) and `/?view=other` (orphans), so they're shareable and back-button-friendly.
+
+### Conditional hero on the detail page
+The recipe-detail hero photo (3:2; mobile full-bleed edge-to-edge with no radius, desktop rounded-20px inside the 720px column) is **rendered only when `photoUrl` is set**. A 3:2 empty-state placeholder at 720px is too much dead space above a text-only recipe, so the slot is skipped entirely there. This is a deliberate exception to the kit's "always render `PhotoFrame`" habit — **cards and list-row thumbnails keep their placeholders** (their slots are small, and the consistent grid reads better filled). Rule of thumb: large/hero slots skip when empty; small fixed-grid slots show the placeholder.
 
 ### Recipe action bar
 The detail page's action row, in order: **Favorite · Edit · Share · PDF · Delete**.
@@ -282,7 +291,9 @@ The production codebase ships its **own inlined Lucide-style icon set** — `web
    - `★` for the star rating (production renders ratings as `★`-repeat strings; the kit uses matched SVG stars — either is fine)
 
 ### Icons used in the kit
-`book-open`, `plus`, `search`, `share-2`, `share`, `link`, `upload`, `file-text`, `image`, `chevron-right`, `chevron-left`, `chevron-up`, `chevron-down`, `arrow-left`, `pencil`, `trash`, `settings`, `user`, `users` (auto-share), `log-out`, `check`, `x`, `clock`, `heart` (favorite — needs `filled`), `download` (PDF), `mail` (share list), `bookmark` (install), `sparkles` (AI import), `grip-vertical` (drag reorder). The five added for the features above — `heart`, `download`, `mail`, `image`, `grip-vertical` — are all present in the production icon set and now inventoried in the kit's `ICON_PATHS`.
+`book-open`, `plus`, `search`, `share`, `share-2`, `link`, `upload`, `file-text`, `image`, `chevron-right`, `chevron-left`, `chevron-up`, `chevron-down`, `arrow-left`, `pencil`, `trash`, `settings`, `user`, `users` (auto-share), `log-out`, `check`, `x`, `clock`, `heart` (favorite — needs `filled`), `download` (PDF), `mail` (share list), `bookmark` (install), `sparkles` (AI import), `grip-vertical` (drag reorder).
+
+The kit's `ICON_PATHS` is reconciled against the production set (`web/src/components/ui/Icon.tsx`) — every icon the app uses is present. The most recent additions: `share-2` (used by the Shared pill + the detail Share button — distinct from the older `share` node-graph glyph), `settings`, `user`, `bookmark`, and `file-text`. None are deprecated; if production drifts an icon's path, update the kit to match rather than forking geometry.
 
 ### Logo and brand assets
 Real assets, not redrawn:
@@ -313,3 +324,26 @@ Then reference tokens directly: `background: var(--paper-100); color: var(--ink-
 - The source codebase ships **zero design** — Tailwind defaults with slate / blue placeholders. This system is **net-new** and the user will want to iterate. Treat colors and the logo direction as v1.
 - Newsreader, Manrope, JetBrains Mono are CDN-only — flag if you need them self-hosted.
 - The user wants both web and mobile PWA, so all components should be tested at both 1024px and 390px widths.
+
+---
+
+## What changed — changelog
+
+**v1** — Foundations: tokens (paper / ink / tomato / olive / saffron / plum), Newsreader + Manrope + JetBrains Mono, spacing / radii / shadow scales, the brand lockup + sprig divider, the original web and mobile UI kits (sign in, recipe list, recipe detail, form, import, chapters), and the base content/visual/iconography docs.
+
+**v2 — production-parity refresh** (this revision). The app shipped a wave of features after v1; the system was brought up to match. All additive — no token, palette, font, shadow, or voice changes.
+
+- **Favorites** — per-user heart toggle on rows, card photo corners, and the detail action bar (outline `ink-300` → filled `tomato-500`/`tomato-600`). Sidebar "Favorites" entry with live count; a collapsible Favorites section on Home; a `/?favorites=1` alphabetical view with its own empty state. Optimistic toggle, revert-on-error; stored at `favorites/{uid}_{recipeId}`.
+- **"Other" orphan grouping** — view-time bucket for recipes whose category isn't in the user's list (sidebar entry + Home section, shown only when orphans exist).
+- **Auto-Uncategorized** — documented the stored safety-net chapter: chapter-delete reassigns its recipes to `uncategorized` in the same batch; it can't be deleted.
+- **Collapsible Home sections** — every section header toggles; chevron rotates; search force-expands all.
+- **Navigation persistence** — `?q=` in the URL, `sessionStorage` for expanded sections + scroll position, URL-addressable view scopes.
+- **Source as URL *or* book** — segmented toggle in the form; "From *Title* by Author, p. N" rendering on detail.
+- **Photo field** — URL input *plus* Storage-backed upload, 1:1 thumbnail preview; `PhotoFrame` gained `showCaption` to drop the caption on ≤64px thumbnails; detail hero is now conditionally rendered (only when a photo exists).
+- **Rating + last-made** — `StarRatingInput` (click-to-set, click-to-clear) in the form; read-only `StarRating` on detail and rows (size 13, no empty stars); native date picker → "Last made May 27, 2026" (detail) / "made Apr 12" (rows). Meta order: stars · time · made-date · tags · Shared.
+- **PDF export** — action-bar button → `window.print()`; print stylesheet hides chrome, preserves tomato/saffron, page-breaks before sections; document title temporarily set to the recipe title for the saved filename.
+- **Sharing screen** — `SharingView`: share-your-cookbook card, outgoing grants (with Remove), incoming grants (read-only, real owner emails). Olive "Shared" pill on shared rows. Per-recipe `ShareDialog` unchanged.
+- **AI-import states** — full-page overlay for share-target auto-imports ("Importing recipe…" / "Reading photo…"); inline button-busy for interactive fetches; saffron anti-fabrication banner above the review form. Photo card is now a click + drag-drop zone with a tomato drag-hover state.
+- **PWA prompts** — update (brand) / offline-ready (olive, auto-hide 5s) / install (paper, dismissal persisted to `localStorage` key `mrb:installPromptDismissed`).
+- **Chapters** — inline rename, icon-only trash, grip-drag live-preview reorder (uniform-row-height hit-testing), arrow fallbacks, header "Add chapter" → inline new-row, confirm-delete dialog.
+- **System decisions:** type scale documented as **baseline + blessed inter-scale** (option C — use 12/14/16/18/20/24/30/38/48/64 by default; 13/17/22/26/32/34/44 allowed for finesse). Mobile shell documented as **drawer now, tab-bar future** (option B). Sentence-case + CSS-capitalize gotcha documented (scope `capitalize` to chapter-slug data only). Icon set reconciled with production (`share-2`, `settings`, `user`, `bookmark`, `file-text` added).

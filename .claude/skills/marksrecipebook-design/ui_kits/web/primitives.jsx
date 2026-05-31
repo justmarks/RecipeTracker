@@ -16,6 +16,7 @@ const ICON_PATHS = {
   "arrow-left": <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
   "pencil": <><path d="M16 3 L21 8 L8 21 L3 21 L3 16 Z"/><line x1="14" y1="5" x2="19" y2="10"/></>,
   "share": <><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><line x1="8.5" y1="11" x2="15.5" y2="7.5"/><line x1="8.5" y1="13" x2="15.5" y2="16.5"/></>,
+  "share-2": <><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></>,
   "link": <><path d="M10 14 a4 4 0 0 1 0-6 l3-3 a4 4 0 0 1 6 6 l-1 1"/><path d="M14 10 a4 4 0 0 1 0 6 l-3 3 a4 4 0 0 1-6-6 l1-1"/></>,
   "upload": <><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7 8 12 3 17 8"/><path d="M3 17 v3 a1 1 0 0 0 1 1 h16 a1 1 0 0 0 1-1 v-3"/></>,
   "x": <><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></>,
@@ -30,6 +31,10 @@ const ICON_PATHS = {
   "download": <><path d="M3 17 v3 a1 1 0 0 0 1 1 h16 a1 1 0 0 0 1-1 v-3"/><polyline points="7 12 12 17 17 12"/><line x1="12" y1="3" x2="12" y2="17"/></>,
   "mail": <><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></>,
   "image": <><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M3 17 L9 12 L13 15 L17 11 L21 15"/></>,
+  "settings": <><circle cx="12" cy="12" r="3"/><path d="M12 2 l1.6 3.1 3.4-.7-.7 3.4 3.1 1.6-3.1 1.6.7 3.4-3.4-.7L12 22l-1.6-3.1-3.4.7.7-3.4L4.6 14.6 7.7 13 7 9.6l3.4.7z"/></>,
+  "user": <><circle cx="12" cy="8" r="4"/><path d="M4 21 v-1 a6 6 0 0 1 6-6 h4 a6 6 0 0 1 6 6 v1"/></>,
+  "bookmark": <><path d="M6 4 h12 a1 1 0 0 1 1 1 v16 l-7-4 -7 4 v-16 a1 1 0 0 1 1-1 z"/></>,
+  "file-text": <><path d="M14 3 H7 a2 2 0 0 0-2 2 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2-2 V8 z"/><polyline points="14 3 14 8 19 8"/><line x1="8.5" y1="13" x2="15.5" y2="13"/><line x1="8.5" y1="17" x2="15.5" y2="17"/></>,
 };
 
 function Icon({ name, size = 20, className = "", style = {}, filled = false }) {
@@ -273,7 +278,9 @@ function SprigDivider() {
 
 // ---------- PHOTO FRAME ----------
 // One treatment for all recipe photos. Handles missing-photo empty state.
-function PhotoFrame({ src, alt = "", ratio = "4 / 3", radius = "var(--radius-lg)", border = true, style }) {
+// showCaption=false suppresses the "No photo yet" caption on tiny (≤64px)
+// frames where there's no room — the camera glyph alone reads as a placeholder.
+function PhotoFrame({ src, alt = "", ratio = "4 / 3", radius = "var(--radius-lg)", border = true, showCaption = true, style }) {
   return (
     <div style={{
       aspectRatio: ratio,
@@ -292,12 +299,12 @@ function PhotoFrame({ src, alt = "", ratio = "4 / 3", radius = "var(--radius-lg)
           color: "var(--ink-300)",
           fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: "14px",
         }}>
-          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <svg width={showCaption ? 28 : 22} height={showCaption ? 28 : 22} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
             <rect x="4" y="6" width="24" height="20" rx="2"/>
             <circle cx="12" cy="13" r="2"/>
             <path d="M4 22 L11 16 L17 21 L22 17 L28 22"/>
           </svg>
-          <span>No photo yet</span>
+          {showCaption && <span>No photo yet</span>}
         </div>
       )}
     </div>

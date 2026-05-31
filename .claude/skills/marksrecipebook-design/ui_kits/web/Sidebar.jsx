@@ -31,7 +31,7 @@ function Sidebar({ chapters, activeChapter, onPickChapter, onPickAll, onPickFavo
           New recipe
         </Button>
         <Button variant="secondary" icon="sparkles" onClick={onImport} style={{ width: "100%", justifyContent: "flex-start" }}>
-          Import from URL
+          Import
         </Button>
       </div>
 

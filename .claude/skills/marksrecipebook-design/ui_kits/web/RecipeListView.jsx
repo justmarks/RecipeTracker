@@ -296,6 +296,7 @@ function RecipeRow({ recipe, favorites, onToggleFavorite, onPickRecipe }) {
         alt=""
         ratio="1 / 1"
         radius="10px"
+        showCaption={false}
         style={{ flex: "0 0 64px", width: "64px", height: "64px" }}
       />
       <div style={{ minWidth: 0, flex: 1 }}>
