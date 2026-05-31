@@ -1,6 +1,6 @@
 // Sidebar — chapter navigation. Always visible on desktop, drawer on mobile.
 
-function Sidebar({ chapters, activeChapter, onPickChapter, onHome, onNew, onImport, onSettings, onSignOut, user, recipeCounts }) {
+function Sidebar({ chapters, activeChapter, onPickChapter, onHome, onNew, onImport, onSettings, onSharing, onSignOut, user, recipeCounts }) {
   return (
     <aside style={{
       width: "260px", flex: "0 0 260px",
@@ -63,15 +63,13 @@ function Sidebar({ chapters, activeChapter, onPickChapter, onHome, onNew, onImpo
       </nav>
 
       <div style={{ padding: "12px 14px 0", borderTop: "1px solid var(--border-faint)" }}>
-        <button onClick={onSettings} style={{
-          width: "100%", display: "flex", alignItems: "center", gap: "10px",
-          background: "transparent", border: 0, cursor: "pointer",
-          padding: "8px 10px", borderRadius: "var(--radius-md)",
-          fontFamily: "var(--font-sans)", fontSize: "13px", color: "var(--fg-muted)",
-          textAlign: "left",
-        }}>
+        <button onClick={onSettings} style={navBtnStyle}>
           <Icon name="book-open" size={16}/>
           Manage chapters
+        </button>
+        <button onClick={onSharing} style={navBtnStyle}>
+          <Icon name="users" size={16}/>
+          Sharing
         </button>
         <div style={{
           display: "flex", alignItems: "center", gap: "10px",
@@ -102,3 +100,11 @@ function Sidebar({ chapters, activeChapter, onPickChapter, onHome, onNew, onImpo
 }
 
 window.Sidebar = Sidebar;
+
+const navBtnStyle = {
+  width: "100%", display: "flex", alignItems: "center", gap: "10px",
+  background: "transparent", border: 0, cursor: "pointer",
+  padding: "8px 10px", borderRadius: "var(--radius-md)",
+  fontFamily: "var(--font-sans)", fontSize: "13px", color: "var(--fg-muted)",
+  textAlign: "left",
+};

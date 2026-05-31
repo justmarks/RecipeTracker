@@ -19,13 +19,24 @@ const M_ICONS = {
   "link": <><path d="M10 14 a4 4 0 0 1 0-6 l3-3 a4 4 0 0 1 6 6 l-1 1"/><path d="M14 10 a4 4 0 0 1 0 6 l-3 3 a4 4 0 0 1-6-6 l1-1"/></>,
   "clock": <><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></>,
   "pencil": <><path d="M16 3 L21 8 L8 21 L3 21 L3 16 Z"/><line x1="14" y1="5" x2="19" y2="10"/></>,
+  "heart": <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>,
+  "download": <><path d="M3 17 v3 a1 1 0 0 0 1 1 h16 a1 1 0 0 0 1-1 v-3"/><polyline points="7 12 12 17 17 12"/><line x1="12" y1="3" x2="12" y2="17"/></>,
+  "trash": <><polyline points="3 6 21 6"/><path d="M5 6 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2-2 v-14"/><path d="M9 6 V4 a1 1 0 0 1 1-1 h4 a1 1 0 0 1 1 1 v2"/></>,
+  "users": <><circle cx="9" cy="8" r="3.5"/><path d="M2 21 v-1 a5 5 0 0 1 5-5 h4 a5 5 0 0 1 5 5 v1"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14 h2 a4 4 0 0 1 4 4 v1"/></>,
+  "mail": <><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></>,
+  "grip": <><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></>,
+  "log-out": <><path d="M14 4 h4 a2 2 0 0 1 2 2 v12 a2 2 0 0 1-2 2 h-4"/><polyline points="9 16 4 12 9 8"/><line x1="4" y1="12" x2="16" y2="12"/></>,
+  "image": <><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M3 17 L9 12 L13 15 L17 11 L21 15"/></>,
+  "upload": <><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7 8 12 3 17 8"/><path d="M3 17 v3 a1 1 0 0 0 1 1 h16 a1 1 0 0 0 1-1 v-3"/></>,
+  "file-text": <><path d="M14 3 H7 a2 2 0 0 0-2 2 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2-2 V8 Z"/><polyline points="14 3 14 8 19 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></>,
+  "check": <polyline points="4 12 10 18 20 6"/>,
 };
 
-function MIcon({ name, size = 22, color = "currentColor", style = {} }) {
+function MIcon({ name, size = 22, color = "currentColor", style = {}, filled = false }) {
   const path = M_ICONS[name];
   if (!path) return null;
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"}
          stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
          style={style} aria-hidden="true">
       {path}

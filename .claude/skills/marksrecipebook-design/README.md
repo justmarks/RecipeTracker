@@ -205,7 +205,7 @@ The detail page's action row, in order: **Favorite · Edit · Share · PDF · De
 
 ### Sharing
 - **Per-recipe share** — the `ShareDialog`: email input, resolves to a family member, lists who has access with Remove buttons. Built on the native `<dialog>` element (focus trap, Esc, backdrop click).
-- **Blanket auto-share** — Settings → Sharing, everyone there sees every recipe you own, past and future.
+- **Blanket auto-share** — Settings → Sharing (sidebar "Sharing" entry in the web kit → `SharingView`), everyone there sees every recipe you own, past and future.
 - Copy: "anyone you add can see this recipe but not edit or delete it."
 
 ### Import — three methods

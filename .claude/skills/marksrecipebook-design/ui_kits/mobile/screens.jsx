@@ -183,23 +183,38 @@ function mFormatMadeDate(iso) {
 
 function MRecipeDetail() {
   const recipe = window.MOCK_RECIPES.find((r) => r.id === "r1"); // buttermilk pancakes — rating + URL source
+  const [fav, setFav] = mUseState(true);
+  const [confirmDel, setConfirmDel] = mUseState(false);
 
-  const FloatingButton = ({ icon, size = 17 }) => (
-    <button style={{
+  const FloatingButton = ({ icon, size = 17, onClick, filled = false, active = false }) => (
+    <button onClick={onClick} style={{
       background: "rgba(251, 246, 238, 0.92)",
       backdropFilter: "blur(12px)",
       WebkitBackdropFilter: "blur(12px)",
       border: 0, width: 38, height: 38, borderRadius: 19,
-      color: "var(--ink-900)", cursor: "pointer",
+      color: active ? "var(--tomato-600)" : "var(--ink-900)", cursor: "pointer",
       display: "flex", alignItems: "center", justifyContent: "center",
       boxShadow: "0 2px 8px rgba(70,53,40,0.18)",
     }}>
-      <MIcon name={icon} size={size}/>
+      <MIcon name={icon} size={size} filled={filled}/>
+    </button>
+  );
+
+  const ActionButton = ({ icon, label, danger, onClick }) => (
+    <button onClick={onClick} style={{
+      flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+      padding: "10px 4px", borderRadius: 12,
+      background: "var(--bg-card)", border: "1px solid var(--border-faint)",
+      color: danger ? "var(--tomato-700)" : "var(--ink-700)", cursor: "pointer",
+      fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 11,
+    }}>
+      <MIcon name={icon} size={18}/>
+      {label}
     </button>
   );
 
   return (
-    <div style={{ height: "100%", background: "var(--bg-page)", overflowY: "auto" }}>
+    <div style={{ height: "100%", background: "var(--bg-page)", overflowY: "auto", position: "relative" }}>
       {/* Hero photo — full-bleed at top */}
       <div style={{ position: "relative" }}>
         {recipe.photo ? (
@@ -224,16 +239,13 @@ function MRecipeDetail() {
           </div>
         )}
 
-        {/* Floating buttons overlay */}
+        {/* Floating buttons overlay: back (left), favorite (right) */}
         <div style={{
           position: "absolute", top: 56, left: 16, right: 16,
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
           <FloatingButton icon="chevron-left" size={18}/>
-          <div style={{ display: "flex", gap: 8 }}>
-            <FloatingButton icon="share"/>
-            <FloatingButton icon="pencil"/>
-          </div>
+          <FloatingButton icon="heart" size={18} filled={fav} active={fav} onClick={() => setFav(!fav)}/>
         </div>
       </div>
 
@@ -316,6 +328,14 @@ function MRecipeDetail() {
           ))}
         </div>
 
+        {/* Action row — Edit · Share · PDF · Delete (favorite is the floating heart) */}
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <ActionButton icon="pencil" label="Edit"/>
+          <ActionButton icon="share" label="Share"/>
+          <ActionButton icon="download" label="PDF"/>
+          <ActionButton icon="trash" label="Delete" danger onClick={() => setConfirmDel(true)}/>
+        </div>
+
         {/* Sprig */}
         <div style={{ display: "flex", justifyContent: "center", margin: "24px 0" }}>
           <img src="../../assets/sprig-divider.svg" width="200" height="28" alt="" style={{ opacity: 0.9 }}/>
@@ -384,48 +404,98 @@ function MRecipeDetail() {
           </>
         )}
       </div>
+
+      {/* Confirm delete — bottom sheet */}
+      {confirmDel && (
+        <div style={{ position: "absolute", inset: 0, zIndex: 50, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+          <div onClick={() => setConfirmDel(false)} style={{ position: "absolute", inset: 0, background: "rgba(42,31,24,0.45)" }}/>
+          <div style={{
+            position: "relative", background: "var(--bg-card)",
+            borderTopLeftRadius: 20, borderTopRightRadius: 20,
+            padding: "24px 20px 34px", boxShadow: "0 -8px 30px rgba(70,53,40,0.2)",
+          }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--border-strong)", margin: "0 auto 18px" }}/>
+            <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 500, fontSize: 22, color: "var(--ink-900)", margin: "0 0 8px" }}>Delete this recipe?</h2>
+            <p style={{ fontFamily: "var(--font-sans)", fontSize: 14, lineHeight: 1.5, color: "var(--fg-muted)", margin: "0 0 20px" }}>
+              &ldquo;{recipe.title}&rdquo; will be permanently removed from your cookbook. This can't be undone.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <MButton variant="primary" style={{ background: "var(--tomato-600)" }} onClick={() => setConfirmDel(false)}>Delete recipe</MButton>
+              <MButton variant="secondary" onClick={() => setConfirmDel(false)}>Keep</MButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
 // ─────────────────────────────────────────────────────────────
-// 4. IMPORT
+// 4. IMPORT — three methods (URL / photo / markdown)
 // ─────────────────────────────────────────────────────────────
 function MImport() {
+  const MethodCard = ({ icon, title, hint, children }) => (
+    <div style={{
+      background: "var(--bg-card)", padding: 16,
+      borderRadius: 14, boxShadow: "var(--shadow-sm)",
+    }}>
+      <div style={{
+        fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 11,
+        textTransform: "uppercase", letterSpacing: "0.12em",
+        color: "var(--tomato-600)", marginBottom: 10,
+        display: "flex", alignItems: "center", gap: 6,
+      }}>
+        <MIcon name={icon} size={12}/> {title}
+      </div>
+      {children}
+      <p style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--fg-subtle)", margin: "10px 0 0", lineHeight: 1.5 }}>{hint}</p>
+    </div>
+  );
+
+  const fieldStyle = {
+    width: "100%", boxSizing: "border-box", padding: "12px 14px",
+    fontFamily: "var(--font-sans)", fontSize: 14,
+    background: "var(--paper-100)", border: "1px solid var(--border-default)",
+    borderRadius: 10, marginBottom: 10, outline: 0,
+  };
+
   return (
     <div style={{ height: "100%", background: "var(--bg-page)", display: "flex", flexDirection: "column" }}>
       <div style={{ flex: 1, overflowY: "auto" }}>
-        <MHeader title="Import" eyebrow="From URL or markdown"/>
-        <div style={{ padding: "0 20px 100px" }}>
+        <MHeader title="Import" eyebrow="URL · photo · markdown"/>
+        <div style={{ padding: "0 20px 100px", display: "flex", flexDirection: "column", gap: 14 }}>
           <p style={{
             fontFamily: "var(--font-sans)", fontSize: 14, lineHeight: 1.55,
-            color: "var(--fg-muted)", margin: "0 0 20px",
+            color: "var(--fg-muted)", margin: "0 0 4px",
           }}>
-            Paste a recipe URL. Claude will read the page and pull out the ingredients and steps.
+            Three ways to bring a recipe in. Any works — review before saving.
           </p>
 
-          <div style={{
-            background: "var(--bg-card)", padding: "16px",
-            borderRadius: 14, boxShadow: "var(--shadow-sm)",
-            marginBottom: 16,
-          }}>
-            <div style={{
-              fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 11,
-              textTransform: "uppercase", letterSpacing: "0.12em",
-              color: "var(--tomato-600)", marginBottom: 10,
-              display: "flex", alignItems: "center", gap: 6,
-            }}>
-              <MIcon name="sparkles" size={12}/> AI from URL
-            </div>
-            <input placeholder="https://cooking.nytimes.com/…" style={{
-              width: "100%", boxSizing: "border-box",
-              padding: "12px 14px",
-              fontFamily: "var(--font-sans)", fontSize: 14,
-              background: "var(--paper-100)", border: "1px solid var(--border-default)",
-              borderRadius: 10, marginBottom: 10, outline: 0,
-            }}/>
+          <MethodCard icon="sparkles" title="From URL" hint="We fetch the page and ask Claude to extract the recipe.">
+            <input placeholder="https://cooking.nytimes.com/…" style={fieldStyle}/>
             <MButton variant="primary" icon="sparkles">Fetch with AI</MButton>
-          </div>
+          </MethodCard>
+
+          <MethodCard icon="image" title="From a photo" hint="Snap a cookbook page or handwritten card. Claude reads the text.">
+            <div style={{
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              gap: 8, padding: 20, marginBottom: 10,
+              border: "1.5px dashed var(--border-strong)", borderRadius: 10,
+              background: "var(--paper-100)", color: "var(--fg-subtle)",
+            }}>
+              <MIcon name="image" size={26}/>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, textAlign: "center" }}>Tap to take a photo or choose from your library</span>
+            </div>
+            <MButton variant="secondary" icon="upload">Choose photo</MButton>
+          </MethodCard>
+
+          <MethodCard icon="file-text" title="From markdown" hint="Paste a markdown recipe. Use ## Headings for sections.">
+            <textarea
+              rows={5}
+              placeholder={"# Title\n\n## Ingredients\n- 1 cup flour\n\n## Instructions\n1. Mix"}
+              style={{ ...fieldStyle, fontFamily: "var(--font-mono)", fontSize: 13, resize: "vertical" }}
+            />
+            <MButton variant="secondary" icon="check">Parse markdown</MButton>
+          </MethodCard>
 
           {/* iOS limitation banner */}
           <div style={{
@@ -436,31 +506,9 @@ function MImport() {
           }}>
             <div style={{ flex: "0 0 18px", marginTop: 1 }}><MIcon name="link" size={16}/></div>
             <div>
-              <strong style={{ fontWeight: 600 }}>iOS tip:</strong> iOS doesn't support "share to app". Copy a recipe URL from Safari, then paste it here.
+              <strong style={{ fontWeight: 600 }}>iOS tip:</strong> iOS doesn't support "share to app". Copy a recipe URL from Safari, then paste it above.
             </div>
           </div>
-
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12, margin: "24px 0",
-            color: "var(--fg-faint)", fontFamily: "var(--font-sans)", fontSize: 11,
-            textTransform: "uppercase", letterSpacing: "0.12em",
-          }}>
-            <div style={{ flex: 1, height: 1, background: "var(--border-default)" }}/>
-            or paste markdown
-            <div style={{ flex: 1, height: 1, background: "var(--border-default)" }}/>
-          </div>
-
-          <textarea
-            rows={6}
-            placeholder={"# Title\n\n## Ingredients\n- 1 cup flour\n\n## Instructions\n1. Mix\n2. Bake"}
-            style={{
-              width: "100%", boxSizing: "border-box",
-              padding: "12px 14px",
-              fontFamily: "var(--font-mono)", fontSize: 13,
-              background: "var(--bg-card)", border: "1px solid var(--border-default)",
-              borderRadius: 12, outline: 0, resize: "vertical",
-            }}
-          />
         </div>
       </div>
       <MTabBar active="import"/>
@@ -469,357 +517,8 @@ function MImport() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 5. YOU — settings + chapters + auto-share
+// 5. YOU — iOS-style grouped settings (chapters · sharing · app)
 // ─────────────────────────────────────────────────────────────
-function MYou() {
-  return (
-    <div style={{ height: "100%", background: "var(--bg-page)", display: "flex", flexDirection: "column" }}>
-      <div style={{ flex: 1, overflowY: "auto", paddingBottom: 100 }}>
-        <MHeader title="You" eyebrow="Account · sharing"/>
-        <div style={{ padding: "0 20px" }}>
-          {/* User card */}
-          <div style={{
-            background: "var(--bg-card)", padding: 16, borderRadius: 14,
-            boxShadow: "var(--shadow-sm)",
-            display: "flex", alignItems: "center", gap: 12,
-            marginBottom: 24,
-          }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 22,
-              background: "var(--olive-300)", color: "var(--olive-900)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 20,
-            }}>J</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 500, fontSize: 18, color: "var(--ink-900)" }}>Jess Marks</div>
-              <div style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--fg-subtle)" }}>jess@marksfamily.test</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Chapters section */}
-        <MSection title="Chapters" hint="Reorder, rename, or add new ones. Recipes in renamed chapters move with them.">
-          {window.MOCK_CHAPTERS.slice(0, 5).map((c, i) => (
-            <MListRow key={c}
-              leading={
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <MIcon name="chevron-up" size={12} style={{ color: "var(--fg-faint)" }}/>
-                  <MIcon name="chevron-down" size={12} style={{ color: "var(--fg-faint)" }}/>
-                </div>
-              }
-              label={c}
-              trailing={<span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-faint)" }}>{i + 1}</span>}
-            />
-          ))}
-        </MSection>
-
-        {/* Auto-share section */}
-        <MSection title="Auto-share" hint="People here see every recipe you own — past and future. Revoke any time.">
-          <MListRow leading={<MAvatar name="Mom" tone="tomato"/>} label="Susan Marks" sub="mom@marksfamily.test"/>
-          <MListRow leading={<MAvatar name="Eli" tone="olive"/>} label="Eli Marks" sub="eli@marksfamily.test"/>
-          <MListRow leading={<MAvatar name="+" tone="ghost"/>} label="Add someone" labelStyle={{ color: "var(--tomato-600)" }}/>
-        </MSection>
-
-      </div>
-      <MTabBar active="you"/>
-    </div>
-  );
-}
-
-function MSection({ title, hint, children }) {
-  return (
-    <div style={{ marginBottom: 28 }}>
-      <div style={{ padding: "0 20px", marginBottom: 8 }}>
-        <h2 style={{
-          fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 11,
-          textTransform: "uppercase", letterSpacing: "0.12em",
-          color: "var(--fg-subtle)", margin: 0,
-        }}>{title}</h2>
-      </div>
-      <div style={{
-        background: "var(--bg-card)", margin: "0 16px",
-        borderRadius: 14, overflow: "hidden",
-        boxShadow: "var(--shadow-xs)",
-        border: "1px solid var(--border-faint)",
-      }}>
-        {children}
-      </div>
-      {hint && (
-        <p style={{
-          fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--fg-subtle)",
-          padding: "8px 20px 0", margin: 0, lineHeight: 1.5,
-        }}>{hint}</p>
-      )}
-    </div>
-  );
-}
-
-function MListRow({ leading, label, sub, trailing, labelStyle }) {
-  return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 12,
-      padding: "12px 16px",
-      borderBottom: "1px solid var(--border-faint)",
-      minHeight: 44,
-    }}>
-      <div style={{ flex: "0 0 auto" }}>{leading}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontFamily: "var(--font-sans)", fontWeight: 500, fontSize: 15,
-          color: "var(--ink-900)", textTransform: "capitalize",
-          ...labelStyle,
-        }}>{label}</div>
-        {sub && <div style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--fg-subtle)" }}>{sub}</div>}
-      </div>
-      {trailing}
-    </div>
-  );
-}
-
-function MAvatar({ name, tone = "tomato" }) {
-  const bg = tone === "tomato" ? "var(--tomato-100)"
-           : tone === "olive"  ? "var(--olive-100)"
-           : tone === "ghost"  ? "transparent"
-           : "var(--paper-200)";
-  const fg = tone === "tomato" ? "var(--tomato-700)"
-           : tone === "olive"  ? "var(--olive-700)"
-           : tone === "ghost"  ? "var(--tomato-600)"
-           : "var(--ink-700)";
-  return (
-    <div style={{
-      width: 32, height: 32, borderRadius: 16,
-      background: bg, color: fg,
-      border: tone === "ghost" ? "1.5px dashed var(--tomato-300)" : 0,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14,
-    }}>{name.charAt(0)}</div>
-  );
-}
-
-// ═════════════════════════════════════════════════════════════
-// VARIATION B — "Your cookbook" — narrative cover treatment
-// ═════════════════════════════════════════════════════════════
-function MYouCookbook() {
-  return (
-    <div style={{ height: "100%", background: "var(--bg-page)", display: "flex", flexDirection: "column" }}>
-      <div style={{ flex: 1, overflowY: "auto", paddingBottom: 100 }}>
-        {/* Hero: cookbook cover treatment */}
-        <div style={{
-          paddingTop: 80, paddingBottom: 24, paddingLeft: 24, paddingRight: 24,
-          textAlign: "center",
-          background: "var(--paper-50)",
-          borderBottom: "1px solid var(--border-faint)",
-        }}>
-          <img src="../../assets/monogram.svg" width={48} height={48} alt="" style={{ marginBottom: 12 }}/>
-          <div style={{
-            fontFamily: "var(--font-display)", fontWeight: 500, fontSize: 32,
-            letterSpacing: "-0.02em", color: "var(--ink-900)", lineHeight: 1,
-          }}>Jess&rsquo;s</div>
-          <div style={{
-            fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400,
-            fontSize: 28, color: "var(--tomato-500)", marginTop: 2,
-          }}>Recipe Book</div>
-          <img src="../../assets/sprig-divider.svg" width={140} height={20} alt=""
-               style={{ display: "block", margin: "16px auto 0", opacity: 0.8 }}/>
-        </div>
-
-        {/* Stats trio */}
-        <div style={{
-          display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
-          padding: "20px 16px", gap: 8,
-        }}>
-          {[
-            ["Recipes", "23"],
-            ["Chapters", "7"],
-            ["Family", "3"],
-          ].map(([label, value]) => (
-            <div key={label} style={{ textAlign: "center" }}>
-              <div style={{
-                fontFamily: "var(--font-display)", fontWeight: 500, fontSize: 28,
-                color: "var(--ink-900)", lineHeight: 1,
-              }}>{value}</div>
-              <div style={{
-                fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 10,
-                textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--fg-subtle)", marginTop: 6,
-              }}>{label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Family — portrait pills */}
-        <div style={{ padding: "0 20px", marginTop: 12 }}>
-          <div style={{
-            fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 11,
-            textTransform: "uppercase", letterSpacing: "0.12em",
-            color: "var(--fg-subtle)", marginBottom: 12,
-          }}>Family</div>
-          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-            {[
-              { name: "Susan", tone: "tomato" },
-              { name: "Eli", tone: "olive" },
-              { name: "Dad", tone: "plum" },
-            ].map((p) => (
-              <div key={p.name} style={{ textAlign: "center" }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: 28,
-                  background: p.tone === "tomato" ? "var(--tomato-100)" : p.tone === "olive" ? "var(--olive-100)" : "var(--plum-100)",
-                  color: p.tone === "tomato" ? "var(--tomato-700)" : p.tone === "olive" ? "var(--olive-700)" : "var(--plum-700)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: "var(--font-display)", fontWeight: 500, fontSize: 22,
-                  margin: "0 auto",
-                }}>{p.name.charAt(0)}</div>
-                <div style={{
-                  fontFamily: "var(--font-sans)", fontSize: 12,
-                  color: "var(--ink-700)", marginTop: 6,
-                }}>{p.name}</div>
-              </div>
-            ))}
-            <div style={{ textAlign: "center" }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: 28,
-                background: "transparent",
-                border: "1.5px dashed var(--paper-400)",
-                color: "var(--ink-300)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                margin: "0 auto",
-              }}>
-                <MIcon name="plus" size={20}/>
-              </div>
-              <div style={{
-                fontFamily: "var(--font-sans)", fontSize: 12,
-                color: "var(--fg-subtle)", marginTop: 6,
-              }}>Add</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Library row */}
-        <div style={{ padding: "32px 16px 0" }}>
-          <div style={{
-            background: "var(--bg-card)", borderRadius: 14,
-            border: "1px solid var(--border-faint)", overflow: "hidden",
-          }}>
-            <MListRow label="Manage chapters" trailing={<MIcon name="chevron-right" size={16} style={{ color: "var(--fg-faint)" }}/>}/>
-            <MListRow label="Account · jess@marksfamily.test" labelStyle={{ textTransform: "none", color: "var(--fg-muted)", fontSize: 13 }}
-              trailing={<span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--tomato-600)", fontWeight: 600 }}>Sign out</span>}/>
-          </div>
-        </div>
-      </div>
-      <MTabBar active="you"/>
-    </div>
-  );
-}
-
-// ═════════════════════════════════════════════════════════════
-// VARIATION C — "Profile" — personal, identity-forward
-// ═════════════════════════════════════════════════════════════
-function MYouProfile() {
-  return (
-    <div style={{ height: "100%", background: "var(--bg-page)", display: "flex", flexDirection: "column" }}>
-      <div style={{ flex: 1, overflowY: "auto", paddingBottom: 100 }}>
-        {/* Saffron banner */}
-        <div style={{
-          paddingTop: 70, paddingBottom: 60, paddingLeft: 24, paddingRight: 24,
-          background: "linear-gradient(180deg, var(--saffron-100) 0%, var(--paper-100) 100%)",
-          textAlign: "center",
-          position: "relative",
-        }}>
-          <div style={{
-            width: 96, height: 96, borderRadius: 48,
-            background: "var(--tomato-500)", color: "var(--paper-50)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 44,
-            margin: "0 auto",
-            boxShadow: "0 6px 18px rgba(70,53,40,0.15)",
-            border: "3px solid var(--paper-100)",
-          }}>J</div>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontWeight: 500, fontSize: 28,
-            letterSpacing: "-0.015em", color: "var(--ink-900)",
-            margin: "14px 0 4px",
-          }}>Jess Marks</h1>
-          <div style={{
-            fontFamily: "var(--font-sans)", fontSize: 13,
-            color: "var(--fg-muted)",
-          }}>jess@marksfamily.test</div>
-          <div style={{
-            fontFamily: "var(--font-display)", fontStyle: "italic",
-            fontSize: 13, color: "var(--fg-subtle)", marginTop: 8,
-          }}>Cooking here since May 2026</div>
-        </div>
-
-        {/* Stat strip — sits half-overlapping the banner */}
-        <div style={{ padding: "0 16px", marginTop: -28 }}>
-          <div style={{
-            background: "var(--bg-card)", borderRadius: 14,
-            boxShadow: "var(--shadow-md)",
-            padding: "16px 0",
-            display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
-          }}>
-            {[
-              ["Recipes", "23"],
-              ["Shared", "18"],
-              ["Family", "3"],
-            ].map(([label, value], i) => (
-              <div key={label} style={{
-                textAlign: "center",
-                borderRight: i < 2 ? "1px solid var(--border-faint)" : 0,
-              }}>
-                <div style={{ fontFamily: "var(--font-display)", fontWeight: 500, fontSize: 22, color: "var(--ink-900)", lineHeight: 1 }}>{value}</div>
-                <div style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--fg-subtle)", marginTop: 6 }}>{label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick action grid */}
-        <div style={{ padding: "28px 16px 0" }}>
-          <div style={{
-            fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 11,
-            textTransform: "uppercase", letterSpacing: "0.12em",
-            color: "var(--fg-subtle)", padding: "0 4px 8px",
-          }}>Manage</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {[
-              { icon: "users", title: "Family sharing", sub: "3 people" },
-              { icon: "book", title: "Chapters", sub: "7 sections" },
-              { icon: "settings", title: "Preferences", sub: "Display & units" },
-              { icon: "share", title: "Export", sub: "Markdown · PDF" },
-            ].map((tile) => (
-              <button key={tile.title} style={{
-                all: "unset", cursor: "pointer",
-                background: "var(--bg-card)", borderRadius: 14,
-                padding: "14px 16px",
-                boxShadow: "var(--shadow-xs)",
-                border: "1px solid var(--border-faint)",
-                display: "flex", flexDirection: "column", gap: 6,
-              }}>
-                <div style={{ color: "var(--tomato-500)" }}><MIcon name={tile.icon} size={20}/></div>
-                <div style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 13, color: "var(--ink-900)" }}>{tile.title}</div>
-                <div style={{ fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--fg-subtle)" }}>{tile.sub}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Sign out — quiet, at the bottom */}
-        <div style={{ padding: "32px 16px 0", textAlign: "center" }}>
-          <button style={{
-            background: "transparent", border: 0, cursor: "pointer",
-            fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 14,
-            color: "var(--tomato-600)", padding: 12,
-          }}>Sign out</button>
-        </div>
-      </div>
-      <MTabBar active="you"/>
-    </div>
-  );
-}
-
-// ═════════════════════════════════════════════════════════════
-// VARIATION D — "Settings" — pure iOS-style grouped list
-// ═════════════════════════════════════════════════════════════
 function MYouSettings() {
   return (
     <div style={{ height: "100%", background: "var(--paper-200)", display: "flex", flexDirection: "column" }}>
@@ -939,4 +638,4 @@ function SettingsRow({ icon, iconBg, iconFg, avatar, avatarTone, label, sub, tra
   );
 }
 
-Object.assign(window, { MSignIn, MHome, MRecipeDetail, MImport, MYou, MYouCookbook, MYouProfile, MYouSettings });
+Object.assign(window, { MSignIn, MHome, MRecipeDetail, MImport, MYouSettings });

@@ -140,6 +140,8 @@ function App() {
         onChange={setChapters}
       />
     );
+  } else if (view.name === "sharing") {
+    main = <SharingView onBack={goList}/>;
   }
 
   return (
@@ -153,6 +155,7 @@ function App() {
         onNew={() => setView({ name: "new" })}
         onImport={() => { setParsedImport(null); setView({ name: "import" }); }}
         onSettings={() => setView({ name: "chapters" })}
+        onSharing={() => setView({ name: "sharing" })}
         onSignOut={() => setSignedIn(false)}
         user={window.MOCK_USER}
       />
