@@ -3,6 +3,8 @@ name: Deploy to Firebase
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.claude/**' # Ignore changes to the design system
   workflow_dispatch:
 
 concurrency:
