@@ -69,7 +69,22 @@ export function ConfirmDialog({
         "backdrop:bg-ink-900/50",
       ].join(" ")}
     >
-      <div className="bg-white rounded-xl shadow-lg p-6 max-w-[420px] w-[90vw]">
+      {/*
+        `<form method="dialog">` is the native handshake for "Enter
+        fires the default action". The browser treats the first
+        submit-type button in the form as the dialog's default button,
+        so the user pressing Enter anywhere in the dialog runs onConfirm.
+        We still preventDefault to keep React in charge of close timing
+        — the parent controls `open` and will close on the next render.
+      */}
+      <form
+        method="dialog"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onConfirm();
+        }}
+        className="bg-white rounded-xl shadow-lg p-6 max-w-[420px] w-[90vw]"
+      >
         <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-2 leading-snug">
           {title}
         </h2>
@@ -80,11 +95,11 @@ export function ConfirmDialog({
           <Button type="button" variant="ghost" onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button type="button" variant="primary" onClick={onConfirm}>
+          <Button type="submit" variant="primary">
             {confirmLabel}
           </Button>
         </div>
-      </div>
+      </form>
     </dialog>
   );
 }

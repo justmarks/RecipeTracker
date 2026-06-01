@@ -1,6 +1,16 @@
 import type { ReactNode } from "react";
 
-export type TagTone = "default" | "tomato" | "olive" | "saffron" | "plum";
+export type TagTone =
+  | "default"
+  | "tomato"
+  | "olive"
+  | "saffron"
+  | "plum"
+  | "sage"
+  | "berry"
+  | "cocoa"
+  | "sky"
+  | "slate";
 
 export const TAG_TONES: TagTone[] = [
   "default",
@@ -8,6 +18,11 @@ export const TAG_TONES: TagTone[] = [
   "olive",
   "saffron",
   "plum",
+  "sage",
+  "berry",
+  "cocoa",
+  "sky",
+  "slate",
 ];
 
 const TAG_CLASSES: Record<TagTone, string> = {
@@ -16,6 +31,11 @@ const TAG_CLASSES: Record<TagTone, string> = {
   olive: "bg-olive-100 text-olive-700",
   saffron: "bg-saffron-100 text-saffron-700",
   plum: "bg-plum-100 text-plum-700",
+  sage: "bg-sage-100 text-sage-700",
+  berry: "bg-berry-100 text-berry-700",
+  cocoa: "bg-cocoa-100 text-cocoa-700",
+  sky: "bg-sky-100 text-sky-700",
+  slate: "bg-slate-100 text-slate-700",
 };
 
 /**
@@ -29,6 +49,11 @@ export const TAG_SWATCH_CLASSES: Record<TagTone, string> = {
   olive: "bg-olive-300",
   saffron: "bg-saffron-300",
   plum: "bg-plum-300",
+  sage: "bg-sage-300",
+  berry: "bg-berry-300",
+  cocoa: "bg-cocoa-300",
+  sky: "bg-sky-300",
+  slate: "bg-slate-300",
 };
 
 interface TagProps {
@@ -57,9 +82,7 @@ export function Tag({ tone = "default", children, className = "" }: TagProps) {
 
 /**
  * Map a tag string to its display tone. The user's palette (stored on
- * users/{uid}.tagColors) wins; otherwise a small built-in heuristic
- * gives common tags a sensible default so a brand-new user sees color
- * variety without configuring anything. Everything else falls through
+ * users/{uid}.tagColors) wins; anything not in the palette falls back
  * to "default".
  */
 export function tagToneFor(

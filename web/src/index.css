@@ -94,8 +94,33 @@
   --color-saffron-700: #a87a22;
 
   --color-plum-100: #ebdde3;
+  --color-plum-300: #c391a4;
   --color-plum-500: #804158;
   --color-plum-700: #5a2c3d;
+
+  /* Tag-palette extensions — additional warm-balanced color families
+     beyond the four brand hues, used only by the user-customizable tag
+     colors. Same 100 / 300 / 700 shape as the brand families (light
+     bg / mid swatch / readable text). */
+  --color-sage-100: #dce5dd;
+  --color-sage-300: #9eb6a3;
+  --color-sage-700: #46604c;
+
+  --color-berry-100: #f0d4dd;
+  --color-berry-300: #d291a5;
+  --color-berry-700: #8b3a55;
+
+  --color-cocoa-100: #e8d6c7;
+  --color-cocoa-300: #c19878;
+  --color-cocoa-700: #6e4527;
+
+  --color-sky-100: #d8e2eb;
+  --color-sky-300: #93b0c8;
+  --color-sky-700: #3e5e7b;
+
+  --color-slate-100: #dadee2;
+  --color-slate-300: #9aa4af;
+  --color-slate-700: #4a5563;
 
   /* Fonts */
   --font-display: "Newsreader", "Source Serif Pro", Georgia, serif;
@@ -179,8 +204,30 @@
   --saffron-700: #a87a22;
 
   --plum-100: #ebdde3;
+  --plum-300: #c391a4;
   --plum-500: #804158;
   --plum-700: #5a2c3d;
+
+  /* Tag-palette extensions — see @theme block above for rationale. */
+  --sage-100: #dce5dd;
+  --sage-300: #9eb6a3;
+  --sage-700: #46604c;
+
+  --berry-100: #f0d4dd;
+  --berry-300: #d291a5;
+  --berry-700: #8b3a55;
+
+  --cocoa-100: #e8d6c7;
+  --cocoa-300: #c19878;
+  --cocoa-700: #6e4527;
+
+  --sky-100: #d8e2eb;
+  --sky-300: #93b0c8;
+  --sky-700: #3e5e7b;
+
+  --slate-100: #dadee2;
+  --slate-300: #9aa4af;
+  --slate-700: #4a5563;
 
   /* Semantic state colors */
   --success-bg: var(--olive-100);

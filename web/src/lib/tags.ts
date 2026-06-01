@@ -15,7 +15,12 @@ import {
 import type { FieldValue, WriteBatch } from "firebase/firestore";
 import { db } from "./firebase";
 import { useRecipeList } from "./queryRecipes";
+import { TAG_TONES } from "../components/ui";
 import type { TagTone } from "../components/ui";
+
+// Build a Set once for the type-guard below. Source of truth lives in
+// Tag.tsx so the validator always tracks the palette additions.
+const VALID_TONES = new Set<string>(TAG_TONES);
 
 const FIRESTORE_BATCH_LIMIT = 500;
 
@@ -105,15 +110,7 @@ export function useTagPalette(uid: string | undefined): {
           // than crash on a typo.
           const cleaned: TagPalette = {};
           for (const [k, v] of Object.entries(raw)) {
-            if (
-              v === "default" ||
-              v === "tomato" ||
-              v === "olive" ||
-              v === "saffron" ||
-              v === "plum"
-            ) {
-              cleaned[k] = v;
-            }
+            if (VALID_TONES.has(v)) cleaned[k] = v as TagTone;
           }
           setPalette(cleaned);
         } else {

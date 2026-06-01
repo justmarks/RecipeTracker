@@ -412,9 +412,10 @@ interface SwatchPopoverProps {
 }
 
 /**
- * Small flyout next to the swatch — five color discs in a row. Sits
- * absolutely-positioned below the swatch button. Closes on outside
- * click via the parent's effect, on pick via the parent's setter.
+ * Small flyout next to the swatch — color discs laid out in a 5-per-row
+ * grid (currently 5 × 2 with the expanded palette). Sits absolutely-
+ * positioned below the swatch button. Closes on outside click via the
+ * parent's effect, on pick via the parent's setter.
  */
 function SwatchPopover({ currentTone, onPick }: SwatchPopoverProps) {
   return (
@@ -424,7 +425,7 @@ function SwatchPopover({ currentTone, onPick }: SwatchPopoverProps) {
       className={[
         "absolute z-30 top-full left-0 mt-1",
         "bg-white border border-[var(--border-faint)] rounded-md shadow-md",
-        "px-2 py-1.5 flex items-center gap-1",
+        "px-2 py-1.5 grid grid-cols-5 gap-1.5",
       ].join(" ")}
     >
       {TAG_TONES.map((tone) => {
@@ -515,7 +516,21 @@ function MergeDialog({
         "backdrop:bg-ink-900/50",
       ].join(" ")}
     >
-      <div className="bg-white rounded-xl shadow-lg p-6 max-w-[440px] w-[90vw]">
+      {/*
+        method="dialog" + a submit-type Merge button makes Enter fire
+        the merge from any focused control inside the dialog (including
+        while the Select has focus). We preventDefault so React's
+        navigation timing — close → list refresh — stays in our hands.
+      */}
+      <form
+        method="dialog"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!target || busy) return;
+          void onConfirm(normalizeTag(target));
+        }}
+        className="bg-white rounded-xl shadow-lg p-6 max-w-[440px] w-[90vw]"
+      >
         <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-2 leading-snug">
           Merge tag
         </h2>
@@ -553,18 +568,14 @@ function MergeDialog({
             Cancel
           </Button>
           <Button
-            type="button"
+            type="submit"
             variant="primary"
-            onClick={() => {
-              if (!target) return;
-              void onConfirm(normalizeTag(target));
-            }}
             disabled={busy || !target}
           >
             {busy ? "Merging…" : "Merge"}
           </Button>
         </div>
-      </div>
+      </form>
     </dialog>
   );
 }
