@@ -13,17 +13,26 @@ export default defineConfig({
     },
   },
   build: {
+    // Firestore alone is ~400 kB minified — that's the floor, no amount
+    // of chunking gets it under Vite's default 500 kB warning. Gzipped
+    // it's well under 150 kB, which is fine for a PWA that precaches
+    // once and lives on the home screen. Raise the threshold so the
+    // warning fires for things that *would* be actionable.
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         // Split heavy third-party libs into their own chunks so the app
         // bundle stays small and vendor chunks can be cached across
-        // deploys that don't touch them.
+        // deploys that don't touch them. Firebase is split per product
+        // rather than as one mega-chunk — Firestore is the bulk and a
+        // patch to firebase/functions shouldn't invalidate its cache.
         manualChunks: {
-          firebase: [
+          "firebase-firestore": ["firebase/firestore"],
+          "firebase-auth": ["firebase/auth"],
+          "firebase-core": [
             "firebase/app",
-            "firebase/auth",
-            "firebase/firestore",
             "firebase/functions",
+            "firebase/storage",
           ],
           react: ["react", "react-dom", "react-router"],
         },
