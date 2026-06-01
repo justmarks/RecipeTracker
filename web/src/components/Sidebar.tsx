@@ -270,7 +270,7 @@ function ChapterButton({
           {name}
         </span>
       </span>
-      <span className="font-mono text-xstext-ink-300 [font-feature-settings:'tnum']">
+      <span className="font-mono text-xs text-ink-300 [font-feature-settings:'tnum']">
         {count}
       </span>
     </button>
