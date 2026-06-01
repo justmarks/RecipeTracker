@@ -422,10 +422,18 @@ function SwatchPopover({ currentTone, onPick }: SwatchPopoverProps) {
     <div
       role="dialog"
       aria-label="Pick a color"
+      // `grid-template-columns: repeat(5, 1.5rem)` sizes each column to
+      // the disc's natural 24 px. Tailwind's `grid-cols-5` uses
+      // `minmax(0, 1fr)` which lets columns collapse below the button
+      // width when the popover has no explicit width — that's how the
+      // discs ended up stacked in a tiny pile. Sticking to an inline
+      // style for the columns avoids generating arbitrary-value
+      // utilities and keeps the swatch size locked to the design token.
+      style={{ gridTemplateColumns: "repeat(5, 1.5rem)" }}
       className={[
         "absolute z-30 top-full left-0 mt-1",
         "bg-white border border-[var(--border-faint)] rounded-md shadow-md",
-        "px-2 py-1.5 grid grid-cols-5 gap-1.5",
+        "p-2 grid gap-1.5",
       ].join(" ")}
     >
       {TAG_TONES.map((tone) => {
@@ -567,9 +575,17 @@ function MergeDialog({
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
+          {/*
+            autoFocus the primary action so native dialog focus lands
+            on Merge — Enter then clicks Merge regardless of where
+            focus drifts inside the form. Without this the dialog
+            would open with focus on Cancel and Enter would close
+            instead of merge.
+          */}
           <Button
             type="submit"
             variant="primary"
+            autoFocus
             disabled={busy || !target}
           >
             {busy ? "Merging…" : "Merge"}
