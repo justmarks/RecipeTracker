@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Icon, Tag } from "./ui";
+import { Icon, Tag, tagToneFor } from "./ui";
 import type { TagPalette } from "../lib/tags";
 import { normalizeTag } from "../lib/tags";
 
