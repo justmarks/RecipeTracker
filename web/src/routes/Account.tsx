@@ -69,6 +69,13 @@ export function Account() {
           iconFg="text-tomato-700"
           label="Manage chapters"
         />
+        <SettingsRow
+          to="/tags"
+          icon="bookmark"
+          iconBg="bg-plum-100"
+          iconFg="text-plum-700"
+          label="Manage tags"
+        />
       </SettingsSection>
 
       <SettingsSection label="Sharing">

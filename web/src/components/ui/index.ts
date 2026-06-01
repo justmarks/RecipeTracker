@@ -17,6 +17,12 @@ export { PhotoFrame } from "./PhotoFrame";
 export { Select } from "./Select";
 export { SprigDivider } from "./SprigDivider";
 export { StarRating } from "./StarRating";
-export { Tag, tagToneFor, type TagTone } from "./Tag";
+export {
+  Tag,
+  tagToneFor,
+  TAG_TONES,
+  TAG_SWATCH_CLASSES,
+  type TagTone,
+} from "./Tag";
 export { Textarea } from "./Textarea";
 export { Toast } from "./Toast";

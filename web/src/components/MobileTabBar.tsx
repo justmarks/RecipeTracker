@@ -49,6 +49,7 @@ function activeTabId(pathname: string): Tab["id"] {
   if (
     pathname.startsWith("/account") ||
     pathname.startsWith("/chapters") ||
+    pathname.startsWith("/tags") ||
     pathname.startsWith("/settings")
   ) {
     return "you";

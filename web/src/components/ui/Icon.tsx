@@ -39,6 +39,7 @@ export type IconName =
   | "download"
   | "heart"
   | "grip-vertical"
+  | "git-merge"
   | "image";
 
 const ICON_PATHS: Record<IconName, ReactElement> = {
@@ -201,6 +202,16 @@ const ICON_PATHS: Record<IconName, ReactElement> = {
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <circle cx="9" cy="10" r="2" />
       <path d="M3 17 L9 12 L13 15 L17 11 L21 15" />
+    </>
+  ),
+  // Lucide git-merge — two nodes (bottom-left + top-right) joined by
+  // a curve. Reads as "fold A into B" which is exactly the tag-merge
+  // mental model.
+  "git-merge": (
+    <>
+      <circle cx="18" cy="18" r="3" />
+      <circle cx="6" cy="6" r="3" />
+      <path d="M6 21 V9 a9 9 0 0 0 9 9" />
     </>
   ),
 };

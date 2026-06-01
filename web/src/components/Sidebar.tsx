@@ -182,6 +182,14 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
         </button>
         <button
           type="button"
+          onClick={() => go("/tags")}
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md bg-transparent text-ink-700 hover:bg-paper-200 text-sm text-left transition-colors duration-100"
+        >
+          <Icon name="bookmark" size={16} />
+          Manage tags
+        </button>
+        <button
+          type="button"
           onClick={() => go("/settings/sharing")}
           className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md bg-transparent text-ink-700 hover:bg-paper-200 text-sm text-left transition-colors duration-100"
         >

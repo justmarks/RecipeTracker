@@ -5,6 +5,7 @@ import type { DocumentData } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
 import { useFavorites } from "../lib/favorites";
+import { useTagPalette } from "../lib/tags";
 import { useToast } from "../lib/useToast";
 import { renderInlineMarkdown, renderMarkdownBlock } from "../lib/inlineMarkdown";
 import type { RecipeSource, Section } from "shared";
@@ -70,6 +71,7 @@ export function RecipeDetail() {
   const navigate = useNavigate();
   const toast = useToast();
   const { favorites, toggle: toggleFavorite } = useFavorites(user?.uid);
+  const { palette: tagPalette } = useTagPalette(user?.uid);
   const isFavorited = id ? favorites.has(id) : false;
   const [recipe, setRecipe] = useState<StoredRecipe | null>(null);
   const [loading, setLoading] = useState(true);
@@ -321,7 +323,7 @@ export function RecipeDetail() {
       {recipe.tags.length > 0 && (
         <div className="mt-3 flex gap-1.5 flex-wrap">
           {recipe.tags.map((t) => (
-            <Tag key={t} tone={tagToneFor(t)}>
+            <Tag key={t} tone={tagToneFor(t, tagPalette)}>
               {t}
             </Tag>
           ))}

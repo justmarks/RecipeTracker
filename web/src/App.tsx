@@ -8,6 +8,7 @@ import { NewRecipe } from "./routes/NewRecipe";
 import { EditRecipe } from "./routes/EditRecipe";
 import { RecipeDetail } from "./routes/RecipeDetail";
 import { Chapters } from "./routes/Chapters";
+import { Tags } from "./routes/Tags";
 import { Sharing } from "./routes/Sharing";
 import { Account } from "./routes/Account";
 
@@ -46,6 +47,7 @@ export function App() {
         <Route path="/recipes/:id/edit" element={<EditRecipe />} />
         <Route path="/import" element={<Import />} />
         <Route path="/chapters" element={<Chapters />} />
+        <Route path="/tags" element={<Tags />} />
         <Route path="/settings/sharing" element={<Sharing />} />
         <Route path="/account" element={<Account />} />
       </Route>

@@ -1,13 +1,34 @@
 import type { ReactNode } from "react";
 
-export type TagTone = "default" | "brand" | "veg" | "gf" | "dessert";
+export type TagTone = "default" | "tomato" | "olive" | "saffron" | "plum";
+
+export const TAG_TONES: TagTone[] = [
+  "default",
+  "tomato",
+  "olive",
+  "saffron",
+  "plum",
+];
 
 const TAG_CLASSES: Record<TagTone, string> = {
   default: "bg-paper-200 text-ink-700",
-  brand: "bg-tomato-50 text-tomato-700",
-  veg: "bg-olive-100 text-olive-700",
-  gf: "bg-saffron-100 text-saffron-700",
-  dessert: "bg-plum-100 text-plum-700",
+  tomato: "bg-tomato-50 text-tomato-700",
+  olive: "bg-olive-100 text-olive-700",
+  saffron: "bg-saffron-100 text-saffron-700",
+  plum: "bg-plum-100 text-plum-700",
+};
+
+/**
+ * Swatch background classes — used by the tag-management color picker
+ * to render a small solid-ish disc per tone. Keeps the swatch palette
+ * in lockstep with the chip palette above.
+ */
+export const TAG_SWATCH_CLASSES: Record<TagTone, string> = {
+  default: "bg-paper-300",
+  tomato: "bg-tomato-300",
+  olive: "bg-olive-300",
+  saffron: "bg-saffron-300",
+  plum: "bg-plum-300",
 };
 
 interface TagProps {
@@ -18,8 +39,8 @@ interface TagProps {
 
 /**
  * Small flat chip used for tags (vegetarian, gluten-free) and category
- * marks. Pluck the tone with tagToneFor(name) to keep the dish-type
- * → color mapping centralized.
+ * marks. Pluck the tone with tagToneFor(name, palette?) to keep the
+ * dish-type → color mapping centralized.
  *
  * Pills are reserved for avatars and the chapter section counter —
  * use rounded-sm here, not rounded-pill.
@@ -35,14 +56,21 @@ export function Tag({ tone = "default", children, className = "" }: TagProps) {
 }
 
 /**
- * Map a tag string to its display tone. Centralizes the convention so
- * a tag colored differently across screens stays consistent. Returns
- * "default" for anything unrecognized.
+ * Map a tag string to its display tone. The user's palette (stored on
+ * users/{uid}.tagColors) wins; otherwise a small built-in heuristic
+ * gives common tags a sensible default so a brand-new user sees color
+ * variety without configuring anything. Everything else falls through
+ * to "default".
  */
-export function tagToneFor(tag: string): TagTone {
+export function tagToneFor(
+  tag: string,
+  palette?: Record<string, TagTone>,
+): TagTone {
   const t = tag.toLowerCase();
-  if (t === "vegetarian" || t === "vegan") return "veg";
-  if (t === "gluten-free" || t === "dairy-free") return "gf";
-  if (t === "birthday" || t === "dessert") return "dessert";
+  const override = palette?.[t];
+  if (override) return override;
+  if (t === "vegetarian" || t === "vegan") return "olive";
+  if (t === "gluten-free" || t === "dairy-free") return "saffron";
+  if (t === "birthday" || t === "dessert") return "plum";
   return "default";
 }

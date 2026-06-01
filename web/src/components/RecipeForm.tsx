@@ -4,8 +4,10 @@ import { RecipeInputSchema } from "shared";
 import type { RecipeInput, Section } from "shared";
 import { useAuth } from "../lib/useAuth";
 import { addChapter, useChapters } from "../lib/categories";
+import { useTags } from "../lib/tags";
 import { uploadRecipePhoto } from "../lib/storage";
 import { Button, Field, Input, Select, Textarea } from "./ui";
+import { TagInput } from "./TagInput";
 
 interface Props {
   /**
@@ -44,10 +46,13 @@ export function RecipeForm({
 }: Props) {
   const { user } = useAuth();
   const { chapters, loading: chaptersLoading } = useChapters(user?.uid);
+  const { tags: knownTags, palette: tagPalette } = useTags(user?.uid);
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [category, setCategory] = useState<string>(initial?.category ?? "");
-  const [tags, setTags] = useState(initial?.tags?.join(", ") ?? "");
+  const [tags, setTags] = useState<string[]>(
+    initial?.tags?.map((t) => t.toLowerCase()) ?? [],
+  );
   // Source is a discriminated union ({type: "url", url} | {type: "book",
   // title, author?, page?}). We keep separate state for both branches
   // so the user can flip the toggle back and forth without losing
@@ -194,10 +199,7 @@ export function RecipeForm({
       cookTime: cookTime.trim() || undefined,
       totalTime: totalTime.trim() || undefined,
       category,
-      tags: tags
-        .split(",")
-        .map((t) => t.trim().toLowerCase())
-        .filter(Boolean),
+      tags: tags.map((t) => t.trim().toLowerCase()).filter(Boolean),
       photoUrl: photoUrl.trim() || undefined,
       rating: rating === "" ? undefined : Number(rating),
       lastMadeDate: lastMadeDate || undefined,
@@ -274,11 +276,19 @@ export function RecipeForm({
             }}
           />
         </Field>
-        <Field label="Tags" hint="Comma-separated, e.g. vegetarian, weeknight">
-          <Input
+        <Field
+          label="Tags"
+          hint="Type to search existing tags or add a new one."
+        >
+          <TagInput
             value={tags}
-            onChange={onChangeText(setTags)}
-            placeholder="vegetarian, gluten-free"
+            onChange={(next) => {
+              setTags(next);
+              markDirty();
+            }}
+            suggestions={knownTags.map((t) => t.name)}
+            palette={tagPalette}
+            placeholder="vegetarian, weeknight…"
           />
         </Field>
       </div>

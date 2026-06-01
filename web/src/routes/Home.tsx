@@ -11,6 +11,8 @@ import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
+import { useTagPalette } from "../lib/tags";
+import type { TagPalette } from "../lib/tags";
 import { useFavorites } from "../lib/favorites";
 import { useRecipeList } from "../lib/queryRecipes";
 import type { RecipeListItem } from "../lib/queryRecipes";
@@ -46,6 +48,7 @@ type SortOrder = "alpha" | "recent";
 export function Home() {
   const { user } = useAuth();
   const { chapters } = useChapters(user?.uid);
+  const { palette: tagPalette } = useTagPalette(user?.uid);
   const { favorites, toggle: toggleFavorite } = useFavorites(user?.uid);
   const toast = useToast();
   const [params, setParams] = useSearchParams();
@@ -354,6 +357,7 @@ export function Home() {
         </div>
       )}
 
+      <TagPaletteContext.Provider value={tagPalette}>
       <FavoriteContext.Provider
         value={{
           favorites,
@@ -461,9 +465,18 @@ export function Home() {
           </>
         )}
       </FavoriteContext.Provider>
+      </TagPaletteContext.Provider>
     </div>
   );
 }
+
+/**
+ * Tag palette context — lets deeply-nested rows resolve a tag's color
+ * against the user's custom palette without prop-drilling. Default to
+ * an empty palette so consumers outside the provider fall through to
+ * the built-in heuristic.
+ */
+const TagPaletteContext = createContext<TagPalette>({});
 
 /**
  * Context that makes `favorites` membership + the toggle handler
@@ -796,6 +809,7 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
     recipe.tags.length > 0 ||
     recipe.access !== "owned";
   const favoriteCtx = useContext(FavoriteContext);
+  const palette = useContext(TagPaletteContext);
   const isFav = favoriteCtx?.favorites.has(recipe.id) ?? false;
 
   // Compact meta-line items, rendered with `·` separators between them.
@@ -883,7 +897,7 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
               </span>
             )}
             {recipe.tags.map((t) => (
-              <Tag key={t} tone={tagToneFor(t)}>
+              <Tag key={t} tone={tagToneFor(t, palette)}>
                 {t}
               </Tag>
             ))}

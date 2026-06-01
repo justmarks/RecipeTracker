@@ -190,7 +190,6 @@ Tracked here so they don't get lost:
 - **Grocery list generation** — multi-select recipes → consolidated list
 - **Meal plan** — pick N recipes and produce a plan for an event
 - **Unit conversion** — cups / tsp ↔ grams for common ingredients (flour, sugar, etc.)
-- **Tag management**
 
 ## Known issues
 
