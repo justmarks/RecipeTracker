@@ -174,14 +174,6 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
       <div className="px-3 pt-3 border-t border-[var(--border-faint)]">
         <button
           type="button"
-          onClick={() => go("/account")}
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md bg-transparent text-ink-700 hover:bg-paper-200 text-sm text-left transition-colors duration-100 lg:hidden"
-        >
-          <Icon name="user" size={16} />
-          You
-        </button>
-        <button
-          type="button"
           onClick={() => go("/chapters")}
           className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md bg-transparent text-ink-700 hover:bg-paper-200 text-sm text-left transition-colors duration-100"
         >
