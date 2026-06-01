@@ -28,10 +28,10 @@ export function Brand({ variant = "lockup", size, className = "" }: BrandProps) 
     return (
       <div className={`flex flex-col items-center text-center ${className}`}>
         <Monogram size={monogramSize} className="mb-5" />
-        <h1 className="font-display text-[32px] font-semibold leading-[1.05] tracking-tight text-ink-900 m-0">
+        <h1 className="font-display text-2xl font-semibold leading-[1.05] tracking-tight text-ink-900 m-0">
           Marks Family
         </h1>
-        <p className="font-display italic text-[26px] leading-[1.05] text-tomato-500 mt-0.5 mb-0">
+        <p className="font-display italic text-xl leading-[1.05] text-tomato-500 mt-0.5 mb-0">
           Recipe Book
         </p>
       </div>
@@ -44,10 +44,10 @@ export function Brand({ variant = "lockup", size, className = "" }: BrandProps) 
     <div className={`flex items-center gap-2.5 ${className}`}>
       <Monogram size={monogramSize} />
       <div className="flex flex-col leading-[1.25] min-w-0">
-        <span className="font-display text-[15px] font-semibold text-ink-900">
+        <span className="font-display text-base font-semibold text-ink-900">
           Marks Family
         </span>
-        <span className="font-display italic text-[14px] text-tomato-500">
+        <span className="font-display italic text-sm text-tomato-500">
           Recipe Book
         </span>
       </div>

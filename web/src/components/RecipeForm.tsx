@@ -383,7 +383,7 @@ export function RecipeForm({
           />
         </div>
         {photoError && (
-          <p className="mt-1 font-sans text-[12px] text-tomato-700">
+          <p className="mt-1 font-sans text-xs text-tomato-700">
             {photoError}
           </p>
         )}

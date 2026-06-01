@@ -15,7 +15,7 @@ export function Eyebrow({ children, className = "" }: EyebrowProps) {
   return (
     <div
       className={[
-        "font-sans font-semibold text-[11px] uppercase",
+        "font-sans font-semibold text-xs uppercase",
         "tracking-[0.12em] text-ink-500",
         className,
       ].join(" ")}

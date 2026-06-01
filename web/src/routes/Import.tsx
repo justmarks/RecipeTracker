@@ -263,11 +263,11 @@ export function Import() {
         />
       ) : parsed ? (
         <>
-          <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-2">
+          <h1 className="font-display text-2xl sm:text-3xl font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-2">
             Review imported recipe
           </h1>
 
-          <div className="mb-5 flex items-start gap-2.5 rounded-md bg-saffron-100 px-3.5 py-3 text-saffron-700 font-sans text-[13px]">
+          <div className="mb-5 flex items-start gap-2.5 rounded-md bg-saffron-100 px-3.5 py-3 text-saffron-700 font-sans text-sm">
             <span className="shrink-0 mt-0.5">
               <Icon name="sparkles" size={16} />
             </span>
@@ -288,12 +288,12 @@ export function Import() {
         </>
       ) : (
         <>
-          <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-2">
+          <h1 className="font-display text-2xl sm:text-3xl font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-2">
             Import a recipe
           </h1>
 
           {isIOS() && (
-            <div className="mb-5 flex items-start gap-2.5 rounded-md bg-paper-200 px-3.5 py-3 text-ink-700 font-sans text-[13px]">
+            <div className="mb-5 flex items-start gap-2.5 rounded-md bg-paper-200 px-3.5 py-3 text-ink-700 font-sans text-sm">
               <span className="shrink-0 mt-0.5 text-ink-500">
                 <Icon name="link" size={14} />
               </span>
@@ -401,7 +401,7 @@ export function Import() {
                   aria-label="Drag a photo here or click to choose one"
                 >
                   <Icon name="image" size={28} />
-                  <span className="font-sans text-[13px]">
+                  <span className="font-sans text-sm">
                     Snap a cookbook page, magazine clipping, or recipe card —
                     drag here, or use the button below
                   </span>
@@ -530,7 +530,7 @@ function ImportProgress({
       <span className="mb-5 text-tomato-500 animate-spin">
         <Icon name="sparkles" size={32} />
       </span>
-      <h1 className="font-display text-[28px] sm:text-[32px] font-medium leading-[1.15] tracking-[-0.015em] text-ink-900 m-0 mb-2">
+      <h1 className="font-display text-2xl sm:text-2xl font-medium leading-[1.15] tracking-[-0.015em] text-ink-900 m-0 mb-2">
         {label}
       </h1>
       <p className="font-sans text-sm text-ink-500 m-0 max-w-[36ch]">
@@ -580,7 +580,7 @@ function ImportCard({
       </Eyebrow>
       {children}
       {error && (
-        <p className="font-sans text-[13px] text-tomato-700 m-0">{error}</p>
+        <p className="font-sans text-sm text-tomato-700 m-0">{error}</p>
       )}
       <p className="font-sans text-xs text-ink-500 m-0 leading-[1.5]">
         {hint}

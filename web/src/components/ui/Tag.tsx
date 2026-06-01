@@ -26,7 +26,7 @@ interface TagProps {
  */
 export function Tag({ tone = "default", children, className = "" }: TagProps) {
   const classes = [
-    "inline-block font-sans text-[11px] font-medium",
+    "inline-block font-sans text-xs font-medium",
     "px-2 py-0.5 rounded-sm whitespace-nowrap",
     TAG_CLASSES[tone],
     className,

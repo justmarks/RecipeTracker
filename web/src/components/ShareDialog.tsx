@@ -106,7 +106,7 @@ export function ShareDialog({
       className="p-0 bg-transparent border-0 backdrop:bg-ink-900/50"
     >
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-[480px] w-[92vw]">
-        <h2 className="font-display text-[22px] font-medium text-ink-900 m-0 mb-1 leading-snug">
+        <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-1 leading-snug">
           Share recipe
         </h2>
         <p className="font-sans text-sm text-ink-700 m-0 mb-5">
@@ -141,7 +141,7 @@ export function ShareDialog({
           </Button>
         </div>
         {error && (
-          <p className="font-sans text-[13px] text-tomato-700 m-0 mt-1.5">
+          <p className="font-sans text-sm text-tomato-700 m-0 mt-1.5">
             {error}
           </p>
         )}
@@ -160,14 +160,14 @@ export function ShareDialog({
                   <span className="text-ink-500 shrink-0">
                     <Icon name="mail" size={14} />
                   </span>
-                  <span className="flex-1 min-w-0 font-sans text-[13px] text-ink-700 truncate">
+                  <span className="flex-1 min-w-0 font-sans text-sm text-ink-700 truncate">
                     {d.email}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRemove(d.uid)}
                     disabled={busy}
-                    className="font-sans text-[12px] text-tomato-700 hover:text-tomato-600 px-2 py-0.5 disabled:opacity-50 cursor-pointer"
+                    className="font-sans text-xs text-tomato-700 hover:text-tomato-600 px-2 py-0.5 disabled:opacity-50 cursor-pointer"
                     aria-label={`Stop sharing with ${d.email}`}
                   >
                     Remove
@@ -177,7 +177,7 @@ export function ShareDialog({
             </ul>
           </div>
         ) : (
-          <p className="font-sans text-[13px] text-ink-500 mt-5 m-0">
+          <p className="font-sans text-sm text-ink-500 mt-5 m-0">
             No one else has access yet. To share all your recipes with a
             family member, use{" "}
             <span className="text-ink-700">Settings → Sharing</span>.

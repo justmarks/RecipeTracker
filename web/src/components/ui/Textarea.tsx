@@ -19,7 +19,7 @@ export function Textarea({
 }: TextareaProps) {
   const classes = [
     "w-full text-ink-900 bg-white",
-    mono ? "font-mono text-[13px]" : "font-sans text-sm",
+    mono ? "font-mono text-sm" : "font-sans text-sm",
     "border border-paper-400 rounded-md px-3 py-2.5",
     "outline-none resize-y transition-colors duration-100 ease-out",
     "focus:border-tomato-500 focus:shadow-[var(--shadow-focus)]",

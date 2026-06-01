@@ -221,7 +221,7 @@ export function Chapters() {
       </Button>
 
       <div className="mb-2 flex items-end justify-between gap-3">
-        <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0">
+        <h1 className="font-display text-2xl sm:text-3xl font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0">
           Chapters
         </h1>
         <Button

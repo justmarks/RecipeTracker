@@ -290,7 +290,7 @@ export function RecipeDetail() {
 
       <Eyebrow>{recipe.category}</Eyebrow>
 
-      <h1 className="mt-1.5 font-display text-[32px] sm:text-[44px] font-medium leading-[1.05] tracking-[-0.02em] text-ink-900 m-0">
+      <h1 className="mt-1.5 font-display text-2xl sm:text-3xl font-medium leading-[1.05] tracking-[-0.02em] text-ink-900 m-0">
         {recipe.title}
       </h1>
 
@@ -305,7 +305,7 @@ export function RecipeDetail() {
       )}
 
       {recipe.source && (
-        <p className="mt-4 font-sans text-[13px] text-ink-500 m-0">
+        <p className="mt-4 font-sans text-sm text-ink-500 m-0">
           {recipe.source.type === "url" ? (
             <SourceUrlLink url={recipe.source.url} />
           ) : (
@@ -336,7 +336,7 @@ export function RecipeDetail() {
             </span>
           )}
           {recipe.lastMadeDate && (
-            <span className="inline-flex items-center gap-1.5 text-[13px]">
+            <span className="inline-flex items-center gap-1.5 text-sm">
               <Icon name="clock" size={14} />
               Last made {formatDate(recipe.lastMadeDate)}
             </span>
@@ -347,7 +347,7 @@ export function RecipeDetail() {
       <SprigDivider />
 
       <section>
-        <h2 className="font-display text-[24px] font-medium text-ink-900 m-0 mb-3.5">
+        <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-3.5">
           Ingredients
         </h2>
         {recipe.ingredients.map((sec, i) => (
@@ -357,7 +357,7 @@ export function RecipeDetail() {
                 {sec.heading}
               </Eyebrow>
             )}
-            <ul className="list-none p-0 m-0 font-sans text-[15px] leading-[1.7] text-ink-700">
+            <ul className="list-none p-0 m-0 font-sans text-base leading-[1.7] text-ink-700">
               {sec.items.map((it, j) => (
                 <li key={j} className="relative pl-5">
                   <span
@@ -375,7 +375,7 @@ export function RecipeDetail() {
       <SprigDivider />
 
       <section>
-        <h2 className="font-display text-[24px] font-medium text-ink-900 m-0 mb-3.5">
+        <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-3.5">
           Instructions
         </h2>
         {recipe.instructions.map((sec, i) => (
@@ -387,9 +387,9 @@ export function RecipeDetail() {
               {sec.items.map((it, j) => (
                 <li
                   key={j}
-                  className="flex gap-4 mb-3.5 last:mb-0 font-sans text-[17px] leading-[1.65] text-ink-900"
+                  className="flex gap-4 mb-3.5 last:mb-0 font-sans text-md leading-[1.65] text-ink-900"
                 >
-                  <span className="shrink-0 basis-7 font-display italic font-normal text-[22px] text-tomato-500 leading-[1.4]">
+                  <span className="shrink-0 basis-7 font-display italic font-normal text-xl text-tomato-500 leading-[1.4]">
                     {j + 1}.
                   </span>
                   <span className="flex-1 min-w-0">
@@ -406,10 +406,10 @@ export function RecipeDetail() {
         <>
           <SprigDivider />
           <section>
-            <h2 className="font-display text-[24px] font-medium text-ink-900 m-0 mb-3.5">
+            <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-3.5">
               Notes
             </h2>
-            <div className="px-5 py-4 bg-saffron-100 rounded-lg border-l-[3px] border-saffron-500 font-display italic text-[18px] leading-[1.55] text-ink-700">
+            <div className="px-5 py-4 bg-saffron-100 rounded-lg border-l-[3px] border-saffron-500 font-display italic text-md leading-[1.55] text-ink-700">
               {renderMarkdownBlock(recipe.notes)}
             </div>
           </section>

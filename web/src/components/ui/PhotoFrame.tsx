@@ -92,7 +92,7 @@ export function PhotoFrame({
  */
 function EmptyPhotoStamp({ showCaption }: { showCaption: boolean }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 text-ink-300 font-display italic text-[13px]">
+    <div className="flex flex-col items-center gap-1.5 text-ink-300 font-display italic text-sm">
       <svg
         width="22"
         height="22"

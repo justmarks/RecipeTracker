@@ -166,7 +166,7 @@ export function Sharing() {
         Back
       </Button>
 
-      <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-2">
+      <h1 className="font-display text-2xl sm:text-3xl font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-2">
         Sharing
       </h1>
       <p className="font-sans text-sm text-ink-700 m-0 mb-7 max-w-[480px]">
@@ -206,7 +206,7 @@ export function Sharing() {
           </Button>
         </div>
         {error && (
-          <p className="font-sans text-[13px] text-tomato-700 m-0 mt-2">
+          <p className="font-sans text-sm text-tomato-700 m-0 mt-2">
             {error}
           </p>
         )}
@@ -216,7 +216,7 @@ export function Sharing() {
       </section>
 
       <section className="mb-8">
-        <h2 className="font-display text-[22px] font-medium text-ink-900 m-0 mb-3 pb-2 border-b border-paper-300">
+        <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-3 pb-2 border-b border-paper-300">
           People who can see all your recipes
           <span className="ml-2 font-mono text-xs font-normal text-ink-300 [font-feature-settings:'tnum']">
             {outgoing.length}
@@ -254,7 +254,7 @@ export function Sharing() {
       </section>
 
       <section>
-        <h2 className="font-display text-[22px] font-medium text-ink-900 m-0 mb-3 pb-2 border-b border-paper-300">
+        <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-3 pb-2 border-b border-paper-300">
           People who shared their cookbook with you
           <span className="ml-2 font-mono text-xs font-normal text-ink-300 [font-feature-settings:'tnum']">
             {incoming.length}

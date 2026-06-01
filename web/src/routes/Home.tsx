@@ -259,7 +259,7 @@ export function Home() {
           */}
           <h1
             className={[
-              "font-display text-[28px] sm:text-[38px] font-medium leading-[1.1] tracking-[-0.015em] text-ink-900 m-0 truncate min-w-0 flex-1",
+              "font-display text-2xl sm:text-3xl font-medium leading-[1.1] tracking-[-0.015em] text-ink-900 m-0 truncate min-w-0 flex-1",
               activeChapter && !favoritesOnly && !otherOnly
                 ? "capitalize"
                 : "",
@@ -523,7 +523,7 @@ function FavoritesSection({
         className="w-full flex items-center gap-2.5 border-b border-paper-300 pb-2 mb-0 text-left cursor-pointer hover:text-tomato-600 transition-colors duration-100 group"
       >
         <Icon name="heart" size={18} filled className="text-tomato-500 shrink-0" />
-        <span className="font-display text-[22px] font-medium text-ink-900 group-hover:text-tomato-600 transition-colors duration-100">
+        <span className="font-display text-xl font-medium text-ink-900 group-hover:text-tomato-600 transition-colors duration-100">
           Favorites
         </span>
         <span className="font-mono text-xs font-normal text-ink-300 [font-feature-settings:'tnum']">
@@ -550,7 +550,7 @@ function FavoritesEmptyState() {
   return (
     <div className="text-center py-16">
       <SprigDivider className="opacity-50 mb-4" />
-      <p className="font-display italic text-[22px] text-ink-700 m-0">
+      <p className="font-display italic text-xl text-ink-700 m-0">
         No favorites yet.
       </p>
       <p className="font-sans text-sm text-ink-500 mt-2 max-w-[360px] mx-auto">
@@ -600,7 +600,7 @@ function RecentlyAdded({
         aria-expanded={isOpen}
         className="w-full flex items-center gap-2.5 pb-2 mb-0 text-left cursor-pointer group"
       >
-        <span className="font-display italic text-[22px] font-medium text-ink-900 group-hover:text-tomato-600 transition-colors duration-100">
+        <span className="font-display italic text-xl font-medium text-ink-900 group-hover:text-tomato-600 transition-colors duration-100">
           Recently added
         </span>
         <span className="ml-auto shrink-0 text-ink-400 group-hover:text-tomato-600 transition-colors duration-100">
@@ -651,11 +651,11 @@ function RecipeCard({ recipe }: { recipe: RecipeSummary }) {
       />
       <div className="px-3.5 py-3 flex flex-col gap-0.5">
         <Eyebrow className="capitalize">{recipe.category}</Eyebrow>
-        <div className="font-display font-medium text-[17px] leading-[1.2] tracking-[-0.005em] text-ink-900 mt-0.5 line-clamp-2">
+        <div className="font-display font-medium text-baseleading-[1.2] tracking-[-0.005em] text-ink-900 mt-0.5 line-clamp-2">
           {recipe.title}
         </div>
         {recipe.totalTime && (
-          <div className="font-mono text-[11px] text-ink-500 mt-1 [font-feature-settings:'tnum']">
+          <div className="font-mono text-xs text-ink-500 mt-1 [font-feature-settings:'tnum']">
             {recipe.totalTime}
           </div>
         )}
@@ -668,7 +668,7 @@ function EmptyState() {
   return (
     <div className="text-center py-16">
       <SprigDivider className="opacity-50 mb-4" />
-      <p className="font-display italic text-[22px] text-ink-700 m-0">
+      <p className="font-display italic text-xl text-ink-700 m-0">
         No recipes yet.
       </p>
       <p className="font-sans text-sm text-ink-500 mt-2">
@@ -705,7 +705,7 @@ function ChapterSection({
       >
         <span
           className={[
-            "font-display text-[22px] font-medium transition-colors duration-100",
+            "font-display text-xl font-medium transition-colors duration-100",
             italic
               ? "italic text-ink-500 group-hover:text-ink-700"
               : "capitalize text-ink-900 group-hover:text-tomato-600",
@@ -775,7 +775,7 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
     metaLeadItems.push(
       <span
         key="time"
-        className="font-mono text-[11px] text-ink-500 [font-feature-settings:'tnum']"
+        className="font-mono text-xs text-ink-500 [font-feature-settings:'tnum']"
       >
         {recipe.totalTime}
       </span>,
@@ -783,7 +783,7 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
   }
   if (recipe.lastMadeDate) {
     metaLeadItems.push(
-      <span key="made" className="text-[11px] text-ink-500">
+      <span key="made" className="text-xs text-ink-500">
         made {shortMadeDate(recipe.lastMadeDate)}
       </span>,
     );
@@ -820,7 +820,7 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
       <div className="min-w-0 flex-1">
         <div
           className={[
-            "font-display font-medium text-[18px] text-ink-900",
+            "font-display font-medium text-md text-ink-900",
             "tracking-[-0.005em] leading-[1.2]",
             hasMeta ? "mb-1" : "",
           ].join(" ")}
@@ -832,7 +832,7 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
             {metaLeadItems.map((node, i) => (
               <Fragment key={i}>
                 {i > 0 && (
-                  <span aria-hidden="true" className="text-[11px] text-ink-300">
+                  <span aria-hidden="true" className="text-xs text-ink-300">
                     ·
                   </span>
                 )}
@@ -840,7 +840,7 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
               </Fragment>
             ))}
             {metaLeadItems.length > 0 && recipe.tags.length > 0 && (
-              <span aria-hidden="true" className="text-[11px] text-ink-300">
+              <span aria-hidden="true" className="text-xs text-ink-300">
                 ·
               </span>
             )}
@@ -851,7 +851,7 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
             ))}
             {recipe.access !== "owned" && (
               <span
-                className="inline-flex items-center gap-1 font-sans text-[11px] font-medium text-olive-700 bg-olive-100 px-1.5 py-0.5 rounded-sm"
+                className="inline-flex items-center gap-1 font-sans text-xs font-medium text-olive-700 bg-olive-100 px-1.5 py-0.5 rounded-sm"
                 title={
                   recipe.access === "shared"
                     ? "Shared with you"

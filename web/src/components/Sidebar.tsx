@@ -191,7 +191,7 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
 
         <div className="flex items-center gap-2.5 px-2.5 pt-2.5 pb-1">
           <div
-            className="w-7 h-7 rounded-full bg-olive-300 text-olive-900 flex items-center justify-center font-display font-semibold text-[13px] shrink-0"
+            className="w-7 h-7 rounded-full bg-olive-300 text-olive-900 flex items-center justify-center font-display font-semibold text-sm shrink-0"
             aria-hidden="true"
           >
             {userInitial}
@@ -200,7 +200,7 @@ export function Sidebar({ onNavigate, onClose }: SidebarProps) {
             <div className="text-xs font-semibold text-ink-900 truncate">
               {user?.displayName ?? "Signed in"}
             </div>
-            <div className="text-[11px] text-ink-500 truncate">
+            <div className="text-xs text-ink-500 truncate">
               {user?.email}
             </div>
           </div>
@@ -257,12 +257,12 @@ function ChapterButton({
           />
         )}
         <span
-          className={italic ? "font-display italic text-[15px]" : "capitalize"}
+          className={italic ? "font-display italic text-base" : "capitalize"}
         >
           {name}
         </span>
       </span>
-      <span className="font-mono text-[11px] text-ink-300 [font-feature-settings:'tnum']">
+      <span className="font-mono text-xstext-ink-300 [font-feature-settings:'tnum']">
         {count}
       </span>
     </button>

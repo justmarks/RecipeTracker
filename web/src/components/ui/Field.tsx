@@ -17,7 +17,7 @@ interface FieldProps {
 export function Field({ label, hint, error, children }: FieldProps) {
   return (
     <label className="block">
-      <span className="block mb-1.5 text-[13px] font-semibold text-ink-900">
+      <span className="block mb-1.5 text-sm font-semibold text-ink-900">
         {label}
       </span>
       {children}

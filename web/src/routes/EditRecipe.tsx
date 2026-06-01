@@ -181,7 +181,7 @@ export function EditRecipe() {
       >
         Back
       </Button>
-      <h1 className="font-display text-[32px] sm:text-[38px] font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-5">
+      <h1 className="font-display text-2xl sm:text-3xl font-medium leading-[1.05] tracking-[-0.015em] text-ink-900 m-0 mb-5">
         Edit recipe
       </h1>
       <RecipeForm

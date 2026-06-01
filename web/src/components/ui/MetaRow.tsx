@@ -28,7 +28,7 @@ export function MetaRow({ items, className = "" }: MetaRowProps) {
     <dl className={`m-0 grid gap-4 ${className}`} style={style}>
       {items.map((item, i) => (
         <div key={i}>
-          <dt className="m-0 font-sans text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-500">
+          <dt className="m-0 font-sans text-xs font-semibold uppercase tracking-[0.12em] text-ink-500">
             {item.label}
           </dt>
           <dd className="m-0 mt-0.5 font-mono text-sm text-ink-900 [font-feature-settings:'tnum']">

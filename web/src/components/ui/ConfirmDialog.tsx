@@ -67,7 +67,7 @@ export function ConfirmDialog({
       ].join(" ")}
     >
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-[420px] w-[90vw]">
-        <h2 className="font-display text-[22px] font-medium text-ink-900 m-0 mb-2 leading-snug">
+        <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-2 leading-snug">
           {title}
         </h2>
         <p className="font-sans text-sm leading-relaxed text-ink-700 m-0 mb-5">
