@@ -307,9 +307,9 @@ export function Import() {
 
           <div className="flex flex-col gap-4">
             <ImportCard
-              eyebrowIcon="sparkles"
-              eyebrow="Extract w/AI from URL"
-              hint="We fetch the page and ask Claude to pull the recipe out."
+              eyebrowIcon="link"
+              eyebrow="From URL"
+              hint="We fetch the page and ask Claude to extract the recipe."
               error={urlError}
               action={
                 <Button
@@ -340,8 +340,8 @@ export function Import() {
             {!showOnlyUrlFetcher && (
               <ImportCard
                 eyebrowIcon="image"
-                eyebrow="Extract w/AI from photo"
-                hint="JPEG, PNG, WebP, or GIF — up to about 5 MB after the in-app resize."
+                eyebrow="From a photo"
+                hint="Snap a cookbook page or a handwritten card. Claude reads the text and extracts the recipe."
                 error={photoError}
                 action={
                   <Button
@@ -430,7 +430,7 @@ export function Import() {
               <ImportCard
                 eyebrowIcon="file-text"
                 eyebrow="From markdown"
-                hint="Paste a markdown recipe, or upload a .md file. Use ## Ingredients / ## Instructions / ## Notes sections."
+                hint="Paste a markdown recipe, or upload a .md file. Use ## Headings for sections."
                 error={parseError}
                 action={
                   <div className="flex items-center gap-3">
