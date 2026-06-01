@@ -103,7 +103,7 @@ export function ShareDialog({
         onClose();
       }}
       onClick={onDialogClick}
-      className="p-0 bg-transparent border-0 backdrop:bg-ink-900/50"
+      className="m-auto p-0 bg-transparent border-0 backdrop:bg-ink-900/50"
     >
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-[480px] w-[92vw]">
         <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-1 leading-snug">

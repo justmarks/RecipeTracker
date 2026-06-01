@@ -61,9 +61,12 @@ export function ConfirmDialog({
       }}
       onClick={onDialogClick}
       className={[
-        "p-0 bg-transparent border-0",
+        // `m-auto` restores the dialog's browser-default centering
+        // that Tailwind's preflight zeros out (`* { margin: 0 }`).
+        // Without it, native <dialog> elements snap to the
+        // top-left/right corner of the viewport instead of centering.
+        "m-auto p-0 bg-transparent border-0",
         "backdrop:bg-ink-900/50",
-        // Override native dialog's default centering with our own card.
       ].join(" ")}
     >
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-[420px] w-[90vw]">
