@@ -672,6 +672,7 @@ function RecipeCard({ recipe }: { recipe: RecipeSummary }) {
         ratio="4 / 3"
         radius="none"
         border={false}
+        className="pointer-events-none"
       />
       {favoriteCtx && (
         <button
@@ -867,7 +868,7 @@ function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
         ratio="1 / 1"
         radius="sm"
         showCaption={false}
-        className="shrink-0 w-16 h-16"
+        className="shrink-0 w-16 h-16 pointer-events-none"
       />
       <div className="min-w-0 flex-1">
         <div
