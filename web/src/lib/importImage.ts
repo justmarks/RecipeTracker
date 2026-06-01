@@ -1,5 +1,5 @@
 /**
- * Prep a user-supplied photo for `importFromImage` upload.
+ * Prep a user-supplied photo or PDF for `importFromImage` upload.
  *
  * Phone cameras produce 5–10+ MB photos at 12+ MP. Claude's vision API
  * caps each image at ~5 MB binary, the Cloud Functions onCall payload
@@ -7,11 +7,17 @@
  * meaningfully improving OCR accuracy at the resolutions a recipe scan
  * actually needs.
  *
- * This helper resizes the longest side to 2048px and re-encodes to JPEG
- * at quality 0.85 — a comfortable sweet spot for recipe legibility that
- * keeps the payload well under the limits. The original `file.type` is
- * respected for PNG/WebP, since those formats sometimes matter for
- * handwritten ink that JPEG would smudge.
+ * For images this helper resizes the longest side to 2048px and re-
+ * encodes to JPEG at quality 0.85 — a comfortable sweet spot for recipe
+ * legibility that keeps the payload well under the limits. The original
+ * `file.type` is respected for PNG/WebP, since those formats sometimes
+ * matter for handwritten ink that JPEG would smudge.
+ *
+ * For PDFs the file passes through unmodified — they can't be rendered
+ * to canvas (no native browser API), and Claude's `document` content
+ * block handles multi-page PDFs natively. The 5 MB payload ceiling is
+ * the only real constraint; users with chunky scanned PDFs need to
+ * compress before uploading.
  */
 
 const MAX_LONGEST_SIDE = 2048;
@@ -21,11 +27,17 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/png",
   "image/webp",
   "image/gif",
+  "application/pdf",
 ]);
 
 export type PreparedImage = {
   base64: string;
-  mimeType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+  mimeType:
+    | "image/jpeg"
+    | "image/png"
+    | "image/webp"
+    | "image/gif"
+    | "application/pdf";
 };
 
 export async function prepareImageForImport(
@@ -33,8 +45,18 @@ export async function prepareImageForImport(
 ): Promise<PreparedImage> {
   if (!ALLOWED_MIME_TYPES.has(file.type)) {
     throw new Error(
-      `Unsupported image type "${file.type || "unknown"}". Use JPEG, PNG, WebP, or GIF.`,
+      `Unsupported file type "${file.type || "unknown"}". Use JPEG, PNG, WebP, GIF, or PDF.`,
     );
+  }
+  // PDFs short-circuit the image-prep pipeline entirely. There's no
+  // canvas API for PDFs in browsers, and Claude's `document` block
+  // handles them natively across pages. Just base64 the raw file and
+  // hand it to the Cloud Function — the server-side 5 MB cap applies.
+  if (file.type === "application/pdf") {
+    return {
+      base64: await fileToBase64(file),
+      mimeType: "application/pdf",
+    };
   }
   // GIFs (rare for recipes, but the share sheet might offer them) and
   // tiny images skip the resize round-trip — pass straight through.

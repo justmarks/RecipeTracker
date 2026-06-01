@@ -29,8 +29,14 @@ export async function consumeSharedFile(): Promise<File | null> {
     // the bytes locally, so the next call will still get the cache
     // miss and return null thanks to the matched-once semantics.
     void cache.delete(SHARED_FILE_KEY);
+    // Prefer the blob's own type. If the browser stripped it, fall back
+    // to the cached Content-Type header (set by the SW from the original
+    // upload), and only then to image/jpeg as a final guess. PDFs MUST
+    // arrive with `application/pdf` so prepareImageForImport routes them
+    // to the document-block path — never assume image/jpeg blindly.
+    const headerType = response.headers.get("Content-Type") || "";
     return new File([blob], filename, {
-      type: blob.type || "image/jpeg",
+      type: blob.type || headerType || "image/jpeg",
     });
   } catch (err) {
     console.error("consumeSharedFile:", err);

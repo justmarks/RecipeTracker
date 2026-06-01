@@ -269,7 +269,7 @@ export function Import() {
       ) : showPhotoProgress ? (
         <ImportProgress
           label="Reading photo…"
-          detail="Asking Claude to read the photo and pull out the recipe."
+          detail="Asking Claude to read the photo or PDF and pull out the recipe."
         />
       ) : parsed ? (
         <>
@@ -350,8 +350,8 @@ export function Import() {
             {!showOnlyUrlFetcher && (
               <ImportCard
                 eyebrowIcon="image"
-                eyebrow="From a photo"
-                hint="Snap a cookbook page or a handwritten card. Claude reads the text and extracts the recipe."
+                eyebrow="From a photo or PDF"
+                hint="Snap a cookbook page or upload a scanned PDF. Claude reads the text and extracts the recipe. JPEG, PNG, WebP, GIF, or PDF — under 5 MB."
                 error={photoError}
                 action={
                   <Button
@@ -361,7 +361,7 @@ export function Import() {
                     onClick={() => photoFileRef.current?.click()}
                     disabled={photoBusy}
                   >
-                    {photoBusy ? "Reading…" : "Choose photo"}
+                    {photoBusy ? "Reading…" : "Choose photo or PDF"}
                   </Button>
                 }
               >
@@ -408,18 +408,18 @@ export function Import() {
                       : "border-paper-400 bg-paper-50 text-ink-500 hover:border-paper-400 hover:bg-paper-100",
                     photoBusy ? "cursor-default opacity-60" : "cursor-pointer",
                   ].join(" ")}
-                  aria-label="Drag a photo here or click to choose one"
+                  aria-label="Drag a photo or PDF here or click to choose one"
                 >
                   <Icon name="image" size={28} />
                   <span className="font-sans text-sm">
-                    Snap a cookbook page, magazine clipping, or recipe card —
-                    drag here, or use the button below
+                    Snap a cookbook page, magazine clipping, recipe card, or
+                    drop a scanned PDF — drag here, or use the button below
                   </span>
                 </button>
                 <input
                   ref={photoFileRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf"
                   // On mobile this prefers the rear camera and opens it
                   // directly; desktop browsers ignore the attribute and
                   // fall back to a normal file picker.

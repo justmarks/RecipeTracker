@@ -108,6 +108,12 @@ export default defineConfig({
                   "image/png",
                   "image/webp",
                   "image/gif",
+                  // PDFs ride the same vision-import pipeline as photos;
+                  // Claude's `document` content block reads multi-page
+                  // PDFs natively. Sharing a recipe export from a PDF
+                  // viewer (e.g. Files → Share → Recipes) lands on the
+                  // same /import flow.
+                  "application/pdf",
                 ],
               },
             ],

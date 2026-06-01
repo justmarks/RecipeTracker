@@ -91,7 +91,7 @@ function pickFile(formData) {
       typeof value === "object" &&
       "arrayBuffer" in value &&
       typeof value.type === "string" &&
-      value.type.startsWith("image/")
+      (value.type.startsWith("image/") || value.type === "application/pdf")
     ) {
       return value;
     }
