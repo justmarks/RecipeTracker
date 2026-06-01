@@ -9,6 +9,7 @@ import { EditRecipe } from "./routes/EditRecipe";
 import { RecipeDetail } from "./routes/RecipeDetail";
 import { Chapters } from "./routes/Chapters";
 import { Sharing } from "./routes/Sharing";
+import { Account } from "./routes/Account";
 
 /**
  * Top-level routing + auth gate.
@@ -46,6 +47,7 @@ export function App() {
         <Route path="/import" element={<Import />} />
         <Route path="/chapters" element={<Chapters />} />
         <Route path="/settings/sharing" element={<Sharing />} />
+        <Route path="/account" element={<Account />} />
       </Route>
     </Routes>
   );

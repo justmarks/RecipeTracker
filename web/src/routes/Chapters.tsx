@@ -146,6 +146,15 @@ export function Chapters() {
     }
   }
 
+  // Pop the previous in-app entry if there is one (so Back from
+  // Chapters returns to whoever sent you here — Account on mobile,
+  // wherever-you-clicked-Manage-chapters on desktop). Falls back to
+  // home for direct URL loads where there's no history to pop.
+  function goBack() {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/");
+  }
+
   async function handleAdd() {
     if (!user || !newName.trim()) return;
     setAdding(true);
@@ -214,7 +223,7 @@ export function Chapters() {
       <Button
         variant="ghost"
         icon="arrow-left"
-        onClick={() => navigate("/")}
+        onClick={goBack}
         className="px-0 mb-4"
       >
         Back

@@ -24,7 +24,11 @@ export function Toast({ children, visible }: ToastProps) {
       role="status"
       aria-live="polite"
       className={[
-        "fixed bottom-8 left-1/2 z-50 inline-flex items-center gap-2.5",
+        // Lifted above the mobile tab bar (`bottom-24` ≈ 96px clears
+        // the ~80px tab bar + iOS home indicator); falls back to the
+        // original `bottom-8` (32px) on desktop where no tab bar
+        // exists.
+        "fixed bottom-24 lg:bottom-8 left-1/2 z-50 inline-flex items-center gap-2.5",
         "rounded-lg bg-ink-900 px-4 py-3 text-paper-100 shadow-lg",
         "font-sans text-sm pointer-events-none",
       ].join(" ")}

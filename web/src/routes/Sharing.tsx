@@ -118,6 +118,14 @@ export function Sharing() {
   if (authLoading) return null;
   if (!user) return <Navigate to="/" replace />;
 
+  // Smart back — return to whoever sent the user here (Account on
+  // mobile, anywhere on desktop) instead of hardcoding home. Falls
+  // back to home for direct URL loads with no history to pop.
+  function goBack() {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/");
+  }
+
   async function handleGrant() {
     const trimmed = email.trim();
     if (!trimmed) return;
@@ -160,7 +168,7 @@ export function Sharing() {
       <Button
         variant="ghost"
         icon="arrow-left"
-        onClick={() => navigate("/")}
+        onClick={goBack}
         className="px-0 mb-4"
       >
         Back

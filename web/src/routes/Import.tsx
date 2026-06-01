@@ -142,6 +142,16 @@ export function Import() {
   if (loading) return null;
   if (!user) return <Navigate to="/" replace />;
 
+  // Smart back — return to wherever the user came from rather than
+  // hardcoding home. On the mobile tab-bar shell they typically
+  // navigated here from a previous tab; on desktop they came from
+  // the sidebar or a chapter view. Falls back to home for direct
+  // URL loads or share-target landings with no in-app history.
+  function goBack() {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/");
+  }
+
   async function fetchUrl(url: string) {
     setUrlError(null);
     setFetchingUrl(true);
@@ -239,7 +249,7 @@ export function Import() {
       <Button
         variant="ghost"
         icon="arrow-left"
-        onClick={() => navigate("/")}
+        onClick={goBack}
         className="px-0 mb-4"
       >
         Back

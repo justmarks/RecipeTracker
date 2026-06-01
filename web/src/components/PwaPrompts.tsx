@@ -207,7 +207,10 @@ function PromptBanner({
       role="status"
       aria-live="polite"
       className={[
-        "fixed bottom-4 left-1/2 -translate-x-1/2 z-50",
+        // Lifted above the mobile tab bar (~80px tall with iOS safe
+        // area) and falls back to a closer-to-the-edge bottom-4 on
+        // desktop where no tab bar exists.
+        "fixed bottom-24 lg:bottom-4 left-1/2 -translate-x-1/2 z-50",
         "flex items-center gap-3 px-4 py-2.5 rounded-lg shadow-lg",
         "font-sans text-sm max-w-[92vw]",
         TONE_CLASSES[tone],

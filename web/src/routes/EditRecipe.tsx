@@ -94,7 +94,7 @@ export function EditRecipe() {
         <Button
           variant="ghost"
           icon="arrow-left"
-          onClick={() => navigate("/")}
+          onClick={goBack}
           className="px-0 mb-4"
         >
           Back
