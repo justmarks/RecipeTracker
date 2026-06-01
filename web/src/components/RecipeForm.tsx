@@ -397,6 +397,41 @@ export function RecipeForm({
         )}
       </Field>
 
+      {/*
+        Rating + Last made sit ABOVE Ingredients per the design system
+        update — they're the user's personal relationship to the recipe
+        and earn the prime slot near the top of the form, parallel to
+        the same reorder on RecipeDetail (rating row sits above tags
+        there). Yield/Prep/Cook/Total stay paired with Ingredients/
+        Instructions further down since those are recipe-descriptive
+        rather than user-personal.
+      */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <Field label="Rating">
+          <Select
+            value={rating}
+            onChange={(e) => {
+              setRating(e.target.value === "" ? "" : Number(e.target.value));
+              markDirty();
+            }}
+          >
+            <option value="">—</option>
+            <option value="1">★</option>
+            <option value="2">★ ★</option>
+            <option value="3">★ ★ ★</option>
+            <option value="4">★ ★ ★ ★</option>
+            <option value="5">★ ★ ★ ★ ★</option>
+          </Select>
+        </Field>
+        <Field label="Last made">
+          <Input
+            type="date"
+            value={lastMadeDate}
+            onChange={onChangeText(setLastMadeDate)}
+          />
+        </Field>
+      </div>
+
       <Field
         label="Ingredients"
         hint="One per line. Use ## Heading for sections (e.g. ## For the sauce)."
@@ -449,32 +484,6 @@ export function RecipeForm({
             value={totalTime}
             onChange={onChangeText(setTotalTime)}
             placeholder="1 hr"
-          />
-        </Field>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-        <Field label="Rating">
-          <Select
-            value={rating}
-            onChange={(e) => {
-              setRating(e.target.value === "" ? "" : Number(e.target.value));
-              markDirty();
-            }}
-          >
-            <option value="">—</option>
-            <option value="1">★</option>
-            <option value="2">★ ★</option>
-            <option value="3">★ ★ ★</option>
-            <option value="4">★ ★ ★ ★</option>
-            <option value="5">★ ★ ★ ★ ★</option>
-          </Select>
-        </Field>
-        <Field label="Last made">
-          <Input
-            type="date"
-            value={lastMadeDate}
-            onChange={onChangeText(setLastMadeDate)}
           />
         </Field>
       </div>

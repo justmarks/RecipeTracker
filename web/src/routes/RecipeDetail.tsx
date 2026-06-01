@@ -294,6 +294,30 @@ export function RecipeDetail() {
         {recipe.title}
       </h1>
 
+      {/*
+        Rating + last-made sits ABOVE tags per the design system update —
+        these are the user's personal relationship to the recipe (how
+        they rated it, when they last cooked it) and earn the prime
+        slot just under the title. Tags are recipe-descriptive metadata
+        and drop one slot down the visual hierarchy.
+      */}
+      {(recipe.rating || recipe.lastMadeDate) && (
+        <div className="mt-4 flex items-center gap-3 font-sans text-ink-500">
+          {recipe.rating && <StarRating value={recipe.rating} size={18} />}
+          {recipe.rating && recipe.lastMadeDate && (
+            <span aria-hidden="true" className="text-ink-300">
+              ·
+            </span>
+          )}
+          {recipe.lastMadeDate && (
+            <span className="inline-flex items-center gap-1.5 text-sm">
+              <Icon name="clock" size={14} />
+              Last made {formatDate(recipe.lastMadeDate)}
+            </span>
+          )}
+        </div>
+      )}
+
       {recipe.tags.length > 0 && (
         <div className="mt-3 flex gap-1.5 flex-wrap">
           {recipe.tags.map((t) => (
@@ -324,23 +348,6 @@ export function RecipeDetail() {
       {metaItems.length > 0 && (
         <div className="mt-6 px-5 py-4 bg-paper-50 rounded-lg border border-[var(--border-faint)]">
           <MetaRow items={metaItems} />
-        </div>
-      )}
-
-      {(recipe.rating || recipe.lastMadeDate) && (
-        <div className="mt-4 flex items-center gap-3 font-sans text-ink-500">
-          {recipe.rating && <StarRating value={recipe.rating} size={18} />}
-          {recipe.rating && recipe.lastMadeDate && (
-            <span aria-hidden="true" className="text-ink-300">
-              ·
-            </span>
-          )}
-          {recipe.lastMadeDate && (
-            <span className="inline-flex items-center gap-1.5 text-sm">
-              <Icon name="clock" size={14} />
-              Last made {formatDate(recipe.lastMadeDate)}
-            </span>
-          )}
         </div>
       )}
 
