@@ -627,21 +627,32 @@ function RecentlyAdded({
 /**
  * Card variant of the recipe summary — 4:3 photo on top, category
  * eyebrow + Newsreader title + mono total time below. Used by
- * RecentlyAdded; not currently used elsewhere but kept as a standalone
- * component so search-result grids and "shared with me" surfaces could
- * lift it without refactor.
+ * RecentlyAdded; kept as a standalone component so search-result
+ * grids and "shared with me" surfaces can reuse without refactor.
+ *
+ * Uses the overlay-link pattern (absolute-positioned Link at z-0 +
+ * sibling favorite button at z-10) for the same reason RecipeRow
+ * does: nesting a <button> inside an <a> is invalid HTML and React
+ * warns. Clicks on the heart hit the button; clicks anywhere else
+ * fall through to the link.
  */
 function RecipeCard({ recipe }: { recipe: RecipeSummary }) {
+  const favoriteCtx = useContext(FavoriteContext);
+  const isFav = favoriteCtx?.favorites.has(recipe.id) ?? false;
+
   return (
-    <Link
-      to={`/recipes/${recipe.id}`}
+    <div
       className={[
-        "group flex flex-col bg-white rounded-lg overflow-hidden",
+        "group relative flex flex-col bg-white rounded-lg overflow-hidden",
         "shadow-xs hover:shadow-md -translate-y-0 hover:-translate-y-px",
         "transition-[box-shadow,transform] duration-100 ease-out",
-        "no-underline",
       ].join(" ")}
     >
+      <Link
+        to={`/recipes/${recipe.id}`}
+        aria-label={`Open ${recipe.title}`}
+        className="absolute inset-0 z-0 rounded-lg no-underline"
+      />
       <PhotoFrame
         src={recipe.photoUrl}
         alt=""
@@ -649,9 +660,36 @@ function RecipeCard({ recipe }: { recipe: RecipeSummary }) {
         radius="none"
         border={false}
       />
+      {favoriteCtx && (
+        <button
+          type="button"
+          onClick={(e) => {
+            // Button sits above the overlay link via z-10, so this
+            // click never reaches the link — but stop just in case
+            // a future style change drops the z-index ordering.
+            e.stopPropagation();
+            favoriteCtx.onToggle(recipe.id);
+          }}
+          aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+          aria-pressed={isFav}
+          className={[
+            // Translucent cream chip so the heart reads on any
+            // photo backdrop (light kitchen shots and dark roasts
+            // both happen) without competing with the recipe imagery.
+            "absolute top-2 right-2 z-10 p-1.5 rounded-full",
+            "bg-paper-50/85 backdrop-blur-sm shadow-xs",
+            "transition-colors duration-100",
+            isFav
+              ? "text-tomato-500 hover:text-tomato-600"
+              : "text-ink-500 hover:text-tomato-500",
+          ].join(" ")}
+        >
+          <Icon name="heart" size={16} filled={isFav} />
+        </button>
+      )}
       <div className="px-3.5 py-3 flex flex-col gap-0.5">
         <Eyebrow className="capitalize">{recipe.category}</Eyebrow>
-        <div className="font-display font-medium text-baseleading-[1.2] tracking-[-0.005em] text-ink-900 mt-0.5 line-clamp-2">
+        <div className="font-display font-medium text-base leading-[1.2] tracking-[-0.005em] text-ink-900 mt-0.5 line-clamp-2">
           {recipe.title}
         </div>
         {recipe.totalTime && (
@@ -660,7 +698,7 @@ function RecipeCard({ recipe }: { recipe: RecipeSummary }) {
           </div>
         )}
       </div>
-    </Link>
+    </div>
   );
 }
 

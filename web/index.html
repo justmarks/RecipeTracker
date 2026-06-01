@@ -12,6 +12,15 @@
     <title>Marks Family Recipe Book</title>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
+    <!--
+      Standards-track replacement for apple-mobile-web-app-capable
+      (Chrome 108+ warns about the apple- form). We keep BOTH because
+      iOS Safari still only honors the apple-prefixed version — the
+      standards-track one is for Chromium-based browsers and silences
+      the console deprecation warning. Drop the apple- form once
+      WebKit ships the unprefixed support.
+    -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Recipes" />
