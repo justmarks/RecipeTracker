@@ -69,8 +69,5 @@ export function tagToneFor(
   const t = tag.toLowerCase();
   const override = palette?.[t];
   if (override) return override;
-  if (t === "vegetarian" || t === "vegan") return "olive";
-  if (t === "gluten-free" || t === "dairy-free") return "saffron";
-  if (t === "birthday" || t === "dessert") return "plum";
   return "default";
 }
