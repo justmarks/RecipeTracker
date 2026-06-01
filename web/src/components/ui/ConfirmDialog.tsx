@@ -95,7 +95,15 @@ export function ConfirmDialog({
           <Button type="button" variant="ghost" onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button type="submit" variant="primary">
+          {/*
+            autoFocus on the primary action so the dialog opens with
+            focus on Confirm. Native <dialog> otherwise auto-focuses
+            the first focusable element (the Cancel button), and when
+            a button has focus, Enter fires a click on THAT button —
+            bypassing the form's default-submit mechanism. The user's
+            "Delete tag" + Enter would land on "Keep" without this.
+          */}
+          <Button type="submit" variant="primary" autoFocus>
             {confirmLabel}
           </Button>
         </div>
