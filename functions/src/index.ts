@@ -6,6 +6,7 @@ export {importFromUrl} from "./importFromUrl";
 export {importFromImage} from "./importFromImage";
 export {shareRecipe, unshareRecipe} from "./shareRecipe";
 export {grantAutoShare, revokeAutoShare} from "./autoShare";
+export {generateGroceryList} from "./generateGroceryList";
 export {
   cleanupRecipePhotoOnDelete,
   cleanupRecipePhotoOnUpdate,

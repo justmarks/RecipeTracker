@@ -11,6 +11,7 @@ import { Chapters } from "./routes/Chapters";
 import { Tags } from "./routes/Tags";
 import { MealPlans } from "./routes/MealPlans";
 import { MealPlanDetail } from "./routes/MealPlanDetail";
+import { GroceryList } from "./routes/GroceryList";
 import { Sharing } from "./routes/Sharing";
 import { Account } from "./routes/Account";
 
@@ -52,6 +53,7 @@ export function App() {
         <Route path="/tags" element={<Tags />} />
         <Route path="/meal-plans" element={<MealPlans />} />
         <Route path="/meal-plans/:id" element={<MealPlanDetail />} />
+        <Route path="/meal-plans/:id/grocery" element={<GroceryList />} />
         <Route path="/settings/sharing" element={<Sharing />} />
         <Route path="/account" element={<Account />} />
       </Route>

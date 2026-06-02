@@ -52,6 +52,63 @@ export const PrepSectionSchema = z.object({
 });
 export type PrepSection = z.infer<typeof PrepSectionSchema>;
 
+/**
+ * The ten shopping categories the user requested. Stored as a kebab-
+ * case slug so the enum survives display-label changes. Order matters
+ * — sections render in this order on the grocery list page, top to
+ * bottom following the rough "perishables first / pantry last" trip
+ * pattern the user wrote out.
+ */
+export const GROCERY_CATEGORIES = [
+  "fruits",
+  "vegetables",
+  "meats",
+  "dairy",
+  "cheeses",
+  "baking-and-dry-goods",
+  "bread-and-crackers",
+  "beverages",
+  "paper-goods",
+  "misc",
+] as const;
+
+export type GroceryCategory = (typeof GROCERY_CATEGORIES)[number];
+
+/**
+ * Human-readable category headings — keep aligned with GROCERY_CATEGORIES
+ * for the strict-enum lookup the UI uses when rendering section headers
+ * and the print layout.
+ */
+export const GROCERY_CATEGORY_LABELS: Record<GroceryCategory, string> = {
+  "fruits": "Fruits",
+  "vegetables": "Vegetables",
+  "meats": "Meats",
+  "dairy": "Dairy",
+  "cheeses": "Cheeses",
+  "baking-and-dry-goods": "Baking and Dry Goods",
+  "bread-and-crackers": "Bread and Crackers",
+  "beverages": "Beverages",
+  "paper-goods": "Paper Goods",
+  "misc": "Misc",
+};
+
+export const GroceryItemSchema = z.object({
+  /**
+   * Shopping line as it should appear on the printed list — e.g.,
+   * "Yellow onions (3 medium)" or "All-purpose flour (3 cups total)".
+   * Quantity + name combined into one shopper-friendly string so the
+   * cart can be checked off without parsing.
+   */
+  text: z.string().min(1).max(280),
+  category: z.enum(GROCERY_CATEGORIES),
+});
+export type GroceryItem = z.infer<typeof GroceryItemSchema>;
+
+export const GroceryListSchema = z.object({
+  items: z.array(GroceryItemSchema),
+});
+export type GroceryList = z.infer<typeof GroceryListSchema>;
+
 export const MealPlanInputSchema = z.object({
   name: z.string().min(1).max(200),
   notes: z.string().optional(),

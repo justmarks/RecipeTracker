@@ -15,8 +15,10 @@ import {
   where,
 } from "firebase/firestore";
 import type { DocumentData } from "firebase/firestore";
-import { db } from "./firebase";
-import type { Guest, PrepSection } from "shared";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "./firebase";
+import type { Guest, GroceryList, PrepSection } from "shared";
+import { newClientId, parseMealPlanDoc } from "./mealPlansCore";
 
 /**
  * Stored meal-plan shape. Mirrors the recipes/{id} convention: ownerId
@@ -32,28 +34,31 @@ export type MealPlan = {
   guests: Guest[];
   recipeIds: string[];
   prepSections: PrepSection[];
+  /** Cached grocery list from the last generation. Absent until the
+   *  user generates one. Mirrored back to Firestore by the Cloud
+   *  Function so a reload of the plan picks it up from the snapshot. */
+  groceryList?: GroceryList;
+  /** Server timestamp set by the Cloud Function on each generation.
+   *  Compared against the plan's `updatedAt` so the UI can flag the
+   *  list as stale when recipes change after generation. */
+  groceryListGeneratedAt?: Timestamp;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };
 
 function fromDoc(id: string, data: DocumentData): MealPlan {
+  // Pure parsing + back-compat lives in mealPlansCore so it can be
+  // unit-tested without the firebase SDK. We re-attach the Firestore
+  // Timestamp types on the way out — parseMealPlanDoc keeps timestamps
+  // as `unknown` because it has no firebase types in scope.
+  const parsed = parseMealPlanDoc(id, data as Record<string, unknown>);
   return {
-    id,
-    ownerId: data.ownerId,
-    name: data.name ?? "",
-    notes: (data.notes as string | undefined) || undefined,
-    guests: Array.isArray(data.guests) ? (data.guests as Guest[]) : [],
-    recipeIds: Array.isArray(data.recipeIds)
-      ? (data.recipeIds as string[])
-      : [],
-    // prepSections is back-compat optional — old docs predate the field
-    // and read as an empty list so the UI doesn't have to special-case
-    // missing data.
-    prepSections: Array.isArray(data.prepSections)
-      ? (data.prepSections as PrepSection[])
-      : [],
-    createdAt: data.createdAt as Timestamp | undefined,
-    updatedAt: data.updatedAt as Timestamp | undefined,
+    ...parsed,
+    createdAt: parsed.createdAt as Timestamp | undefined,
+    updatedAt: parsed.updatedAt as Timestamp | undefined,
+    groceryListGeneratedAt: parsed.groceryListGeneratedAt as
+      | Timestamp
+      | undefined,
   };
 }
 
@@ -236,21 +241,27 @@ export async function removeRecipeFromMealPlan(
   });
 }
 
-/**
- * Generate a stable, client-side id. Used by the guest list and prep
- * list editors so React keys + delete-by-id work without index churn
- * when entries are added or removed. Falls back to a timestamp +
- * random suffix if `crypto.randomUUID` isn't available (older Safari).
- */
-function newClientId(): string {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
+// Re-export the id helper from the pure-helpers module under the names
+// the UI uses at call sites. Same implementation behind both — see
+// mealPlansCore.newClientId for the rationale.
 export const newGuestId = newClientId;
 export const newPrepId = newClientId;
+
+/**
+ * Call the generateGroceryList Cloud Function for the given plan.
+ * The function fetches the plan's recipes, runs them through Claude
+ * for consolidation + categorization, writes the result onto the
+ * plan doc (so the live snapshot updates automatically), and also
+ * returns it here for the caller's convenience.
+ *
+ * Throws on auth / permission / server errors with the HttpsError
+ * message — the caller surfaces it to the user.
+ */
+export async function generateGroceryList(planId: string): Promise<GroceryList> {
+  const call = httpsCallable<{ planId: string }, GroceryList>(
+    functions,
+    "generateGroceryList",
+  );
+  const result = await call({ planId });
+  return result.data;
+}

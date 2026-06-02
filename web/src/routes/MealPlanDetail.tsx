@@ -317,6 +317,20 @@ export function MealPlanDetail() {
           All plans
         </Button>
         <div className="flex items-center gap-2 shrink-0">
+          <Link
+            to={`/meal-plans/${id}/grocery`}
+            className="no-underline"
+            aria-label="Grocery list"
+          >
+            <Button
+              type="button"
+              variant="secondary"
+              icon="sparkles"
+              size="sm"
+            >
+              <span className="hidden sm:inline">Grocery list</span>
+            </Button>
+          </Link>
           <Button
             type="button"
             variant="secondary"

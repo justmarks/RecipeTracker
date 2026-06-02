@@ -15,12 +15,16 @@ import {
 import type { FieldValue, WriteBatch } from "firebase/firestore";
 import { db } from "./firebase";
 import { useRecipeList } from "./queryRecipes";
-import { TAG_TONES } from "../components/ui";
 import type { TagTone } from "../components/ui";
+import {
+  buildTagColorsDiff,
+  isTagTone,
+  normalizeTag as normalizeTagCore,
+} from "./tagsCore";
 
-// Build a Set once for the type-guard below. Source of truth lives in
-// Tag.tsx so the validator always tracks the palette additions.
-const VALID_TONES = new Set<string>(TAG_TONES);
+// Re-export so the public surface of this module stays stable for the
+// recipe form and tag management UI.
+export const normalizeTag = normalizeTagCore;
 
 const FIRESTORE_BATCH_LIMIT = 500;
 
@@ -29,23 +33,20 @@ function userDocRef(uid: string) {
 }
 
 /**
- * Build a `tagColors` write payload that ACTUALLY deletes removed keys.
- *
- * setDoc(ref, { tagColors: nextPalette }, { merge: true }) does a
- * recursive deep merge on the nested map — keys we just dropped from
- * `nextPalette` survive in the stored doc because the write never
- * mentions them. Firestore's `deleteField()` sentinel is the only way
- * to remove a key from a nested map via a merging write, so we splice
- * it in for every key that was in `previous` but is gone from `next`.
+ * Translate a TagColorsDiff into a Firestore write payload. setDoc
+ * with `merge: true` deep-merges nested maps and silently keeps any
+ * pre-existing keys we didn't mention, so deletions have to be
+ * expressed with `deleteField()` sentinels — that's what this layer
+ * does. The diff math lives in tagsCore so unit tests can exercise it
+ * without the firebase SDK in scope.
  */
 function buildTagColorsWrite(
   previous: Record<string, string>,
   next: Record<string, string>,
 ): Record<string, string | FieldValue> {
-  const out: Record<string, string | FieldValue> = { ...next };
-  for (const k of Object.keys(previous)) {
-    if (!(k in next)) out[k] = deleteField();
-  }
+  const diff = buildTagColorsDiff(previous, next);
+  const out: Record<string, string | FieldValue> = { ...diff.set };
+  for (const k of diff.del) out[k] = deleteField();
   return out;
 }
 
@@ -65,16 +66,6 @@ function writePalette(
     return;
   }
   return setDoc(userDocRef(uid), payload, { merge: true });
-}
-
-/**
- * Normalize a tag for storage. Tags are stored lowercase + collapsed
- * whitespace so "Vegetarian " and "vegetarian" reconcile. Display can
- * apply capitalize via CSS, but storage stays lowercase to match the
- * existing convention (see RecipeForm submit, tagToneFor lookup).
- */
-export function normalizeTag(raw: string): string {
-  return raw.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 export type TagPalette = Record<string, TagTone>;
@@ -110,7 +101,7 @@ export function useTagPalette(uid: string | undefined): {
           // than crash on a typo.
           const cleaned: TagPalette = {};
           for (const [k, v] of Object.entries(raw)) {
-            if (VALID_TONES.has(v)) cleaned[k] = v as TagTone;
+            if (isTagTone(v)) cleaned[k] = v;
           }
           setPalette(cleaned);
         } else {
