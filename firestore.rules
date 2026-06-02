@@ -105,6 +105,43 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // ---------- Meal plans ----------
+
+    function isValidMealPlan(data) {
+      return data.ownerId is string
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 200
+        && data.recipeIds is list
+        && data.guests is list
+        // prepSections is optional for back-compat with plans created
+        // before the prep list shipped; when present it must be a list.
+        && (!('prepSections' in data) || data.prepSections is list)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /mealPlans/{planId} {
+      // Owner-scoped — no sharing in v1. Lists, detail reads, and writes
+      // all go through this single ownerId check. If we later add
+      // collaborative meal plans we'd mirror the recipes `sharedWith` /
+      // autoShares pattern here.
+      allow read: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid;
+
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && isValidMealPlan(request.resource.data);
+
+      allow update: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
+        && isValidMealPlan(request.resource.data);
+
+      allow delete: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid;
+    }
+
     match /autoShares/{shareId} {
       // Owner can manage their grants; grantee can read grants targeting them
       // (needed for the recipe-list query that fans out across granted owners).

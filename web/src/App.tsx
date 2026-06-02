@@ -9,6 +9,8 @@ import { EditRecipe } from "./routes/EditRecipe";
 import { RecipeDetail } from "./routes/RecipeDetail";
 import { Chapters } from "./routes/Chapters";
 import { Tags } from "./routes/Tags";
+import { MealPlans } from "./routes/MealPlans";
+import { MealPlanDetail } from "./routes/MealPlanDetail";
 import { Sharing } from "./routes/Sharing";
 import { Account } from "./routes/Account";
 
@@ -48,6 +50,8 @@ export function App() {
         <Route path="/import" element={<Import />} />
         <Route path="/chapters" element={<Chapters />} />
         <Route path="/tags" element={<Tags />} />
+        <Route path="/meal-plans" element={<MealPlans />} />
+        <Route path="/meal-plans/:id" element={<MealPlanDetail />} />
         <Route path="/settings/sharing" element={<Sharing />} />
         <Route path="/account" element={<Account />} />
       </Route>

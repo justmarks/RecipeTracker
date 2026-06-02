@@ -50,6 +50,7 @@ function activeTabId(pathname: string): Tab["id"] {
     pathname.startsWith("/account") ||
     pathname.startsWith("/chapters") ||
     pathname.startsWith("/tags") ||
+    pathname.startsWith("/meal-plans") ||
     pathname.startsWith("/settings")
   ) {
     return "you";

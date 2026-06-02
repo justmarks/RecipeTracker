@@ -22,6 +22,7 @@ import {
   tagToneFor,
 } from "../components/ui";
 import { ShareDialog } from "../components/ShareDialog";
+import { AddToMealPlanDialog } from "../components/AddToMealPlanDialog";
 
 type SharedWithDetail = { uid: string; email: string };
 
@@ -79,6 +80,7 @@ export function RecipeDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [addToPlanOpen, setAddToPlanOpen] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -208,6 +210,16 @@ export function RecipeDetail() {
           </span>
         </Button>
       )}
+      <Button
+        type="button"
+        variant="secondary"
+        icon="utensils"
+        size="sm"
+        onClick={() => setAddToPlanOpen(true)}
+        aria-label="Add to meal plan"
+      >
+        <span className="hidden sm:inline">Add to plan</span>
+      </Button>
       {isOwner && (
         <Link to={`/recipes/${id}/edit`} className="no-underline">
           <Button variant="secondary" icon="pencil" size="sm" type="button" aria-label="Edit">
@@ -456,6 +468,16 @@ export function RecipeDetail() {
                 : prev,
             )
           }
+        />
+      )}
+
+      {id && (
+        <AddToMealPlanDialog
+          open={addToPlanOpen}
+          recipeId={id}
+          recipeTitle={recipe.title}
+          onClose={() => setAddToPlanOpen(false)}
+          onMessage={(msg) => toast.show(msg)}
         />
       )}
     </article>

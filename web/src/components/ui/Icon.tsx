@@ -40,6 +40,8 @@ export type IconName =
   | "heart"
   | "grip-vertical"
   | "git-merge"
+  | "utensils"
+  | "printer"
   | "image";
 
 const ICON_PATHS: Record<IconName, ReactElement> = {
@@ -212,6 +214,27 @@ const ICON_PATHS: Record<IconName, ReactElement> = {
       <circle cx="18" cy="18" r="3" />
       <circle cx="6" cy="6" r="3" />
       <path d="M6 21 V9 a9 9 0 0 0 9 9" />
+    </>
+  ),
+  // Fork + knife — the meal-plan affordance. Left shape is a fork
+  // (tines down at top, handle to bottom); right shape is a knife
+  // (broad blade at top, handle to bottom). Same outline-only feel
+  // as the rest of the icon set.
+  utensils: (
+    <>
+      <path d="M3 2 v7 a2 2 0 0 0 2 2 h1 v11" />
+      <path d="M7 2 v9" />
+      <path d="M11 2 v9" />
+      <path d="M21 15 V2 a5 5 0 0 0-5 5 v6 a2 2 0 0 0 2 2 h3 v7" />
+    </>
+  ),
+  // Printer — used by the meal-plan print button. Compact paper +
+  // body + paper-out stack reads as a desk printer at any size.
+  printer: (
+    <>
+      <polyline points="6 9 6 2 18 2 18 9" />
+      <path d="M6 18 H4 a2 2 0 0 1-2-2 v-5 a2 2 0 0 1 2-2 h16 a2 2 0 0 1 2 2 v5 a2 2 0 0 1-2 2 h-2" />
+      <rect x="6" y="14" width="12" height="8" />
     </>
   ),
 };

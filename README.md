@@ -22,6 +22,7 @@ A personal recipe library — installable as a PWA on desktop, Android, and iOS 
 - Categories (chapters) — fully user-managed: rename, reorder, add, delete. Default chapters seeded on first sign-in: Appetizer · Side · Sauce · Soup · Salad · Entrée · Dessert
 - **Auto-Uncategorized on chapter delete** — deleting a chapter with recipes still in it atomically reassigns them to an "Uncategorized" chapter (auto-created if it doesn't exist yet) so recipes never get orphaned
 - Tags: Vegetarian, Gluten Free, and any others you add
+- Meal Plans: Select recipes
 
 **Find & share**
 - Search recipes by keyword or by ingredient
@@ -188,7 +189,6 @@ Uses the Firebase Admin SDK; requires a service-account key.
 Tracked here so they don't get lost:
 
 - **Grocery list generation** — multi-select recipes → consolidated list
-- **Meal plan** — pick N recipes and produce a plan for an event
 - **Unit conversion** — cups / tsp ↔ grams for common ingredients (flour, sugar, etc.)
 
 ## Known issues

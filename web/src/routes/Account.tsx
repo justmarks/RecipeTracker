@@ -76,6 +76,13 @@ export function Account() {
           iconFg="text-plum-700"
           label="Manage tags"
         />
+        <SettingsRow
+          to="/meal-plans"
+          icon="utensils"
+          iconBg="bg-saffron-100"
+          iconFg="text-saffron-700"
+          label="Meal plans"
+        />
       </SettingsSection>
 
       <SettingsSection label="Sharing">

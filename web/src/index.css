@@ -508,4 +508,96 @@
     color: var(--ink-900) !important;
     text-decoration: underline;
   }
+
+  /* ---------- Meal-plan-specific overrides ----------
+     The meal plan detail page is an editable form on screen (guest
+     name inputs, notes textarea, segmented toggles) but a printed
+     run-of-show document on paper. These overrides flatten the form
+     controls into plain text and unify their typography with the rest
+     of the article. The `.meal-plan-print` class scopes everything so
+     other forms-on-print pages don't inherit these rules.
+  */
+  .meal-plan-print input[type="text"],
+  .meal-plan-print textarea {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    resize: none !important;
+    font-family: var(--font-sans) !important;
+    color: var(--ink-900) !important;
+  }
+
+  /* Empty inputs (no guest name typed) shouldn't print blank lines
+     where their placeholder would be — strip the placeholder visually. */
+  .meal-plan-print input[type="text"]::placeholder,
+  .meal-plan-print textarea::placeholder {
+    color: transparent !important;
+  }
+
+  /* Strip the bordered card backgrounds for guest + recipe lists so
+     the printed list reads as a single flowing column instead of a
+     bordered web component. */
+  .meal-plan-print ul {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .meal-plan-print ul li {
+    border-bottom: 1px solid var(--ink-100) !important;
+    padding: 6pt 0 !important;
+  }
+  .meal-plan-print ul li:last-child {
+    border-bottom: none !important;
+  }
+
+  /* Prep list — sections are bordered cards on screen but should
+     print as a heading + flat checklist. Strip the card chrome and
+     pull the heading into its own line. */
+  .meal-plan-print .prep-list > div > div {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    page-break-inside: auto;
+  }
+  .meal-plan-print .prep-section-header {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 0 4pt 0 !important;
+  }
+  .meal-plan-print .prep-section-header input {
+    font-family: var(--font-display) !important;
+    font-size: 14pt !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.01em;
+    color: var(--ink-900) !important;
+  }
+  /* Render each checklist item as `☐ task` on paper. The
+     unchecked checkbox uses a solid-bordered square; done items get
+     a filled square via [data-done="true"]. Strike-through done
+     items so a printed list is scannable at a glance. */
+  .meal-plan-print .prep-items li {
+    align-items: baseline !important;
+    padding: 3pt 0 !important;
+    border-bottom: none !important;
+  }
+  .meal-plan-print .prep-items [role="checkbox"] {
+    width: 11pt !important;
+    height: 11pt !important;
+    border: 1pt solid var(--ink-700) !important;
+    border-radius: 1pt !important;
+    background: transparent !important;
+    color: transparent !important;
+  }
+  .meal-plan-print .prep-items [role="checkbox"][data-done="true"] {
+    background: var(--ink-700) !important;
+    color: white !important;
+  }
+  .meal-plan-print .prep-items input {
+    font-size: 11pt !important;
+  }
+  .meal-plan-print .prep-items li[data-done="true"] input,
+  .meal-plan-print .prep-items input.line-through {
+    text-decoration: line-through !important;
+    color: var(--ink-500) !important;
+  }
 }
