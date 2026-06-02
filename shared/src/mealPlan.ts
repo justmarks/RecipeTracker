@@ -17,14 +17,24 @@ import { z } from "zod";
  * via useRecipeList picks up those entries automatically.
  */
 
-export const GuestSchema = z.object({
-  // Stable client-generated id so React keys + delete-by-id work
-  // without index churn when guests are added or removed.
+/**
+ * A guest group — typically a family unit ("McMullen Family"), but
+ * could be a single person ("Alex") or any other named cluster. We
+ * track aggregate adult + kid counts rather than each person by name
+ * because that's the level of detail the cook actually needs to plan
+ * portions, and listing every kid individually was the verbosity the
+ * user pushed back on.
+ *
+ * `name` can be empty during editing — the row survives a refresh
+ * while the user is still typing.
+ */
+export const GuestGroupSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1).max(100),
-  type: z.enum(["adult", "child"]),
+  name: z.string().max(120),
+  adults: z.number().int().min(0).max(50),
+  kids: z.number().int().min(0).max(50),
 });
-export type Guest = z.infer<typeof GuestSchema>;
+export type GuestGroup = z.infer<typeof GuestGroupSchema>;
 
 /**
  * A single TODO entry inside a prep section. Text can be empty during
@@ -129,10 +139,23 @@ export type AdditionalItem = z.infer<typeof AdditionalItemSchema>;
 export const MealPlanInputSchema = z.object({
   name: z.string().min(1).max(200),
   notes: z.string().optional(),
-  guests: z.array(GuestSchema),
+  guests: z.array(GuestGroupSchema),
   recipeIds: z.array(z.string().min(1)),
-  // Optional for back-compat — meal plans created before the prep
-  // list shipped don't carry the field. The UI defaults to [] on read.
+  /**
+   * Prep notes — a single markdown document with headers, bullets,
+   * numbered + task lists, bold/italic, links. Replaces the older
+   * structured prepSections shape; the parser maps legacy values to
+   * this string at read time so existing meal plans still render.
+   *
+   * Optional for back-compat — old plans don't have it; the UI
+   * defaults to empty string on read.
+   */
+  prepNotes: z.string().max(20_000).optional(),
+  /**
+   * Optional for back-compat — old plans don't carry this. The
+   * parser also tolerates this shape for callers that haven't been
+   * migrated to prepNotes yet (e.g. local cached docs).
+   */
   prepSections: z.array(PrepSectionSchema).optional(),
   // Optional for back-compat with plans created before non-recipe
   // additions shipped.

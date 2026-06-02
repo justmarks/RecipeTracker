@@ -18,9 +18,8 @@ import { httpsCallable } from "firebase/functions";
 import { db, functions } from "./firebase";
 import type {
   AdditionalItem,
-  Guest,
+  GuestGroup,
   GroceryList,
-  PrepSection,
 } from "shared";
 import { newClientId, parseMealPlanDoc } from "./mealPlansCore";
 
@@ -35,9 +34,13 @@ export type MealPlan = {
   ownerId: string;
   name: string;
   notes?: string;
-  guests: Guest[];
+  guests: GuestGroup[];
   recipeIds: string[];
-  prepSections: PrepSection[];
+  /** Prep notes as markdown — headers, bullets, numbered + task
+   *  lists, bold/italic, links. Empty string when nothing's been
+   *  written. Replaces the older structured prepSections shape;
+   *  legacy values are converted on read inside the parser. */
+  prepNotes: string;
   /** Non-recipe menu lines — store-bought items, contributions from
    *  guests, drinks. Always present; defaults to [] on old docs that
    *  predate the field. */
@@ -212,8 +215,8 @@ export async function updateMealPlanMeta(
   id: string,
   patch: {
     notes?: string;
-    guests?: Guest[];
-    prepSections?: PrepSection[];
+    guests?: GuestGroup[];
+    prepNotes?: string;
     additionalItems?: AdditionalItem[];
   },
 ): Promise<void> {
@@ -227,8 +230,8 @@ export async function updateMealPlanMeta(
   if (patch.guests !== undefined) {
     update.guests = patch.guests;
   }
-  if (patch.prepSections !== undefined) {
-    update.prepSections = patch.prepSections;
+  if (patch.prepNotes !== undefined) {
+    update.prepNotes = patch.prepNotes;
   }
   if (patch.additionalItems !== undefined) {
     update.additionalItems = patch.additionalItems;

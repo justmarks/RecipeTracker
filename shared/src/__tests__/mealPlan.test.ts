@@ -5,43 +5,68 @@ import {
   GROCERY_CATEGORY_LABELS,
   GroceryItemSchema,
   GroceryListSchema,
-  GuestSchema,
+  GuestGroupSchema,
   MealPlanInputSchema,
   PrepItemSchema,
   PrepSectionSchema,
 } from "../mealPlan";
 
-describe("GuestSchema", () => {
-  const valid = { id: "g1", name: "Alice", type: "adult" as const };
+describe("GuestGroupSchema", () => {
+  const valid = {
+    id: "g1",
+    name: "McMullen Family",
+    adults: 2,
+    kids: 2,
+  };
 
-  it("accepts a valid adult guest", () => {
-    expect(() => GuestSchema.parse(valid)).not.toThrow();
+  it("accepts a valid family group", () => {
+    expect(() => GuestGroupSchema.parse(valid)).not.toThrow();
   });
 
-  it("accepts a valid child guest", () => {
+  it("accepts an empty name (mid-edit state)", () => {
+    // Same back-compat pattern as PrepItem text — the row survives a
+    // refresh while the user is still typing.
     expect(() =>
-      GuestSchema.parse({ ...valid, type: "child" }),
+      GuestGroupSchema.parse({ ...valid, name: "" }),
     ).not.toThrow();
   });
 
+  it("accepts zero adults and zero kids", () => {
+    expect(() =>
+      GuestGroupSchema.parse({ ...valid, adults: 0, kids: 0 }),
+    ).not.toThrow();
+  });
+
+  it("rejects negative adult counts", () => {
+    expect(() =>
+      GuestGroupSchema.parse({ ...valid, adults: -1 }),
+    ).toThrow();
+  });
+
+  it("rejects negative kid counts", () => {
+    expect(() => GuestGroupSchema.parse({ ...valid, kids: -1 })).toThrow();
+  });
+
+  it("rejects fractional counts", () => {
+    expect(() =>
+      GuestGroupSchema.parse({ ...valid, adults: 1.5 }),
+    ).toThrow();
+  });
+
+  it("rejects counts above 50", () => {
+    expect(() =>
+      GuestGroupSchema.parse({ ...valid, adults: 51 }),
+    ).toThrow();
+  });
+
+  it("rejects name over 120 characters", () => {
+    expect(() =>
+      GuestGroupSchema.parse({ ...valid, name: "a".repeat(121) }),
+    ).toThrow();
+  });
+
   it("rejects empty id", () => {
-    expect(() => GuestSchema.parse({ ...valid, id: "" })).toThrow();
-  });
-
-  it("rejects empty name", () => {
-    expect(() => GuestSchema.parse({ ...valid, name: "" })).toThrow();
-  });
-
-  it("rejects name over 100 characters", () => {
-    expect(() =>
-      GuestSchema.parse({ ...valid, name: "a".repeat(101) }),
-    ).toThrow();
-  });
-
-  it("rejects unknown type", () => {
-    expect(() =>
-      GuestSchema.parse({ ...valid, type: "teen" as unknown as "adult" }),
-    ).toThrow();
+    expect(() => GuestGroupSchema.parse({ ...valid, id: "" })).toThrow();
   });
 });
 
@@ -339,14 +364,22 @@ describe("MealPlanInputSchema", () => {
     ).toThrow();
   });
 
-  it("accepts a populated guest list", () => {
+  it("accepts a populated family list", () => {
     const parsed = MealPlanInputSchema.parse({
       ...minimal,
       guests: [
-        { id: "g1", name: "Alice", type: "adult" },
-        { id: "g2", name: "Bobby", type: "child" },
+        { id: "g1", name: "McMullen Family", adults: 2, kids: 2 },
+        { id: "g2", name: "Singletons", adults: 4, kids: 0 },
       ],
     });
     expect(parsed.guests).toHaveLength(2);
+  });
+
+  it("accepts plans with prepNotes (the new markdown field)", () => {
+    const parsed = MealPlanInputSchema.parse({
+      ...minimal,
+      prepNotes: "## Day before\n- [ ] Brine turkey",
+    });
+    expect(parsed.prepNotes).toContain("Brine turkey");
   });
 });

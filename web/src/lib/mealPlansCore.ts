@@ -1,8 +1,7 @@
 import type {
   AdditionalItem,
-  Guest,
+  GuestGroup,
   GroceryList,
-  PrepSection,
 } from "shared";
 
 /**
@@ -25,15 +24,102 @@ export type ParsedMealPlan = {
   ownerId: string;
   name: string;
   notes?: string;
-  guests: Guest[];
+  guests: GuestGroup[];
   recipeIds: string[];
-  prepSections: PrepSection[];
+  /**
+   * Prep notes as markdown — empty string when the plan has none.
+   * Legacy plans with the old `prepSections` array are converted to
+   * markdown at parse time so the new editor can display them.
+   */
+  prepNotes: string;
   additionalItems: AdditionalItem[];
   groceryList?: GroceryList;
   groceryListGeneratedAt?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
 };
+
+/**
+ * Coerce the stored `guests` field into the new GuestGroup shape.
+ *
+ * Two cases:
+ *   1. New shape — each entry has `adults`/`kids` numeric counts.
+ *      Pass through unchanged.
+ *   2. Legacy shape — each entry has `name` + `type: "adult"|"child"`.
+ *      Tally totals and emit a single "Guests" group so the cook
+ *      still sees their headcount until they migrate manually.
+ *
+ * Defensive: anything that isn't an array becomes an empty list.
+ */
+export function parseGuestField(value: unknown): GuestGroup[] {
+  if (!Array.isArray(value)) return [];
+  if (value.length === 0) return [];
+
+  // Detect legacy shape: every item has `type` and lacks `adults`.
+  const isLegacy = value.every(
+    (v) =>
+      v &&
+      typeof v === "object" &&
+      typeof (v as Record<string, unknown>).type === "string" &&
+      typeof (v as Record<string, unknown>).adults !== "number",
+  );
+  if (isLegacy) {
+    let adults = 0;
+    let kids = 0;
+    for (const g of value) {
+      const t = (g as { type?: unknown }).type;
+      if (t === "adult") adults++;
+      else if (t === "child") kids++;
+    }
+    if (adults === 0 && kids === 0) return [];
+    return [{ id: "_legacy_guests", name: "Guests", adults, kids }];
+  }
+
+  // New shape — trust the stored values (defensive cast keeps non-
+  // numeric counts from crashing the page later).
+  return value
+    .filter(
+      (v): v is Record<string, unknown> =>
+        v != null && typeof v === "object",
+    )
+    .map((v) => ({
+      id: typeof v.id === "string" && v.id ? v.id : "guest_unknown",
+      name: typeof v.name === "string" ? v.name : "",
+      adults: typeof v.adults === "number" ? v.adults : 0,
+      kids: typeof v.kids === "number" ? v.kids : 0,
+    }));
+}
+
+/**
+ * Render legacy PrepSection[] as markdown so the new prep-notes
+ * editor can pick up where the structured editor left off. Each
+ * section becomes a level-2 heading; each item becomes a task-list
+ * row (`- [x]` for done, `- [ ]` for not done). Empty headings and
+ * empty items are skipped to avoid clutter.
+ */
+export function prepSectionsToMarkdown(sections: unknown): string {
+  if (!Array.isArray(sections)) return "";
+  const lines: string[] = [];
+  for (const section of sections) {
+    if (!section || typeof section !== "object") continue;
+    const heading = (section as { heading?: unknown }).heading;
+    const items = (section as { items?: unknown }).items;
+    if (typeof heading === "string" && heading.trim()) {
+      if (lines.length > 0) lines.push("");
+      lines.push(`## ${heading.trim()}`);
+    }
+    if (Array.isArray(items)) {
+      for (const it of items) {
+        if (!it || typeof it !== "object") continue;
+        const text = (it as { text?: unknown }).text;
+        const done = (it as { done?: unknown }).done;
+        if (typeof text !== "string" || !text.trim()) continue;
+        lines.push(`- [${done === true ? "x" : " "}] ${text.trim()}`);
+      }
+    }
+  }
+  return lines.join("\n");
+}
 
 /**
  * Project a Firestore doc snapshot's data into a ParsedMealPlan,
@@ -65,13 +151,17 @@ export function parseMealPlanDoc(
       typeof notesRaw === "string" && notesRaw.length > 0
         ? notesRaw
         : undefined,
-    guests: Array.isArray(data.guests) ? (data.guests as Guest[]) : [],
+    guests: parseGuestField(data.guests),
     recipeIds: Array.isArray(data.recipeIds)
       ? (data.recipeIds as string[])
       : [],
-    prepSections: Array.isArray(data.prepSections)
-      ? (data.prepSections as PrepSection[])
-      : [],
+    // Prefer the new markdown field when present. If only the legacy
+    // structured prepSections survives, render it to markdown so the
+    // new editor picks up the user's existing checklist.
+    prepNotes:
+      typeof data.prepNotes === "string" && data.prepNotes.length > 0
+        ? data.prepNotes
+        : prepSectionsToMarkdown(data.prepSections),
     additionalItems: Array.isArray(data.additionalItems)
       ? (data.additionalItems as AdditionalItem[])
       : [],
@@ -104,9 +194,3 @@ export function newClientId(): string {
     .slice(2, 10)}`;
 }
 
-/**
- * Allowed values for `Guest.type`. Kept here so the schema in shared/
- * and the UI form share a single source of truth.
- */
-export const GUEST_TYPES = ["adult", "child"] as const;
-export type GuestType = (typeof GUEST_TYPES)[number];

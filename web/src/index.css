@@ -509,6 +509,18 @@
     text-decoration: underline;
   }
 
+  /* Collapsible sections force open in print — if the user collapsed
+     a section and hits Print, they still expect the printed plan to
+     show the full content. Inline styles set grid-template-rows: 0fr
+     when closed; the !important here overrides them in @media print
+     only. Same for the overflow:hidden wrapper inside. */
+  .collapsible-panel {
+    grid-template-rows: 1fr !important;
+  }
+  .collapsible-panel > div {
+    overflow: visible !important;
+  }
+
   /* ---------- Meal-plan-specific overrides ----------
      The meal plan detail page is an editable form on screen (guest
      name inputs, notes textarea, segmented toggles) but a printed
@@ -550,55 +562,48 @@
     border-bottom: none !important;
   }
 
-  /* Prep list — sections are bordered cards on screen but should
-     print as a heading + flat checklist. Strip the card chrome and
-     pull the heading into its own line. */
-  .meal-plan-print .prep-list > div > div {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    page-break-inside: auto;
+  /* Prep notes — the rendered markdown preview prints as flat text.
+     Headings stay editorial; lists keep their disc / number markers;
+     task checkboxes print as solid-bordered squares (filled when
+     done). The preview always renders on print via a
+     `hidden print:block` wrapper in PrepNotesEditor, so even if the
+     user left the editor on the Write tab, the printed plan shows
+     the rendered version. */
+  .meal-plan-print .prep-notes-preview {
+    font-size: 11pt;
+    line-height: 1.45;
   }
-  .meal-plan-print .prep-section-header {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 0 4pt 0 !important;
+  .meal-plan-print .prep-notes-preview h1,
+  .meal-plan-print .prep-notes-preview h2,
+  .meal-plan-print .prep-notes-preview h3,
+  .meal-plan-print .prep-notes-preview h4,
+  .meal-plan-print .prep-notes-preview h5,
+  .meal-plan-print .prep-notes-preview h6 {
+    page-break-after: avoid;
+    margin-top: 8pt !important;
   }
-  .meal-plan-print .prep-section-header input {
-    font-family: var(--font-display) !important;
-    font-size: 14pt !important;
-    font-weight: 500 !important;
-    letter-spacing: -0.01em;
-    color: var(--ink-900) !important;
+  .meal-plan-print .prep-notes-preview ul,
+  .meal-plan-print .prep-notes-preview ol {
+    margin: 4pt 0 !important;
+    padding-left: 16pt !important;
   }
-  /* Render each checklist item as `☐ task` on paper. The
-     unchecked checkbox uses a solid-bordered square; done items get
-     a filled square via [data-done="true"]. Strike-through done
-     items so a printed list is scannable at a glance. */
-  .meal-plan-print .prep-items li {
-    align-items: baseline !important;
-    padding: 3pt 0 !important;
-    border-bottom: none !important;
+  .meal-plan-print .prep-notes-preview li {
+    margin: 2pt 0;
+    page-break-inside: avoid;
   }
-  .meal-plan-print .prep-items [role="checkbox"] {
-    width: 11pt !important;
-    height: 11pt !important;
-    border: 1pt solid var(--ink-700) !important;
+  .meal-plan-print .prep-notes-preview [role="checkbox"] {
+    width: 10pt !important;
+    height: 10pt !important;
+    border: 0.75pt solid var(--ink-700) !important;
     border-radius: 1pt !important;
     background: transparent !important;
     color: transparent !important;
   }
-  .meal-plan-print .prep-items [role="checkbox"][data-done="true"] {
+  .meal-plan-print
+    .prep-notes-preview
+    [role="checkbox"][aria-checked="true"] {
     background: var(--ink-700) !important;
     color: white !important;
-  }
-  .meal-plan-print .prep-items input {
-    font-size: 11pt !important;
-  }
-  .meal-plan-print .prep-items li[data-done="true"] input,
-  .meal-plan-print .prep-items input.line-through {
-    text-decoration: line-through !important;
-    color: var(--ink-500) !important;
   }
 
   /* Additional items — render the JSX print span (item name + an

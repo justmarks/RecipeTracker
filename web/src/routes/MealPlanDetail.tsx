@@ -13,14 +13,10 @@ import {
 import { useRecipeList } from "../lib/queryRecipes";
 import type { RecipeListItem } from "../lib/queryRecipes";
 import { useToast } from "../lib/useToast";
-import type {
-  AdditionalItem,
-  Guest,
-  PrepItem,
-  PrepSection,
-} from "shared";
+import type { AdditionalItem, GuestGroup } from "shared";
 import {
   Button,
+  CollapsibleSection,
   ConfirmDialog,
   Eyebrow,
   Icon,
@@ -29,6 +25,7 @@ import {
   SprigDivider,
   Textarea,
 } from "../components/ui";
+import { PrepNotesEditor } from "../components/PrepNotesEditor";
 
 /**
  * Meal plan detail — the editorial page where a plan lives. Inline
@@ -53,12 +50,20 @@ export function MealPlanDetail() {
   const [busy, setBusy] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
 
+  // Collapsible section state. Default expanded so first-time users
+  // see the affordances; click on the section header to collapse. We
+  // intentionally don't persist this across reloads — the page is
+  // short enough that the user's preference doesn't outweigh the
+  // discovery benefit of arriving at a fully-laid-out plan.
+  const [guestsOpen, setGuestsOpen] = useState(true);
+  const [prepOpen, setPrepOpen] = useState(true);
+
   // Local guest state with debounced save — the dialog-style "save when
   // the user pauses typing" pattern keeps every keystroke from hitting
   // Firestore while still feeling immediate. Notes use the same trick.
-  const [guests, setGuests] = useState<Guest[]>([]);
+  const [guests, setGuests] = useState<GuestGroup[]>([]);
   const [notes, setNotes] = useState("");
-  const [prepSections, setPrepSections] = useState<PrepSection[]>([]);
+  const [prepNotes, setPrepNotes] = useState("");
   const [additionalItems, setAdditionalItems] = useState<AdditionalItem[]>([]);
   const guestsHydratedRef = useRef(false);
   const notesHydratedRef = useRef(false);
@@ -76,7 +81,7 @@ export function MealPlanDetail() {
       notesHydratedRef.current = true;
     }
     if (!prepHydratedRef.current) {
-      setPrepSections(plan.prepSections);
+      setPrepNotes(plan.prepNotes);
       prepHydratedRef.current = true;
     }
     if (!additionalHydratedRef.current) {
@@ -122,13 +127,13 @@ export function MealPlanDetail() {
     if (!prepHydratedRef.current) return;
     if (!prepDirtyRef.current) return;
     const t = window.setTimeout(() => {
-      void updateMealPlanMeta(id, { prepSections }).catch((err) => {
-        console.error("Save prep:", err);
-        toast.show("Couldn't save prep list.");
+      void updateMealPlanMeta(id, { prepNotes }).catch((err) => {
+        console.error("Save prep notes:", err);
+        toast.show("Couldn't save prep notes.");
       });
     }, 600);
     return () => window.clearTimeout(t);
-  }, [prepSections, id, plan, toast]);
+  }, [prepNotes, id, plan, toast]);
 
   const additionalDirtyRef = useRef(false);
   useEffect(() => {
@@ -174,8 +179,11 @@ export function MealPlanDetail() {
   }
   if (!plan) return null;
 
-  const adultCount = guests.filter((g) => g.type === "adult").length;
-  const childCount = guests.filter((g) => g.type === "child").length;
+  // Aggregate across all families/groups so the summary chip + the
+  // meta line under the title both show consistent totals.
+  const adultCount = guests.reduce((sum, g) => sum + (g.adults || 0), 0);
+  const childCount = guests.reduce((sum, g) => sum + (g.kids || 0), 0);
+  const guestCount = adultCount + childCount;
 
   async function handleRename() {
     if (!id || !renameValue.trim()) return;
@@ -226,95 +234,35 @@ export function MealPlanDetail() {
     }
   }
 
-  function addGuest(type: Guest["type"]) {
+  // Guests — each row is a family/group, not an individual. We don't
+  // try to keep the same person across edits; the family stays put
+  // and the counts move.
+  function addFamily() {
     guestsDirtyRef.current = true;
     setGuests((prev) => [
       ...prev,
-      { id: newGuestId(), name: "", type },
+      { id: newGuestId(), name: "", adults: 0, kids: 0 },
     ]);
   }
 
-  function updateGuest(idx: number, patch: Partial<Guest>) {
+  function updateFamily(idx: number, patch: Partial<GuestGroup>) {
     guestsDirtyRef.current = true;
     setGuests((prev) =>
       prev.map((g, i) => (i === idx ? { ...g, ...patch } : g)),
     );
   }
 
-  function removeGuest(idx: number) {
+  function removeFamily(idx: number) {
     guestsDirtyRef.current = true;
     setGuests((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  // Prep list mutations — all mark dirty so the debounced effect picks
-  // them up. Operate on whole-array copies (no in-place mutation) so
-  // React re-renders cleanly.
-  function addPrepSection() {
+  // Prep notes — single markdown string. Both raw edits in the
+  // textarea and rendered-checkbox toggles route through the same
+  // setter, so the debounced save effect catches every mutation.
+  function setPrepNotesAndMarkDirty(next: string) {
     prepDirtyRef.current = true;
-    setPrepSections((prev) => [
-      ...prev,
-      { id: newPrepId(), heading: "", items: [] },
-    ]);
-  }
-
-  function updatePrepHeading(sectionIdx: number, heading: string) {
-    prepDirtyRef.current = true;
-    setPrepSections((prev) =>
-      prev.map((s, i) => (i === sectionIdx ? { ...s, heading } : s)),
-    );
-  }
-
-  function removePrepSection(sectionIdx: number) {
-    prepDirtyRef.current = true;
-    setPrepSections((prev) => prev.filter((_, i) => i !== sectionIdx));
-  }
-
-  function addPrepItem(sectionIdx: number) {
-    prepDirtyRef.current = true;
-    setPrepSections((prev) =>
-      prev.map((s, i) =>
-        i === sectionIdx
-          ? {
-              ...s,
-              items: [
-                ...s.items,
-                { id: newPrepId(), text: "", done: false },
-              ],
-            }
-          : s,
-      ),
-    );
-  }
-
-  function updatePrepItem(
-    sectionIdx: number,
-    itemIdx: number,
-    patch: Partial<PrepItem>,
-  ) {
-    prepDirtyRef.current = true;
-    setPrepSections((prev) =>
-      prev.map((s, i) =>
-        i === sectionIdx
-          ? {
-              ...s,
-              items: s.items.map((it, j) =>
-                j === itemIdx ? { ...it, ...patch } : it,
-              ),
-            }
-          : s,
-      ),
-    );
-  }
-
-  function removePrepItem(sectionIdx: number, itemIdx: number) {
-    prepDirtyRef.current = true;
-    setPrepSections((prev) =>
-      prev.map((s, i) =>
-        i === sectionIdx
-          ? { ...s, items: s.items.filter((_, j) => j !== itemIdx) }
-          : s,
-      ),
-    );
+    setPrepNotes(next);
   }
 
   // Additional items — non-recipe menu lines (Crudité, wine, bread the
@@ -465,9 +413,9 @@ export function MealPlanDetail() {
       )}
 
       <p className="mt-3 mb-0 font-sans text-sm text-ink-500">
-        {guests.length === 0
+        {guestCount === 0
           ? "No guests yet."
-          : guestSummary(guests.length, adultCount, childCount)}
+          : countSummary(adultCount, childCount)}
         {plan.recipeIds.length > 0 && (
           <>
             <span aria-hidden="true" className="text-ink-300">
@@ -481,135 +429,92 @@ export function MealPlanDetail() {
 
       <SprigDivider />
 
-      <section className="mb-8">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <h2 className="font-display text-xl font-medium text-ink-900 m-0">
-            Guests
-          </h2>
-          <div className="flex gap-2 print:hidden">
+      <div className="mb-8">
+        <CollapsibleSection
+          title="Guests"
+          open={guestsOpen}
+          onToggle={() => setGuestsOpen((v) => !v)}
+          alwaysShowSummary
+          summary={
+            guests.length === 0
+              ? "None yet"
+              : countSummary(adultCount, childCount)
+          }
+          actions={
             <Button
               type="button"
               variant="secondary"
               size="sm"
               icon="plus"
-              onClick={() => addGuest("adult")}
+              // Auto-expand on add so the new row is visible.
+              onClick={() => {
+                setGuestsOpen(true);
+                addFamily();
+              }}
             >
-              Adult
+              <span className="hidden sm:inline">Add family</span>
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              icon="plus"
-              onClick={() => addGuest("child")}
-            >
-              Kid
-            </Button>
-          </div>
-        </div>
-
-        {guests.length === 0 ? (
-          <p className="font-sans text-sm text-ink-500 m-0">
-            Add the people you&rsquo;re cooking for so you remember how many
-            portions to plan.
-          </p>
-        ) : (
-          <ul className="list-none m-0 p-0 bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden">
-            {guests.map((g, i) => (
-              <li
-                key={g.id}
-                className={[
-                  "flex items-center gap-2 px-3.5 py-2.5",
-                  i === guests.length - 1
-                    ? ""
-                    : "border-b border-[var(--border-faint)]",
-                ].join(" ")}
-              >
-                <Input
-                  value={g.name}
-                  onChange={(e) => updateGuest(i, { name: e.target.value })}
-                  placeholder={g.type === "adult" ? "Guest name" : "Kid's name"}
-                  className="flex-1 print:border-0 print:bg-transparent print:p-0"
-                />
-                <GuestTypeToggle
-                  value={g.type}
-                  onChange={(type) => updateGuest(i, { type })}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeGuest(i)}
-                  aria-label={`Remove ${g.name || "guest"}`}
-                  className="flex-none p-1.5 rounded text-ink-400 hover:text-tomato-700 hover:bg-tomato-50 transition-colors duration-100 print:hidden"
+          }
+        >
+          {guests.length === 0 ? (
+            <p className="font-sans text-sm text-ink-500 m-0">
+              Add the families you&rsquo;re cooking for so you remember
+              how many portions to plan. Each row tracks a group with
+              adult and kid counts.
+            </p>
+          ) : (
+            <ul className="list-none m-0 p-0 bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden">
+              {guests.map((g, i) => (
+                <li
+                  key={g.id}
+                  className={[
+                    "flex items-center gap-2 px-3.5 py-2.5 flex-wrap sm:flex-nowrap",
+                    i === guests.length - 1
+                      ? ""
+                      : "border-b border-[var(--border-faint)]",
+                  ].join(" ")}
                 >
-                  <Icon name="x" size={16} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                  {/* Screen: family name + numeric counts. Print:
+                      replace inputs with a one-line summary span. */}
+                  <Input
+                    value={g.name}
+                    onChange={(e) =>
+                      updateFamily(i, { name: e.target.value })
+                    }
+                    placeholder="McMullen Family"
+                    className="flex-1 min-w-[180px] print:hidden"
+                  />
+                  <CountStepper
+                    label="adults"
+                    value={g.adults}
+                    onChange={(adults) => updateFamily(i, { adults })}
+                  />
+                  <CountStepper
+                    label="kids"
+                    value={g.kids}
+                    onChange={(kids) => updateFamily(i, { kids })}
+                  />
+                  <span className="hidden print:inline font-sans">
+                    {g.name || "(unnamed)"} —{" "}
+                    {g.adults} adult{g.adults === 1 ? "" : "s"},{" "}
+                    {g.kids} kid{g.kids === 1 ? "" : "s"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeFamily(i)}
+                    aria-label={`Remove ${g.name || "family"}`}
+                    className="flex-none p-1.5 rounded text-ink-400 hover:text-tomato-700 hover:bg-tomato-50 transition-colors duration-100 print:hidden"
+                  >
+                    <Icon name="x" size={16} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CollapsibleSection>
+      </div>
 
-      <section className="mb-8">
-        <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-3">
-          Notes
-        </h2>
-        <Textarea
-          rows={4}
-          value={notes}
-          onChange={(e) => {
-            notesDirtyRef.current = true;
-            setNotes(e.target.value);
-          }}
-          placeholder="Menu order, timing, who's bringing what, anything you don't want to forget."
-          className="print:border-0 print:bg-transparent print:p-0"
-        />
-        {!notes && (
-          <span className="hidden print:block font-sans text-sm text-ink-500">
-            —
-          </span>
-        )}
-      </section>
-
-      <section className="mb-8 prep-list">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <h2 className="font-display text-xl font-medium text-ink-900 m-0">
-            Prep list
-          </h2>
-          <div className="print:hidden">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              icon="plus"
-              onClick={addPrepSection}
-            >
-              <span className="hidden sm:inline">Add day</span>
-            </Button>
-          </div>
-        </div>
-
-        {prepSections.length === 0 ? (
-          <p className="font-sans text-sm text-ink-500 m-0">
-            Tap &ldquo;Add day&rdquo; to start a running checklist —
-            sections like &ldquo;Two days before&rdquo; or &ldquo;Day
-            of&rdquo; with TODOs you can tick off as you go.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-5">
-            {prepSections.map((section, si) => (
-              <PrepSectionBlock
-                key={section.id}
-                section={section}
-                onHeadingChange={(heading) => updatePrepHeading(si, heading)}
-                onRemoveSection={() => removePrepSection(si)}
-                onAddItem={() => addPrepItem(si)}
-                onUpdateItem={(ii, patch) => updatePrepItem(si, ii, patch)}
-                onRemoveItem={(ii) => removePrepItem(si, ii)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+      
 
       <section>
         <div className="flex items-center justify-between gap-2 mb-3">
@@ -753,6 +658,50 @@ export function MealPlanDetail() {
         )}
       </section>
 
+      <div className="mt-8">
+        <CollapsibleSection
+          title="Prep list"
+          className="prep-list"
+          open={prepOpen}
+          onToggle={() => setPrepOpen((v) => !v)}
+          alwaysShowSummary
+          summary={prepMarkdownSummary(prepNotes)}
+        >
+          <PrepNotesEditor
+            value={prepNotes}
+            onChange={setPrepNotesAndMarkDirty}
+          />
+        </CollapsibleSection>
+      </div>
+
+      {/*
+        Notes are the catch-all for plan-level thoughts ("Bring extra
+        wine", "Confirm RSVP by Friday"). They live at the BOTTOM of
+        the page so the active surfaces — guests, recipes, menu
+        additions — sit where the user lands first. The prep list
+        markdown editor covers most "what to do" use cases anyway.
+      */}
+      <section className="mt-8">
+        <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-3">
+          Notes
+        </h2>
+        <Textarea
+          rows={4}
+          value={notes}
+          onChange={(e) => {
+            notesDirtyRef.current = true;
+            setNotes(e.target.value);
+          }}
+          placeholder="Menu order, confirmations, anything you don't want to forget."
+          className="print:border-0 print:bg-transparent print:p-0"
+        />
+        {!notes && (
+          <span className="hidden print:block font-sans text-sm text-ink-500">
+            —
+          </span>
+        )}
+      </section>
+
       {pageError && (
         <div className="mt-6 rounded-md px-4 py-3 text-sm bg-tomato-50 text-tomato-700 border border-tomato-100 print:hidden">
           {pageError}
@@ -772,70 +721,76 @@ export function MealPlanDetail() {
   );
 }
 
-function guestSummary(total: number, adults: number, children: number): string {
+/**
+ * Render an adult/kid count as a single string. Used for both the
+ * meta line under the page title and the Guests collapsible header
+ * summary, so the totals always read the same. Empty totals collapse
+ * to "0 adults" instead of a misleading empty string.
+ */
+function countSummary(adults: number, children: number): string {
   const parts: string[] = [];
-  if (adults > 0) parts.push(`${adults} adult${adults === 1 ? "" : "s"}`);
-  if (children > 0)
-    parts.push(`${children} kid${children === 1 ? "" : "s"}`);
-  if (parts.length === 0) return `${total} guest${total === 1 ? "" : "s"}`;
-  return parts.join(" · ");
-}
-
-interface GuestTypeToggleProps {
-  value: "adult" | "child";
-  onChange: (next: "adult" | "child") => void;
+  parts.push(`${adults} adult${adults === 1 ? "" : "s"}`);
+  parts.push(`${children} kid${children === 1 ? "" : "s"}`);
+  return parts.join(", ");
 }
 
 /**
- * Small segmented control for the adult/kid toggle. Local to this
- * file — the design system doesn't have a generic SegmentedControl
- * primitive yet, and this echoes the URL/Book toggle in RecipeForm.
+ * One-line summary of the prep notes markdown. Counts task checkboxes
+ * (`- [ ]` / `- [x]`) and reports "N of M done" so the user can scan
+ * progress with the section collapsed. Falls back to a generic
+ * "Empty" / "Notes" indicator when no tasks are present.
  */
-function GuestTypeToggle({ value, onChange }: GuestTypeToggleProps) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label="Guest type"
-      className="inline-flex rounded-md border border-paper-400 bg-white p-0.5 print:hidden"
-    >
-      <TypeButton
-        active={value === "adult"}
-        onClick={() => onChange("adult")}
-      >
-        Adult
-      </TypeButton>
-      <TypeButton
-        active={value === "child"}
-        onClick={() => onChange("child")}
-      >
-        Kid
-      </TypeButton>
-    </div>
-  );
+function prepMarkdownSummary(md: string): string {
+  if (!md.trim()) return "Empty";
+  const taskOpen = (md.match(/^[\s]*[-*]\s\[\s\]/gm) ?? []).length;
+  const taskDone = (md.match(/^[\s]*[-*]\s\[[xX]\]/gm) ?? []).length;
+  const total = taskOpen + taskDone;
+  if (total === 0) return "Notes";
+  return `${taskDone} of ${total} done`;
 }
 
-function TypeButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
+interface CountStepperProps {
+  label: string;
+  value: number;
+  onChange: (next: number) => void;
+}
+
+/**
+ * Compact +/- counter for the adult / kid columns. Tighter than a
+ * native number input and labelled in the design system's voice. Caps
+ * at the schema max (50) to match Zod validation, and clamps at zero
+ * so an over-eager click can't drive the count negative.
+ */
+function CountStepper({ label, value, onChange }: CountStepperProps) {
+  const dec = () => onChange(Math.max(0, value - 1));
+  const inc = () => onChange(Math.min(50, value + 1));
   return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      className={[
-        "px-2.5 py-1 rounded text-xs font-sans font-semibold transition-colors duration-100",
-        active ? "bg-tomato-500 text-white" : "text-ink-700 hover:bg-paper-200",
-      ].join(" ")}
-    >
-      {children}
-    </button>
+    <div className="inline-flex items-center gap-1 print:hidden">
+      <button
+        type="button"
+        onClick={dec}
+        aria-label={`Fewer ${label}`}
+        disabled={value <= 0}
+        className="w-7 h-7 rounded-md border border-paper-400 bg-white text-ink-700 hover:bg-paper-200 disabled:opacity-40 disabled:cursor-default flex items-center justify-center font-sans text-sm leading-none"
+      >
+        −
+      </button>
+      <span className="font-mono text-sm tabular-nums text-ink-900 w-7 text-center [font-feature-settings:'tnum']">
+        {value}
+      </span>
+      <button
+        type="button"
+        onClick={inc}
+        aria-label={`More ${label}`}
+        disabled={value >= 50}
+        className="w-7 h-7 rounded-md border border-paper-400 bg-white text-ink-700 hover:bg-paper-200 disabled:opacity-40 disabled:cursor-default flex items-center justify-center font-sans text-sm leading-none"
+      >
+        +
+      </button>
+      <span className="font-sans text-xs text-ink-500 ml-0.5 hidden sm:inline">
+        {label}
+      </span>
+    </div>
   );
 }
 
@@ -917,121 +872,6 @@ function UnresolvedRecipeRow({ onRemove }: { onRemove: () => void }) {
   );
 }
 
-interface PrepSectionBlockProps {
-  section: PrepSection;
-  onHeadingChange: (heading: string) => void;
-  onRemoveSection: () => void;
-  onAddItem: () => void;
-  onUpdateItem: (idx: number, patch: Partial<PrepItem>) => void;
-  onRemoveItem: (idx: number) => void;
-}
-
-/**
- * One day-header + checklist block inside the prep list. Heading is
- * an always-editable input (faster than a click-to-rename mode for a
- * scratchpad workflow); items are checkbox + inline input pairs. The
- * × on the section trash icon removes the whole block — items don't
- * each need a confirmation since the prep list is a low-stakes
- * scratch surface, not destructive data.
- */
-function PrepSectionBlock({
-  section,
-  onHeadingChange,
-  onRemoveSection,
-  onAddItem,
-  onUpdateItem,
-  onRemoveItem,
-}: PrepSectionBlockProps) {
-  return (
-    <div className="bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden">
-      <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-[var(--border-faint)] bg-paper-50 prep-section-header">
-        <Input
-          value={section.heading}
-          onChange={(e) => onHeadingChange(e.target.value)}
-          placeholder="Day before / Wednesday / Morning of…"
-          className="flex-1 font-semibold print:border-0 print:bg-transparent print:p-0"
-        />
-        <button
-          type="button"
-          onClick={onRemoveSection}
-          aria-label={`Remove section ${section.heading || "untitled"}`}
-          title="Remove section"
-          className="flex-none p-1.5 rounded text-ink-400 hover:text-tomato-700 hover:bg-tomato-50 transition-colors duration-100 print:hidden"
-        >
-          <Icon name="trash" size={16} />
-        </button>
-      </div>
-      <ul className="list-none m-0 p-0 prep-items">
-        {section.items.map((item, ii) => (
-          <li
-            key={item.id}
-            className={[
-              "flex items-center gap-2 px-3.5 py-2",
-              ii === section.items.length - 1
-                ? ""
-                : "border-b border-[var(--border-faint)]",
-            ].join(" ")}
-          >
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={item.done}
-              onClick={() => onUpdateItem(ii, { done: !item.done })}
-              title={item.done ? "Mark as not done" : "Mark as done"}
-              data-done={item.done ? "true" : "false"}
-              className={[
-                "flex-none w-5 h-5 rounded border-2 flex items-center justify-center",
-                "transition-colors duration-100 cursor-pointer",
-                item.done
-                  ? "bg-tomato-500 border-tomato-500 text-white"
-                  : "bg-white border-paper-400 hover:border-tomato-500 text-transparent",
-                "print:border-ink-700 print:text-ink-900",
-              ].join(" ")}
-            >
-              <Icon name="check" size={12} />
-            </button>
-            <Input
-              value={item.text}
-              onChange={(e) => onUpdateItem(ii, { text: e.target.value })}
-              placeholder="Add a task…"
-              className={[
-                "flex-1 print:border-0 print:bg-transparent print:p-0",
-                item.done ? "line-through text-ink-500" : "",
-              ].join(" ")}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  // Enter on a task input adds a new sibling task —
-                  // the rapid-fire pattern the user expects from a
-                  // checklist editor.
-                  e.preventDefault();
-                  onAddItem();
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => onRemoveItem(ii)}
-              aria-label="Remove task"
-              title="Remove task"
-              className="flex-none p-1.5 rounded text-ink-400 hover:text-tomato-700 hover:bg-tomato-50 transition-colors duration-100 print:hidden"
-            >
-              <Icon name="x" size={14} />
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="px-3.5 py-2 border-t border-[var(--border-faint)] print:hidden">
-        <button
-          type="button"
-          onClick={onAddItem}
-          className="inline-flex items-center gap-1.5 font-sans text-sm font-medium text-tomato-600 hover:text-tomato-700"
-        >
-          <Icon name="plus" size={14} /> Add task
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function RecipesEmptyState() {
   return (

@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
-  GUEST_TYPES,
   newClientId,
+  parseGuestField,
   parseMealPlanDoc,
+  prepSectionsToMarkdown,
 } from "../mealPlansCore";
 
 describe("parseMealPlanDoc", () => {
@@ -28,11 +29,50 @@ describe("parseMealPlanDoc", () => {
     expect(plan.recipeIds).toEqual([]);
   });
 
-  it("defaults missing prepSections to an empty array (back-compat)", () => {
-    // Plans created before the prep list feature shipped have no
-    // prepSections field. The parser must not crash on them.
+  it("defaults missing prep notes to an empty string (back-compat)", () => {
+    // Plans created before the prep markdown shipped have neither
+    // prepNotes nor prepSections; the parser must not crash on them.
     const plan = parseMealPlanDoc("p", minimal);
-    expect(plan.prepSections).toEqual([]);
+    expect(plan.prepNotes).toBe("");
+  });
+
+  it("converts legacy prepSections into prepNotes markdown", () => {
+    // Plans with the older structured prep list get their content
+    // promoted to markdown so the new editor surfaces it.
+    const plan = parseMealPlanDoc("p", {
+      ...minimal,
+      prepSections: [
+        {
+          id: "s1",
+          heading: "Day before",
+          items: [
+            { id: "p1", text: "Brine", done: false },
+            { id: "p2", text: "Make crust", done: true },
+          ],
+        },
+      ],
+    });
+    expect(plan.prepNotes).toBe(
+      "## Day before\n- [ ] Brine\n- [x] Make crust",
+    );
+  });
+
+  it("prefers prepNotes when both fields are present", () => {
+    // Once we've written prepNotes, the prepSections field becomes
+    // stale — the parser should ignore it in favor of the new field.
+    const plan = parseMealPlanDoc("p", {
+      ...minimal,
+      prepNotes: "## Real notes\n- [ ] new task",
+      prepSections: [
+        {
+          id: "s1",
+          heading: "Stale",
+          items: [{ id: "p1", text: "old", done: false }],
+        },
+      ],
+    });
+    expect(plan.prepNotes).toContain("new task");
+    expect(plan.prepNotes).not.toContain("Stale");
   });
 
   it("defaults missing additionalItems to an empty array (back-compat)", () => {
@@ -74,23 +114,20 @@ describe("parseMealPlanDoc", () => {
       ownerId: "u",
       name: "Thanksgiving",
       notes: "Bring extra wine",
-      guests: [{ id: "g1", name: "Alice", type: "adult" }],
-      recipeIds: ["r1", "r2"],
-      prepSections: [
-        {
-          id: "s1",
-          heading: "Day before",
-          items: [{ id: "p1", text: "Brine", done: false }],
-        },
+      guests: [
+        { id: "g1", name: "McMullen Family", adults: 2, kids: 2 },
       ],
+      recipeIds: ["r1", "r2"],
+      prepNotes: "## Day before\n- [ ] Brine",
       groceryList: {
         items: [{ text: "Onions", category: "vegetables" }],
       },
     });
     expect(plan.notes).toBe("Bring extra wine");
     expect(plan.guests).toHaveLength(1);
+    expect(plan.guests[0].name).toBe("McMullen Family");
     expect(plan.recipeIds).toEqual(["r1", "r2"]);
-    expect(plan.prepSections).toHaveLength(1);
+    expect(plan.prepNotes).toContain("Brine");
     expect(plan.groceryList?.items).toHaveLength(1);
   });
 
@@ -179,8 +216,151 @@ describe("newClientId", () => {
   });
 });
 
-describe("GUEST_TYPES", () => {
-  it("contains exactly adult and child", () => {
-    expect([...GUEST_TYPES]).toEqual(["adult", "child"]);
+describe("parseGuestField (back-compat)", () => {
+  it("returns an empty list for non-array input", () => {
+    expect(parseGuestField(undefined)).toEqual([]);
+    expect(parseGuestField(null)).toEqual([]);
+    expect(parseGuestField("oops")).toEqual([]);
+    expect(parseGuestField({})).toEqual([]);
+  });
+
+  it("returns an empty list for an empty array", () => {
+    expect(parseGuestField([])).toEqual([]);
+  });
+
+  it("passes new-shape entries through (sanitized)", () => {
+    const groups = parseGuestField([
+      { id: "g1", name: "McMullen", adults: 2, kids: 2 },
+    ]);
+    expect(groups).toEqual([
+      { id: "g1", name: "McMullen", adults: 2, kids: 2 },
+    ]);
+  });
+
+  it("collapses legacy per-person entries into a single Guests group", () => {
+    // Old shape: each entry has {id, name, type: "adult"|"child"} with
+    // no `adults` count. parseGuestField recognizes that shape and
+    // bins everyone into one fallback group with the right totals so
+    // the cook still sees their headcount.
+    const groups = parseGuestField([
+      { id: "g1", name: "Alice", type: "adult" },
+      { id: "g2", name: "Bob", type: "adult" },
+      { id: "g3", name: "Cody", type: "child" },
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].name).toBe("Guests");
+    expect(groups[0].adults).toBe(2);
+    expect(groups[0].kids).toBe(1);
+  });
+
+  it("returns empty when legacy entries have no recognized types", () => {
+    const groups = parseGuestField([
+      { id: "g1", name: "?", type: "unknown" },
+    ]);
+    expect(groups).toEqual([]);
+  });
+
+  it("ignores malformed new-shape entries (defensive)", () => {
+    const groups = parseGuestField([
+      { id: "g1", name: "Good", adults: 2, kids: 1 },
+      "junk",
+      null,
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].name).toBe("Good");
+  });
+
+  it("defaults missing fields on new-shape entries", () => {
+    const groups = parseGuestField([
+      { id: "g1", adults: 3 },
+      { id: "g2", name: "Singletons" },
+    ]);
+    expect(groups[0]).toEqual({
+      id: "g1",
+      name: "",
+      adults: 3,
+      kids: 0,
+    });
+    expect(groups[1]).toEqual({
+      id: "g2",
+      name: "Singletons",
+      adults: 0,
+      kids: 0,
+    });
+  });
+});
+
+describe("prepSectionsToMarkdown (back-compat)", () => {
+  it("returns empty string for non-array input", () => {
+    expect(prepSectionsToMarkdown(undefined)).toBe("");
+    expect(prepSectionsToMarkdown(null)).toBe("");
+    expect(prepSectionsToMarkdown({})).toBe("");
+  });
+
+  it("returns empty string for empty array", () => {
+    expect(prepSectionsToMarkdown([])).toBe("");
+  });
+
+  it("converts a section into `## Heading` + task lines", () => {
+    const md = prepSectionsToMarkdown([
+      {
+        id: "s1",
+        heading: "Day before",
+        items: [
+          { id: "p1", text: "Brine the turkey", done: false },
+          { id: "p2", text: "Make pie crust", done: true },
+        ],
+      },
+    ]);
+    expect(md).toBe(
+      "## Day before\n- [ ] Brine the turkey\n- [x] Make pie crust",
+    );
+  });
+
+  it("inserts a blank line between consecutive headings", () => {
+    const md = prepSectionsToMarkdown([
+      {
+        id: "s1",
+        heading: "Day before",
+        items: [{ id: "p1", text: "Brine", done: false }],
+      },
+      {
+        id: "s2",
+        heading: "Day of",
+        items: [{ id: "p2", text: "Roast", done: false }],
+      },
+    ]);
+    expect(md).toBe(
+      "## Day before\n- [ ] Brine\n\n## Day of\n- [ ] Roast",
+    );
+  });
+
+  it("skips empty headings and empty item text", () => {
+    const md = prepSectionsToMarkdown([
+      {
+        id: "s1",
+        heading: "  ",
+        items: [{ id: "p1", text: "   ", done: false }],
+      },
+      {
+        id: "s2",
+        heading: "Real",
+        items: [{ id: "p2", text: "Task", done: false }],
+      },
+    ]);
+    expect(md).toBe("## Real\n- [ ] Task");
+  });
+
+  it("skips non-object section entries", () => {
+    const md = prepSectionsToMarkdown([
+      null,
+      "rogue",
+      {
+        id: "s1",
+        heading: "Sane",
+        items: [{ id: "p1", text: "Item", done: false }],
+      },
+    ]);
+    expect(md).toBe("## Sane\n- [ ] Item");
   });
 });

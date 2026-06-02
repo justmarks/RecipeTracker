@@ -167,9 +167,17 @@ export function MealPlans() {
 }
 
 function PlanRow({ plan }: { plan: MealPlan }) {
-  const adultCount = plan.guests.filter((g) => g.type === "adult").length;
-  const childCount = plan.guests.filter((g) => g.type === "child").length;
-  const totalGuests = plan.guests.length;
+  // Family groups carry per-row adult + kid counts; sum across the
+  // list for the at-a-glance summary on the index row.
+  const adultCount = plan.guests.reduce(
+    (sum, g) => sum + (g.adults || 0),
+    0,
+  );
+  const childCount = plan.guests.reduce(
+    (sum, g) => sum + (g.kids || 0),
+    0,
+  );
+  const totalGuests = adultCount + childCount;
   const recipeCount = plan.recipeIds.length;
 
   return (
