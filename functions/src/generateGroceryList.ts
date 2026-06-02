@@ -104,6 +104,19 @@ export interface RecipeForPrompt {
  * Exported so unit tests can verify the malformed-input fallbacks
  * (non-array ingredients, sections without headings, items that
  * aren't strings) without spinning up the full callable.
+ *
+ * @param {string} title  The recipe title — preserved verbatim so
+ *   the model can disambiguate ingredients across recipes (e.g.
+ *   "buttermilk biscuits" vs "buttermilk marinade" both list
+ *   buttermilk).
+ * @param {unknown} ingredients  The recipe's `ingredients` field as
+ *   read from Firestore. Expected shape is
+ *   `Array<{heading: string|null, items: string[]}>`, but the
+ *   function is defensive against missing or corrupt values — a
+ *   single bad recipe shouldn't block the whole grocery build.
+ * @return {RecipeForPrompt | null} A markdown-formatted block when at
+ *   least one heading or item was extracted; `null` when there's
+ *   nothing usable to send to the model.
  */
 export function recipeToPromptBlock(
   title: string,
