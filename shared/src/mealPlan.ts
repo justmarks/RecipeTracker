@@ -109,6 +109,23 @@ export const GroceryListSchema = z.object({
 });
 export type GroceryList = z.infer<typeof GroceryListSchema>;
 
+/**
+ * A menu line that isn't a formal recipe — Crudité, a wine pairing, a
+ * store-bought dessert, an appetizer a guest is bringing. Tracks
+ * optional `broughtBy` so the host can see at a glance who's covering
+ * what without it cluttering the recipe list.
+ *
+ * `name` allows empty during editing (mid-typing state) just like
+ * prep items; the UI shows placeholder copy and the row survives a
+ * refresh if the user hasn't typed yet.
+ */
+export const AdditionalItemSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().max(200),
+  broughtBy: z.string().max(100).optional(),
+});
+export type AdditionalItem = z.infer<typeof AdditionalItemSchema>;
+
 export const MealPlanInputSchema = z.object({
   name: z.string().min(1).max(200),
   notes: z.string().optional(),
@@ -117,5 +134,8 @@ export const MealPlanInputSchema = z.object({
   // Optional for back-compat — meal plans created before the prep
   // list shipped don't carry the field. The UI defaults to [] on read.
   prepSections: z.array(PrepSectionSchema).optional(),
+  // Optional for back-compat with plans created before non-recipe
+  // additions shipped.
+  additionalItems: z.array(AdditionalItemSchema).optional(),
 });
 export type MealPlanInput = z.infer<typeof MealPlanInputSchema>;

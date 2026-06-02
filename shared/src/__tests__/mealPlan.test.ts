@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  AdditionalItemSchema,
   GROCERY_CATEGORIES,
   GROCERY_CATEGORY_LABELS,
   GroceryItemSchema,
@@ -231,6 +232,49 @@ describe("GroceryListSchema", () => {
   });
 });
 
+describe("AdditionalItemSchema", () => {
+  const valid = { id: "i1", name: "Crudité" };
+
+  it("accepts an item without broughtBy", () => {
+    expect(() => AdditionalItemSchema.parse(valid)).not.toThrow();
+  });
+
+  it("accepts an item with broughtBy", () => {
+    expect(() =>
+      AdditionalItemSchema.parse({ ...valid, broughtBy: "Alice" }),
+    ).not.toThrow();
+  });
+
+  it("accepts an empty name (mid-edit state)", () => {
+    // Same back-compat with the editor pattern as PrepItem — the
+    // user can add a row and start typing without the doc rejecting.
+    expect(() =>
+      AdditionalItemSchema.parse({ ...valid, name: "" }),
+    ).not.toThrow();
+  });
+
+  it("rejects name over 200 characters", () => {
+    expect(() =>
+      AdditionalItemSchema.parse({ ...valid, name: "a".repeat(201) }),
+    ).toThrow();
+  });
+
+  it("rejects broughtBy over 100 characters", () => {
+    expect(() =>
+      AdditionalItemSchema.parse({
+        ...valid,
+        broughtBy: "a".repeat(101),
+      }),
+    ).toThrow();
+  });
+
+  it("rejects empty id", () => {
+    expect(() =>
+      AdditionalItemSchema.parse({ ...valid, id: "" }),
+    ).toThrow();
+  });
+});
+
 describe("MealPlanInputSchema", () => {
   const minimal = {
     name: "Thanksgiving 2026",
@@ -258,6 +302,21 @@ describe("MealPlanInputSchema", () => {
     // prepSections is optional precisely so old meal plans created
     // before the feature shipped continue to parse cleanly.
     expect(() => MealPlanInputSchema.parse(minimal)).not.toThrow();
+  });
+
+  it("accepts plans with additionalItems omitted (back-compat)", () => {
+    expect(() => MealPlanInputSchema.parse(minimal)).not.toThrow();
+  });
+
+  it("accepts plans with additionalItems present", () => {
+    const parsed = MealPlanInputSchema.parse({
+      ...minimal,
+      additionalItems: [
+        { id: "i1", name: "Wine", broughtBy: "Alice" },
+        { id: "i2", name: "Crudité" },
+      ],
+    });
+    expect(parsed.additionalItems).toHaveLength(2);
   });
 
   it("accepts plans with prepSections present", () => {

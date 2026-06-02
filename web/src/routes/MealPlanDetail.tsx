@@ -13,7 +13,12 @@ import {
 import { useRecipeList } from "../lib/queryRecipes";
 import type { RecipeListItem } from "../lib/queryRecipes";
 import { useToast } from "../lib/useToast";
-import type { Guest, PrepItem, PrepSection } from "shared";
+import type {
+  AdditionalItem,
+  Guest,
+  PrepItem,
+  PrepSection,
+} from "shared";
 import {
   Button,
   ConfirmDialog,
@@ -54,9 +59,11 @@ export function MealPlanDetail() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [notes, setNotes] = useState("");
   const [prepSections, setPrepSections] = useState<PrepSection[]>([]);
+  const [additionalItems, setAdditionalItems] = useState<AdditionalItem[]>([]);
   const guestsHydratedRef = useRef(false);
   const notesHydratedRef = useRef(false);
   const prepHydratedRef = useRef(false);
+  const additionalHydratedRef = useRef(false);
 
   useEffect(() => {
     if (!plan) return;
@@ -71,6 +78,10 @@ export function MealPlanDetail() {
     if (!prepHydratedRef.current) {
       setPrepSections(plan.prepSections);
       prepHydratedRef.current = true;
+    }
+    if (!additionalHydratedRef.current) {
+      setAdditionalItems(plan.additionalItems);
+      additionalHydratedRef.current = true;
     }
   }, [plan]);
 
@@ -118,6 +129,20 @@ export function MealPlanDetail() {
     }, 600);
     return () => window.clearTimeout(t);
   }, [prepSections, id, plan, toast]);
+
+  const additionalDirtyRef = useRef(false);
+  useEffect(() => {
+    if (!plan || !id) return;
+    if (!additionalHydratedRef.current) return;
+    if (!additionalDirtyRef.current) return;
+    const t = window.setTimeout(() => {
+      void updateMealPlanMeta(id, { additionalItems }).catch((err) => {
+        console.error("Save additional items:", err);
+        toast.show("Couldn't save additional items.");
+      });
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [additionalItems, id, plan, toast]);
 
   // Resolve recipe ids against the in-memory recipe stream (owned +
   // shared + auto). Preserves the plan's insertion order; unresolved
@@ -290,6 +315,31 @@ export function MealPlanDetail() {
           : s,
       ),
     );
+  }
+
+  // Additional items — non-recipe menu lines (Crudité, wine, bread the
+  // guest is bringing). Always-editable rows like the prep list.
+  function addAdditionalItem() {
+    additionalDirtyRef.current = true;
+    setAdditionalItems((prev) => [
+      ...prev,
+      { id: newPrepId(), name: "", broughtBy: undefined },
+    ]);
+  }
+
+  function updateAdditionalItem(
+    idx: number,
+    patch: Partial<AdditionalItem>,
+  ) {
+    additionalDirtyRef.current = true;
+    setAdditionalItems((prev) =>
+      prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)),
+    );
+  }
+
+  function removeAdditionalItem(idx: number) {
+    additionalDirtyRef.current = true;
+    setAdditionalItems((prev) => prev.filter((_, i) => i !== idx));
   }
 
   function handlePrint() {
@@ -601,6 +651,104 @@ export function MealPlanDetail() {
                 </li>
               );
             })}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-8 additional-items">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h2 className="font-display text-xl font-medium text-ink-900 m-0">
+            Additional items
+          </h2>
+          <div className="print:hidden">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              icon="plus"
+              onClick={addAdditionalItem}
+            >
+              <span className="hidden sm:inline">Add item</span>
+            </Button>
+          </div>
+        </div>
+
+        {additionalItems.length === 0 ? (
+          <p className="font-sans text-sm text-ink-500 m-0">
+            Track non-recipe items here — crudité, wine, dessert from
+            the bakery, or anything a guest is bringing.
+          </p>
+        ) : (
+          <ul className="list-none m-0 p-0 bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden">
+            {additionalItems.map((item, i) => (
+              <li
+                key={item.id}
+                className={[
+                  "flex items-center gap-2 px-3.5 py-2.5",
+                  i === additionalItems.length - 1
+                    ? ""
+                    : "border-b border-[var(--border-faint)]",
+                ].join(" ")}
+              >
+                {/*
+                  Screen view: two inputs side-by-side. Hidden on
+                  print because `<input>` elements can't host the
+                  pseudo-content needed to merge them into a single
+                  bulleted "Name — brought by Alice" line.
+                */}
+                <Input
+                  value={item.name}
+                  onChange={(e) =>
+                    updateAdditionalItem(i, { name: e.target.value })
+                  }
+                  placeholder="Crudité, wine, dessert…"
+                  className="flex-1 print:hidden"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addAdditionalItem();
+                    }
+                  }}
+                />
+                <Input
+                  value={item.broughtBy ?? ""}
+                  onChange={(e) =>
+                    updateAdditionalItem(i, {
+                      // Empty string clears the field so the print
+                      // template can hide the suffix entirely.
+                      broughtBy: e.target.value || undefined,
+                    })
+                  }
+                  placeholder="Brought by…"
+                  // Narrower than the name field — it's a side label,
+                  // not the primary content.
+                  className="w-40 sm:w-48 shrink-0 print:hidden"
+                />
+                {/*
+                  Print view: a single span that prints the joined
+                  line. Bullet from the CSS list-style; ` — Brought by
+                  X` appended only when broughtBy is set.
+                */}
+                <span className="hidden print:inline font-sans">
+                  {item.name || "(unnamed item)"}
+                  {item.broughtBy && (
+                    <span className="text-ink-500">
+                      {" — brought by "}
+                      {item.broughtBy}
+                    </span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeAdditionalItem(i)}
+                  aria-label={`Remove ${item.name || "additional item"}`}
+                  title="Remove"
+                  className="flex-none p-1.5 rounded text-ink-400 hover:text-tomato-700 hover:bg-tomato-50 transition-colors duration-100 print:hidden"
+                >
+                  <Icon name="x" size={16} />
+                </button>
+              </li>
+            ))}
           </ul>
         )}
       </section>

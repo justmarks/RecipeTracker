@@ -35,6 +35,34 @@ describe("parseMealPlanDoc", () => {
     expect(plan.prepSections).toEqual([]);
   });
 
+  it("defaults missing additionalItems to an empty array (back-compat)", () => {
+    // Same back-compat consideration as prepSections — plans created
+    // before non-recipe additions shipped just don't carry the field.
+    const plan = parseMealPlanDoc("p", minimal);
+    expect(plan.additionalItems).toEqual([]);
+  });
+
+  it("coerces a malformed additionalItems field to empty (defensive)", () => {
+    const plan = parseMealPlanDoc("p", {
+      ...minimal,
+      additionalItems: "not an array" as unknown as never,
+    });
+    expect(plan.additionalItems).toEqual([]);
+  });
+
+  it("hydrates additionalItems when present", () => {
+    const plan = parseMealPlanDoc("p", {
+      ...minimal,
+      additionalItems: [
+        { id: "i1", name: "Wine", broughtBy: "Alice" },
+        { id: "i2", name: "Crudité" },
+      ],
+    });
+    expect(plan.additionalItems).toHaveLength(2);
+    expect(plan.additionalItems[0].broughtBy).toBe("Alice");
+    expect(plan.additionalItems[1].broughtBy).toBeUndefined();
+  });
+
   it("leaves groceryList undefined when the doc has no cache", () => {
     const plan = parseMealPlanDoc("p", minimal);
     expect(plan.groceryList).toBeUndefined();

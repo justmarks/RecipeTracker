@@ -7,7 +7,6 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   Timestamp,
@@ -17,7 +16,12 @@ import {
 import type { DocumentData } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "./firebase";
-import type { Guest, GroceryList, PrepSection } from "shared";
+import type {
+  AdditionalItem,
+  Guest,
+  GroceryList,
+  PrepSection,
+} from "shared";
 import { newClientId, parseMealPlanDoc } from "./mealPlansCore";
 
 /**
@@ -34,6 +38,10 @@ export type MealPlan = {
   guests: Guest[];
   recipeIds: string[];
   prepSections: PrepSection[];
+  /** Non-recipe menu lines — store-bought items, contributions from
+   *  guests, drinks. Always present; defaults to [] on old docs that
+   *  predate the field. */
+  additionalItems: AdditionalItem[];
   /** Cached grocery list from the last generation. Absent until the
    *  user generates one. Mirrored back to Firestore by the Cloud
    *  Function so a reload of the plan picks it up from the snapshot. */
@@ -79,14 +87,26 @@ export function useMealPlans(uid: string | undefined): {
       return;
     }
     setLoading(true);
+    // Filter server-side, sort CLIENT-side. Adding `orderBy("createdAt")`
+    // here interacts badly with the `serverTimestamp()` we stamp on
+    // create — the client sees a pending null for that field until the
+    // server acknowledges, and the IndexedDB-backed listener trips an
+    // SDK assertion (`b815 / ve:-1`) trying to position the pending
+    // doc against itself in the order. Sorting client-side dodges the
+    // race entirely; meal plans are low cardinality so the in-memory
+    // sort is free.
     const unsub = onSnapshot(
-      query(
-        collection(db, "mealPlans"),
-        where("ownerId", "==", uid),
-        orderBy("createdAt", "desc"),
-      ),
+      query(collection(db, "mealPlans"), where("ownerId", "==", uid)),
       (snap) => {
-        setPlans(snap.docs.map((d) => fromDoc(d.id, d.data())));
+        const next = snap.docs.map((d) => fromDoc(d.id, d.data()));
+        next.sort((a, b) => {
+          // Docs without a resolved createdAt (write-in-flight) sort
+          // to the top — they're the newest by definition.
+          const aMs = a.createdAt?.toMillis() ?? Number.POSITIVE_INFINITY;
+          const bMs = b.createdAt?.toMillis() ?? Number.POSITIVE_INFINITY;
+          return bMs - aMs;
+        });
+        setPlans(next);
         setLoading(false);
       },
       (err) => {
@@ -194,6 +214,7 @@ export async function updateMealPlanMeta(
     notes?: string;
     guests?: Guest[];
     prepSections?: PrepSection[];
+    additionalItems?: AdditionalItem[];
   },
 ): Promise<void> {
   const update: Record<string, unknown> = {
@@ -208,6 +229,9 @@ export async function updateMealPlanMeta(
   }
   if (patch.prepSections !== undefined) {
     update.prepSections = patch.prepSections;
+  }
+  if (patch.additionalItems !== undefined) {
+    update.additionalItems = patch.additionalItems;
   }
   await updateDoc(doc(db, "mealPlans", id), update);
 }

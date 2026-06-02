@@ -54,9 +54,11 @@ export function TagInput({
       if (!query || n.includes(query)) out.push(n);
     }
     // Stable alphabetical order so the dropdown doesn't reshuffle on
-    // every keystroke beyond what the filter requires.
+    // every keystroke beyond what the filter requires. The dropdown
+    // itself caps height via `max-h-60 overflow-y-auto`, so the
+    // scrollbar takes care of long suggestion lists — no slice cap.
     out.sort((a, b) => a.localeCompare(b));
-    return out.slice(0, 8);
+    return out;
   }, [suggestions, selected, query]);
 
   // Whether the typed query is a brand-new tag worth offering as

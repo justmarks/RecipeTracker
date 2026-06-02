@@ -117,6 +117,7 @@ service cloud.firestore {
         // prepSections is optional for back-compat with plans created
         // before the prep list shipped; when present it must be a list.
         && (!('prepSections' in data) || data.prepSections is list)
+        && (!('additionalItems' in data) || data.additionalItems is list)
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }

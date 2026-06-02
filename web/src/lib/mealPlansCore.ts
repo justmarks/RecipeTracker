@@ -1,4 +1,9 @@
-import type { Guest, GroceryList, PrepSection } from "shared";
+import type {
+  AdditionalItem,
+  Guest,
+  GroceryList,
+  PrepSection,
+} from "shared";
 
 /**
  * Pure helpers for the meal plan library. Kept separate from
@@ -23,6 +28,7 @@ export type ParsedMealPlan = {
   guests: Guest[];
   recipeIds: string[];
   prepSections: PrepSection[];
+  additionalItems: AdditionalItem[];
   groceryList?: GroceryList;
   groceryListGeneratedAt?: unknown;
   createdAt?: unknown;
@@ -65,6 +71,9 @@ export function parseMealPlanDoc(
       : [],
     prepSections: Array.isArray(data.prepSections)
       ? (data.prepSections as PrepSection[])
+      : [],
+    additionalItems: Array.isArray(data.additionalItems)
+      ? (data.additionalItems as AdditionalItem[])
       : [],
     groceryList,
     groceryListGeneratedAt: data.groceryListGeneratedAt,

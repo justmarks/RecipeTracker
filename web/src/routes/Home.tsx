@@ -2,6 +2,7 @@ import {
   createContext,
   Fragment,
   useContext,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -55,23 +56,69 @@ export function Home() {
   const activeChapter = params.get("chapter") ?? "";
   const favoritesOnly = params.get("favorites") === "1";
   const otherOnly = params.get("view") === "other";
-  // Search lives in the URL (?q=…) so the browser's back button restores
-  // it for free — clicking a recipe and hitting Back lands you with the
-  // same search active.
-  const search = params.get("q") ?? "";
-  const setSearch = (value: string) => {
-    setParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (value) next.set("q", value);
-        else next.delete("q");
-        return next;
-      },
-      // replace: each keystroke would otherwise stack a history entry
-      // and Back would walk character-by-character through the query.
-      { replace: true },
-    );
-  };
+  // Search persists in the URL (?q=…) so the browser's back button
+  // restores it — clicking a recipe and hitting Back lands you with the
+  // same search active. The trick is keeping typing snappy: writing the
+  // URL on every keystroke triggers a router re-render of the whole
+  // tree (chapters list, recipe rows, photo frames) which felt awful at
+  // ~500 recipes, especially on delete where each backspace expanded
+  // the match set and forced more rows to mount.
+  //
+  // Two-part fix:
+  //   1. Local `searchInput` is the source of truth for the field. It
+  //      updates synchronously on every keystroke — the input itself
+  //      stays smooth.
+  //   2. A debounced effect mirrors that value into the URL params so
+  //      Back / Reload still restore the query. The 250ms window is
+  //      below conscious latency but long enough that a stream of
+  //      keystrokes only fires one router update at the end.
+  //
+  // Filtering reads `deferredSearch`, a React-deferred view of the
+  // current input. When the input value changes, React first commits
+  // a render with the OLD deferred value (input updates instantly),
+  // then schedules a low-priority render with the new value to actually
+  // run the filter + remount rows. Typing into a slow filter no longer
+  // blocks the input.
+  const urlSearch = params.get("q") ?? "";
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const deferredSearch = useDeferredValue(searchInput);
+
+  // Pull URL → input on external navigation (sidebar chapter clicks,
+  // Back button, etc.), but never overwrite while the user is typing
+  // — that would race the debounced sync below. We treat the URL as
+  // "input" only when it differs from what we last wrote.
+  const lastUrlSyncRef = useRef(urlSearch);
+  useEffect(() => {
+    if (urlSearch !== lastUrlSyncRef.current) {
+      lastUrlSyncRef.current = urlSearch;
+      setSearchInput(urlSearch);
+    }
+  }, [urlSearch]);
+
+  // Debounced URL sync. Runs 250ms after the last keystroke; cancels
+  // on the next edit so a rapid burst yields just one URL update.
+  useEffect(() => {
+    if (searchInput === urlSearch) return;
+    const t = window.setTimeout(() => {
+      lastUrlSyncRef.current = searchInput;
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (searchInput) next.set("q", searchInput);
+          else next.delete("q");
+          return next;
+        },
+        // replace: don't pile keystrokes into the history stack.
+        { replace: true },
+      );
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [searchInput, urlSearch, setParams]);
+
+  // Alias the deferred value as `search` because everything downstream
+  // of the input (queryTokens, filter, "No matches" copy) was already
+  // written against a single source of truth.
+  const search = deferredSearch;
 
   // Merged stream of recipes I own + recipes explicitly shared with me +
   // recipes auto-shared with me. The hook handles the three-way fan-out.
@@ -320,17 +367,24 @@ export function Home() {
               >
                 <Icon name="search" size={16} />
               </span>
+              {/*
+                Input binds to `searchInput` (the synchronous local
+                value) so each keystroke updates the field immediately.
+                The filter pipeline reads `search` (the deferred view
+                of the same value) so the expensive recipe re-render
+                runs at low priority and the input stays smooth.
+              */}
               <input
                 type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search by title or ingredient…"
                 className="w-full font-sans text-sm text-ink-900 bg-white border border-paper-400 rounded-md pl-10 pr-9 py-2.5 outline-none transition-colors duration-100 focus:border-tomato-500 focus:shadow-[var(--shadow-focus)] placeholder:text-ink-300"
               />
-              {search && (
+              {searchInput && (
                 <button
                   type="button"
-                  onClick={() => setSearch("")}
+                  onClick={() => setSearchInput("")}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-900 p-1"
                   aria-label="Clear search"
                 >
