@@ -61,8 +61,7 @@ export function MealPlans() {
   }
 
   function goBack() {
-    if (window.history.length > 1) navigate(-1);
-    else navigate("/");
+    navigate("/");
   }
 
   return (
