@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "./ui";
 import {
   renderPrepMarkdown,
@@ -29,6 +29,17 @@ type Mode = "write" | "preview";
 export function PrepNotesEditor({ value, onChange }: PrepNotesEditorProps) {
   const [mode, setMode] = useState<Mode>(value.trim() ? "preview" : "write");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // When the component mounts before async data arrives (plan detail
+  // hydration), value is "" so useState picks "write". This effect
+  // fires the one time value transitions from empty → non-empty and
+  // mirrors the initial-state logic, switching to preview automatically.
+  const didAutoSwitch = useRef(false);
+  useEffect(() => {
+    if (!didAutoSwitch.current && value.trim()) {
+      didAutoSwitch.current = true;
+      setMode("preview");
+    }
+  }, [value]);
 
   // Run a textarea-modifying action; the action returns the new value
   // and a desired selection range, and we restore focus + selection on
