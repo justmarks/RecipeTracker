@@ -1211,27 +1211,29 @@ function ChapterGroup({
                 isLast ? "" : "border-b border-[var(--border-faint)]",
               ].join(" ")}
             >
-              {/* Screen-only editor inputs. */}
-              <Input
-                value={item.name}
-                onChange={(e) =>
-                  onUpdateItem(idx, { name: e.target.value })
-                }
-                placeholder="Crudité, wine, dessert…"
-                className="flex-1 print:hidden"
-              />
-              <Input
-                value={item.broughtBy ?? ""}
-                onChange={(e) =>
-                  onUpdateItem(idx, {
-                    broughtBy: e.target.value || undefined,
-                  })
-                }
-                placeholder="Brought by…"
-                className="w-40 sm:w-48 shrink-0 print:hidden"
-              />
+              {/* Screen-only editor inputs — stacked on mobile, inline on sm+. */}
+              <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2 print:hidden">
+                <Input
+                  value={item.name}
+                  onChange={(e) =>
+                    onUpdateItem(idx, { name: e.target.value })
+                  }
+                  placeholder="Crudité, wine, dessert…"
+                  className="flex-1"
+                />
+                <Input
+                  value={item.broughtBy ?? ""}
+                  onChange={(e) =>
+                    onUpdateItem(idx, {
+                      broughtBy: e.target.value || undefined,
+                    })
+                  }
+                  placeholder="Brought by…"
+                  className="sm:w-36 sm:shrink-0"
+                />
+              </div>
               {/* Print-only flat string. */}
-              <span className="hidden print:inline font-sans">
+              <span className="hidden print:inline font-sans flex-1">
                 {item.name || "(unnamed item)"}
                 {item.broughtBy && (
                   <span className="text-ink-500">
