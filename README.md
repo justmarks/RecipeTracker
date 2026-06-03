@@ -21,8 +21,18 @@ A personal recipe library — installable as a PWA on desktop, Android, and iOS 
 - Notes field for free-form annotations
 - Categories (chapters) — fully user-managed: rename, reorder, add, delete. Default chapters seeded on first sign-in: Appetizer · Side · Sauce · Soup · Salad · Entrée · Dessert
 - **Auto-Uncategorized on chapter delete** — deleting a chapter with recipes still in it atomically reassigns them to an "Uncategorized" chapter (auto-created if it doesn't exist yet) so recipes never get orphaned
-- Tags: Vegetarian, Gluten Free, and any others you add
-- Meal Plans: Select recipes
+- **Tags** — Vegetarian, Gluten Free, and any others you add. Each tag carries a user-chosen color from a 10-color palette; the tag management page supports rename, delete, **merge two tags** (consolidates duplicates across every recipe), and per-tag color picking. Tag suggestions on the recipe form are autocomplete-driven with inline "create new tag" — typing isn't restricted to your existing tags
+
+**Meal plans**
+- Create / rename / delete meal plans for any occasion
+- **Guest list as families** — each row is a family group (e.g. *McMullen Family — 2 adults, 2 kids*); the cook gets adult/kid totals for portioning without listing every kid by name
+- **Add recipes from anywhere** — the recipe detail page has an "Add to plan" button; a dialog lists every plan, marks ones the recipe is already in, and offers an inline "Create new plan" shortcut
+- **Non-recipe items inline** — track things like crudité, wine, or store-bought desserts a guest is bringing. Each item carries a *brought-by* label and a chapter so it bucket alongside recipes in the menu
+- **Menu organized by chapter** — recipes and non-recipe items group under your chapter list (Appetizer, Salad, Entree, …) in your chosen order; anything orphaned drops into a final "Other" bucket
+- **Plan-local headers** — "+ Add header" creates a section just for this plan (e.g. "Dessert" when your library has no Dessert chapter) without polluting your chapter library
+- **Prep list as markdown** — a single markdown buffer with **Write / Preview tabs** and a **formatting toolbar** (H2 / H3, bold, italic, bullets, numbered lists, task checkboxes, links). Supports multi-level indented lists; task checkboxes are interactive in Preview — clicking one toggles `[ ]` ↔ `[x]` in the source. Keyboard shortcuts: ⌘B / ⌘I / ⌘K
+- **AI-generated grocery list** — Claude consolidates ingredients across every recipe in the plan and organizes them into ten store-aisle categories (Fruits · Vegetables · Meats · Dairy · Cheeses · Baking and Dry Goods · Bread and Crackers · Beverages · Paper Goods · Misc). Result is cached on the plan doc and flagged as stale when the plan changes
+- **Print** — meal plan prints as a two-page document (page 1: title + guest summary + menu by chapter; page 2: prep list). Grocery list prints as a two-column shopping sheet with a checkbox per item
 
 **Find & share**
 - Search recipes by keyword or by ingredient
@@ -49,7 +59,7 @@ A personal recipe library — installable as a PWA on desktop, Android, and iOS 
 | Auth | **Firebase Auth** — Google + Microsoft OAuth via `signInWithRedirect` | Hosted OAuth, redirect flow avoids popup blockers on iOS |
 | Database | **Cloud Firestore** | Realtime sync, per-user security rules, offline cache |
 | Backend | **Firebase Cloud Functions** (TypeScript) | Hosts Claude API calls, URL fetching, share-link generation, photo cleanup triggers |
-| AI | **Claude API** — `claude-haiku-4-5` default | URL → structured recipe via tool-use; photo → structured recipe via vision + tool-use; system prompts use prompt caching |
+| AI | **Claude API** — `claude-haiku-4-5` default | URL → structured recipe via tool-use; photo → structured recipe via vision + tool-use; **meal plan → consolidated grocery list** via tool-use. Stable system prompts use prompt caching |
 | Hosting | **Firebase Hosting** | Serves the SPA + PWA manifest + service worker |
 | CI/CD | **GitHub Actions** | Pushes to `main` build and deploy hosting + functions + firestore rules + storage rules |
 | Repo | **pnpm workspaces** (web + shared) + npm (functions) | One install, shared types between `web/` and `functions/`; functions uses npm to match Firebase tooling |
@@ -70,14 +80,22 @@ recipe-tracker/
 │   │   ├── fonts/                  # Newsreader, Manrope, JetBrains Mono (variable)
 │   │   └── share-target-handler.js # SW add-on: handles POST /import (photo share)
 │   ├── src/
-│   │   ├── routes/                 # React Router routes
-│   │   ├── components/             # UI kit (Button, Icon, Tag, …) + features
+│   │   ├── routes/                 # React Router routes — Home, RecipeDetail, MealPlans, MealPlanDetail, GroceryList, Chapters, Tags, …
+│   │   ├── components/             # UI kit (Button, Icon, Tag, CollapsibleSection, …) + feature components
+│   │   │   ├── PrepNotesEditor.tsx # markdown editor with Write/Preview tabs + formatting toolbar
+│   │   │   ├── AddToMealPlanDialog.tsx
+│   │   │   └── TagInput.tsx        # autocomplete chip input
 │   │   ├── lib/
 │   │   │   ├── firebase.ts
 │   │   │   ├── useAuth.tsx
 │   │   │   ├── queryRecipes.ts     # owned + shared + auto-shared fan-out
 │   │   │   ├── categories.ts       # user chapters CRUD
+│   │   │   ├── tags.ts             # tag palette + mutations (delete / rename / merge / set color)
+│   │   │   ├── tagsCore.ts         # pure helpers (normalizeTag, buildTagColorsDiff) — testable without firebase
 │   │   │   ├── favorites.ts        # useFavorites + optimistic toggle
+│   │   │   ├── mealPlans.ts        # hooks + CRUD for meal plans
+│   │   │   ├── mealPlansCore.ts    # pure parser (back-compat for legacy guest / prep shapes)
+│   │   │   ├── prepMarkdown.tsx    # block markdown renderer with nested lists + interactive task checkboxes
 │   │   │   ├── importMarkdown.ts
 │   │   │   ├── importImage.ts      # client-side resize + base64
 │   │   │   └── shareTarget.ts      # reads photo stashed by SW
@@ -89,13 +107,17 @@ recipe-tracker/
 │   └── src/
 │       ├── importFromUrl.ts        # Claude URL extractor
 │       ├── importFromImage.ts      # Claude vision extractor
+│       ├── generateGroceryList.ts  # Claude meal-plan → categorized grocery list
 │       ├── shareRecipe.ts
 │       ├── autoShare.ts
 │       └── photoCleanup.ts         # Storage cleanup on recipe delete/update
 ├── shared/                         # Shared types + Zod schemas
-│   └── src/recipe.ts               # Recipe, Favorite, chapter constants
+│   └── src/
+│       ├── recipe.ts               # Recipe, Favorite, chapter constants
+│       ├── mealPlan.ts             # GuestGroup, PrepItem/Section, AdditionalItem, GroceryItem, GROCERY_CATEGORIES
+│       └── searchTokens.ts
 ├── firebase.json
-├── firestore.rules                 # recipes / users / favorites / autoShares
+├── firestore.rules                 # recipes / users / favorites / autoShares / mealPlans
 ├── firestore.indexes.json
 ├── storage.rules
 ├── pnpm-workspace.yaml             # workspace members: web, shared (NOT functions)
@@ -109,9 +131,10 @@ Single recipes collection plus a handful of small per-user collections:
 | Collection | Doc id | Notes |
 |---|---|---|
 | `recipes/{id}` | auto | `ownerId`, `title`, `ingredients[]`, `instructions[]`, `category`, `tags[]`, `sharedWith[]`, `searchTokens[]`, … |
-| `users/{uid}` | uid | `categories[]` (ordered chapter list) |
+| `users/{uid}` | uid | `categories[]` (ordered chapter list) + `tagColors{}` (tag → palette tone) |
 | `favorites/{uid}_{recipeId}` | deterministic | Per-user favorites; O(1) toggle via `setDoc`/`deleteDoc` |
 | `autoShares/{ownerId}_{granteeUid}` | deterministic | Blanket recipe access; existence checked via `exists()` in security rules |
+| `mealPlans/{id}` | auto | `ownerId`, `name`, `guests[]` (family groups), `recipeIds[]`, `additionalItems[]` (with optional `chapter`), `prepNotes` (markdown), optional `groceryList{}` cache + `groceryListGeneratedAt`. Owner-scoped — no sharing in v1 |
 
 See [CLAUDE.md](CLAUDE.md) for the full schema and reasoning.
 
@@ -187,9 +210,9 @@ Uses the Firebase Admin SDK; requires a service-account key.
 ## Roadmap
 
 Tracked here so they don't get lost:
-
 - **Grocery list generation** — multi-select recipes → consolidated list
 - **Unit conversion** — cups / tsp ↔ grams for common ingredients (flour, sugar, etc.)
+- **Meal plan sharing** — let the host invite co-cooks to view / edit a single plan (mirrors the recipe `sharedWith` pattern); v1 is owner-scoped
 
 ## Known issues
 

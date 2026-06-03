@@ -42,6 +42,9 @@ export type IconName =
   | "git-merge"
   | "utensils"
   | "printer"
+  | "list"
+  | "list-ordered"
+  | "list-checks"
   | "image";
 
 const ICON_PATHS: Record<IconName, ReactElement> = {
@@ -235,6 +238,46 @@ const ICON_PATHS: Record<IconName, ReactElement> = {
       <polyline points="6 9 6 2 18 2 18 9" />
       <path d="M6 18 H4 a2 2 0 0 1-2-2 v-5 a2 2 0 0 1 2-2 h16 a2 2 0 0 1 2 2 v5 a2 2 0 0 1-2 2 h-2" />
       <rect x="6" y="14" width="12" height="8" />
+    </>
+  ),
+  // Lucide `list` — three rows: a bullet dot on the left, a
+  // horizontal line on the right. Used by the prep notes toolbar's
+  // bulleted-list button.
+  list: (
+    <>
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <circle cx="4" cy="6" r="1" fill="currentColor" stroke="none" />
+      <circle cx="4" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="4" cy="18" r="1" fill="currentColor" stroke="none" />
+    </>
+  ),
+  // Lucide `list-ordered` — three lines on the right; tiny digit
+  // glyphs ("1", "2") on the left rendered as paths so the icon
+  // stays crisp at 12pt. (The third row drops the digit because
+  // there isn't room without crowding — three lines + a clear "1"
+  // and "2" is enough to read the intent.)
+  "list-ordered": (
+    <>
+      <line x1="10" y1="6" x2="21" y2="6" />
+      <line x1="10" y1="12" x2="21" y2="12" />
+      <line x1="10" y1="18" x2="21" y2="18" />
+      <path d="M4 6 H5 V10" />
+      <path d="M4 10 H6" />
+      <path d="M6 18 H4 c0-1 2-2 2-3 s-1-1.5-2-1" />
+    </>
+  ),
+  // Lucide `list-checks` — checkbox + horizontal line, repeated.
+  // The top-left checkbox shows the "done" state (small check
+  // inside) to disambiguate from `list` at small sizes.
+  "list-checks": (
+    <>
+      <path d="m3 17 2 2 4-4" />
+      <path d="m3 7 2 2 4-4" />
+      <line x1="13" y1="6" x2="21" y2="6" />
+      <line x1="13" y1="12" x2="21" y2="12" />
+      <line x1="13" y1="18" x2="21" y2="18" />
     </>
   ),
 };

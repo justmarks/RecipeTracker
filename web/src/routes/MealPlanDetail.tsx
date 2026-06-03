@@ -24,7 +24,6 @@ import {
   Input,
   PhotoFrame,
   SprigDivider,
-  Textarea,
 } from "../components/ui";
 import { PrepNotesEditor } from "../components/PrepNotesEditor";
 
@@ -434,7 +433,17 @@ export function MealPlanDetail() {
 
       <SprigDivider />
 
-      <div className="mb-8">
+      {/*
+        Whole section is `print:hidden`. The meta line under the title
+        ("X adults, Y kids · Z recipes") already shows the headline
+        guest count — the section adds no information on paper, and
+        the CollapsibleSection's grid panel was leaving ~60% of page 1
+        as blank space because the force-open print rule kept the row
+        claiming `1fr` of vertical room even when the family rows were
+        hidden inside it. Hiding the wrapper removes that footprint
+        entirely so Menu can start on page 1.
+      */}
+      <div className="mb-8 print:hidden">
         <CollapsibleSection
           title="Guests"
           open={guestsOpen}
@@ -579,19 +588,25 @@ export function MealPlanDetail() {
         additions — sit where the user lands first. The prep list
         markdown editor covers most "what to do" use cases anyway.
       */}
-      <section className="mt-8">
+      <section className="mt-8 notes-section">
         <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-3">
           Notes
         </h2>
-        <Textarea
-          rows={4}
+        {/*
+          Notes shares the prep-list markdown experience: Write /
+          Preview tabs, formatting toolbar, multi-level lists,
+          interactive task checkboxes. We use the same component +
+          className so the print CSS scoped to .prep-notes-preview
+          and the toolbar styles apply here without duplication.
+          The dirty-ref pattern matches the rest of the page — any
+          change marks dirty, the debounced effect picks it up.
+        */}
+        <PrepNotesEditor
           value={notes}
-          onChange={(e) => {
+          onChange={(next) => {
             notesDirtyRef.current = true;
-            setNotes(e.target.value);
+            setNotes(next);
           }}
-          placeholder="Menu order, confirmations, anything you don't want to forget."
-          className="print:border-0 print:bg-transparent print:p-0"
         />
         {!notes && (
           <span className="hidden print:block font-sans text-sm text-ink-500">
@@ -635,15 +650,17 @@ function countSummary(adults: number, children: number): string {
 /**
  * One-line summary of the prep notes markdown. Counts task checkboxes
  * (`- [ ]` / `- [x]`) and reports "N of M done" so the user can scan
- * progress with the section collapsed. Falls back to a generic
- * "Empty" / "Notes" indicator when no tasks are present.
+ * progress with the section collapsed. Returns "" when there's
+ * content but no tasks — the CollapsibleSection skips an empty chip,
+ * which avoids the confusing "Prep list Notes" double-label since
+ * the page also has a top-level Notes section.
  */
 function prepMarkdownSummary(md: string): string {
   if (!md.trim()) return "Empty";
   const taskOpen = (md.match(/^[\s]*[-*]\s\[\s\]/gm) ?? []).length;
   const taskDone = (md.match(/^[\s]*[-*]\s\[[xX]\]/gm) ?? []).length;
   const total = taskOpen + taskDone;
-  if (total === 0) return "Notes";
+  if (total === 0) return "";
   return `${taskDone} of ${total} done`;
 }
 
