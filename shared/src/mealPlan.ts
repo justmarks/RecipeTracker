@@ -167,5 +167,8 @@ export const MealPlanInputSchema = z.object({
   // Optional for back-compat with plans created before non-recipe
   // additions shipped.
   additionalItems: z.array(AdditionalItemSchema).optional(),
+  // ISO 8601 date string (YYYY-MM-DD) for the meal occasion.
+  // Optional for back-compat with plans created before this field shipped.
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 export type MealPlanInput = z.infer<typeof MealPlanInputSchema>;
