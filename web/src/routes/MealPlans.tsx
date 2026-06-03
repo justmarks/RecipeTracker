@@ -205,12 +205,16 @@ function PlanRow({ plan }: { plan: MealPlan }) {
                 ? "No guests yet"
                 : guestSummary(totalGuests, adultCount, childCount)}
             </span>
-            {plan.createdAt && (
+            {(plan.date || plan.createdAt) && (
               <>
                 <span aria-hidden="true" className="text-ink-300">
                   ·
                 </span>
-                <span>{formatCreatedAt(plan.createdAt.toDate())}</span>
+                <span>
+                  {plan.date
+                    ? formatEventDate(plan.date)
+                    : formatCreatedAt(plan.createdAt!.toDate())}
+                </span>
               </>
             )}
           </div>
@@ -238,6 +242,16 @@ function formatCreatedAt(date: Date): string {
     day: "numeric",
     year:
       new Date().getFullYear() === date.getFullYear() ? undefined : "numeric",
+  });
+}
+
+function formatEventDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: new Date().getFullYear() === year ? undefined : "numeric",
   });
 }
 
