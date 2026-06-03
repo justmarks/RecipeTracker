@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { useAuth } from "../lib/useAuth";
+import { useChapters } from "../lib/categories";
 import {
   deleteMealPlan,
   newGuestId,
@@ -42,6 +43,7 @@ export function MealPlanDetail() {
   const toast = useToast();
   const { plan, loading, error } = useMealPlan(user?.uid, id);
   const { recipes } = useRecipeList(user?.uid);
+  const { chapters } = useChapters(user?.uid);
 
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
@@ -266,12 +268,15 @@ export function MealPlanDetail() {
   }
 
   // Additional items — non-recipe menu lines (Crudité, wine, bread the
-  // guest is bringing). Always-editable rows like the prep list.
-  function addAdditionalItem() {
+  // guest is bringing). Each item is bucketed into a chapter so it
+  // shows up beside recipes in the same chapter group. The chapter
+  // argument pre-fills that slot so the new row lands where the user
+  // is looking.
+  function addAdditionalItem(chapter?: string) {
     additionalDirtyRef.current = true;
     setAdditionalItems((prev) => [
       ...prev,
-      { id: newPrepId(), name: "", broughtBy: undefined },
+      { id: newPrepId(), name: "", broughtBy: undefined, chapter },
     ]);
   }
 
@@ -456,209 +461,102 @@ export function MealPlanDetail() {
             </Button>
           }
         >
-          {guests.length === 0 ? (
-            <p className="font-sans text-sm text-ink-500 m-0">
-              Add the families you&rsquo;re cooking for so you remember
-              how many portions to plan. Each row tracks a group with
-              adult and kid counts.
-            </p>
-          ) : (
-            <ul className="list-none m-0 p-0 bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden">
-              {guests.map((g, i) => (
-                <li
-                  key={g.id}
-                  className={[
-                    "flex items-center gap-2 px-3.5 py-2.5 flex-wrap sm:flex-nowrap",
-                    i === guests.length - 1
-                      ? ""
-                      : "border-b border-[var(--border-faint)]",
-                  ].join(" ")}
-                >
-                  {/* Screen: family name + numeric counts. Print:
-                      replace inputs with a one-line summary span. */}
-                  <Input
-                    value={g.name}
-                    onChange={(e) =>
-                      updateFamily(i, { name: e.target.value })
-                    }
-                    placeholder="McMullen Family"
-                    className="flex-1 min-w-[180px] print:hidden"
-                  />
-                  <CountStepper
-                    label="adults"
-                    value={g.adults}
-                    onChange={(adults) => updateFamily(i, { adults })}
-                  />
-                  <CountStepper
-                    label="kids"
-                    value={g.kids}
-                    onChange={(kids) => updateFamily(i, { kids })}
-                  />
-                  <span className="hidden print:inline font-sans">
-                    {g.name || "(unnamed)"} —{" "}
-                    {g.adults} adult{g.adults === 1 ? "" : "s"},{" "}
-                    {g.kids} kid{g.kids === 1 ? "" : "s"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeFamily(i)}
-                    aria-label={`Remove ${g.name || "family"}`}
-                    className="flex-none p-1.5 rounded text-ink-400 hover:text-tomato-700 hover:bg-tomato-50 transition-colors duration-100 print:hidden"
+          {/*
+            On print we only want the summary chip in the section
+            header ("3 adults, 2 kids") — the per-family edit rows
+            are noise on paper. Wrap the panel content in
+            `print:hidden` so the families list disappears in the
+            printed view while staying interactive on screen.
+          */}
+          <div className="print:hidden">
+            {guests.length === 0 ? (
+              <p className="font-sans text-sm text-ink-500 m-0">
+                Add the families you&rsquo;re cooking for so you remember
+                how many portions to plan. Each row tracks a group with
+                adult and kid counts.
+              </p>
+            ) : (
+              <ul className="list-none m-0 p-0 bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden">
+                {guests.map((g, i) => (
+                  <li
+                    key={g.id}
+                    className={[
+                      "flex items-center gap-2 px-3.5 py-2.5 flex-wrap sm:flex-nowrap",
+                      i === guests.length - 1
+                        ? ""
+                        : "border-b border-[var(--border-faint)]",
+                    ].join(" ")}
                   >
-                    <Icon name="x" size={16} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                    <Input
+                      value={g.name}
+                      onChange={(e) =>
+                        updateFamily(i, { name: e.target.value })
+                      }
+                      placeholder="McMullen Family"
+                      className="flex-1 min-w-[180px]"
+                    />
+                    <CountStepper
+                      label="adults"
+                      value={g.adults}
+                      onChange={(adults) => updateFamily(i, { adults })}
+                    />
+                    <CountStepper
+                      label="kids"
+                      value={g.kids}
+                      onChange={(kids) => updateFamily(i, { kids })}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeFamily(i)}
+                      aria-label={`Remove ${g.name || "family"}`}
+                      className="flex-none p-1.5 rounded text-ink-400 hover:text-tomato-700 hover:bg-tomato-50 transition-colors duration-100"
+                    >
+                      <Icon name="x" size={16} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </CollapsibleSection>
       </div>
 
-      
+      <MenuSection
+        chapters={chapters}
+        recipeIds={plan.recipeIds}
+        recipesById={recipesById}
+        additionalItems={additionalItems}
+        onRemoveRecipe={handleRemoveRecipe}
+        onAddItemInChapter={(chapter) => addAdditionalItem(chapter)}
+        onUpdateItem={updateAdditionalItem}
+        onRemoveItem={removeAdditionalItem}
+        onCreateChapter={async (name) => {
+          // Plan-local header — does NOT write to the user's chapter
+          // library. We just seed a blank additional item carrying
+          // the typed chapter slug, and the menu picks up any
+          // chapter mentioned by additional items (see the grouping
+          // useMemo). The user can put dessert items the guest is
+          // bringing under a "Dessert" header without having to
+          // create a Dessert chapter in their library.
+          const normalized = name
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ");
+          if (!normalized) throw new Error("Header cannot be empty.");
+          if (normalized.length > 100)
+            throw new Error("Header is too long.");
+          addAdditionalItem(normalized);
+        }}
+      />
 
-      <section>
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <h2 className="font-display text-xl font-medium text-ink-900 m-0">
-            Recipes
-          </h2>
-          <Link to="/" className="no-underline print:hidden">
-            <Button type="button" variant="secondary" size="sm" icon="plus">
-              <span className="hidden sm:inline">Browse recipes</span>
-            </Button>
-          </Link>
-        </div>
-
-        {plan.recipeIds.length === 0 ? (
-          <RecipesEmptyState />
-        ) : (
-          <ul className="list-none m-0 p-0 bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden">
-            {plan.recipeIds.map((rid, i) => {
-              const recipe = recipesById.get(rid);
-              const isLast = i === plan.recipeIds.length - 1;
-              return (
-                <li
-                  key={rid}
-                  className={[
-                    "flex items-center gap-3 px-3.5 py-3",
-                    isLast ? "" : "border-b border-[var(--border-faint)]",
-                  ].join(" ")}
-                >
-                  {recipe ? (
-                    <ResolvedRecipeRow
-                      recipe={recipe}
-                      onRemove={() => handleRemoveRecipe(rid)}
-                    />
-                  ) : (
-                    <UnresolvedRecipeRow
-                      onRemove={() => handleRemoveRecipe(rid)}
-                    />
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      <section className="mt-8 additional-items">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <h2 className="font-display text-xl font-medium text-ink-900 m-0">
-            Additional items
-          </h2>
-          <div className="print:hidden">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              icon="plus"
-              onClick={addAdditionalItem}
-            >
-              <span className="hidden sm:inline">Add item</span>
-            </Button>
-          </div>
-        </div>
-
-        {additionalItems.length === 0 ? (
-          <p className="font-sans text-sm text-ink-500 m-0">
-            Track non-recipe items here — crudité, wine, dessert from
-            the bakery, or anything a guest is bringing.
-          </p>
-        ) : (
-          <ul className="list-none m-0 p-0 bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden">
-            {additionalItems.map((item, i) => (
-              <li
-                key={item.id}
-                className={[
-                  "flex items-center gap-2 px-3.5 py-2.5",
-                  i === additionalItems.length - 1
-                    ? ""
-                    : "border-b border-[var(--border-faint)]",
-                ].join(" ")}
-              >
-                {/*
-                  Screen view: two inputs side-by-side. Hidden on
-                  print because `<input>` elements can't host the
-                  pseudo-content needed to merge them into a single
-                  bulleted "Name — brought by Alice" line.
-                */}
-                <Input
-                  value={item.name}
-                  onChange={(e) =>
-                    updateAdditionalItem(i, { name: e.target.value })
-                  }
-                  placeholder="Crudité, wine, dessert…"
-                  className="flex-1 print:hidden"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addAdditionalItem();
-                    }
-                  }}
-                />
-                <Input
-                  value={item.broughtBy ?? ""}
-                  onChange={(e) =>
-                    updateAdditionalItem(i, {
-                      // Empty string clears the field so the print
-                      // template can hide the suffix entirely.
-                      broughtBy: e.target.value || undefined,
-                    })
-                  }
-                  placeholder="Brought by…"
-                  // Narrower than the name field — it's a side label,
-                  // not the primary content.
-                  className="w-40 sm:w-48 shrink-0 print:hidden"
-                />
-                {/*
-                  Print view: a single span that prints the joined
-                  line. Bullet from the CSS list-style; ` — Brought by
-                  X` appended only when broughtBy is set.
-                */}
-                <span className="hidden print:inline font-sans">
-                  {item.name || "(unnamed item)"}
-                  {item.broughtBy && (
-                    <span className="text-ink-500">
-                      {" — brought by "}
-                      {item.broughtBy}
-                    </span>
-                  )}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => removeAdditionalItem(i)}
-                  aria-label={`Remove ${item.name || "additional item"}`}
-                  title="Remove"
-                  className="flex-none p-1.5 rounded text-ink-400 hover:text-tomato-700 hover:bg-tomato-50 transition-colors duration-100 print:hidden"
-                >
-                  <Icon name="x" size={16} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <div className="mt-8">
+      {/*
+        prep-list-wrapper carries the page break for print. We put it
+        on the OUTER div (not just on the CollapsibleSection itself)
+        because some browsers' print engines refuse to honor
+        page-break-before on deeper elements, especially ones inside
+        grid containers (the collapsible panel uses display:grid).
+      */}
+      <div className="mt-8 prep-list-wrapper">
         <CollapsibleSection
           title="Prep list"
           className="prep-list"
@@ -877,15 +775,467 @@ function RecipesEmptyState() {
   return (
     <div className="rounded-lg border border-dashed border-paper-400 bg-paper-50 px-6 py-8 text-center">
       <p className="font-display italic text-md text-ink-700 m-0">
-        No recipes yet.
+        Nothing on the menu yet.
       </p>
-      <p className="font-sans text-sm text-ink-500 mt-1.5 max-w-[320px] mx-auto">
+      <p className="font-sans text-sm text-ink-500 mt-1.5 max-w-[360px] mx-auto">
         Open a recipe and tap{" "}
         <span className="inline-flex items-center gap-1 font-sans font-medium text-ink-700">
           <Icon name="utensils" size={12} /> Add to plan
-        </span>{" "}
-        to drop it here.
+        </span>
+        , or use &ldquo;Add item&rdquo; on any chapter to track a
+        non-recipe item like crudité, wine, or dessert from the bakery.
       </p>
+    </div>
+  );
+}
+
+interface MenuSectionProps {
+  chapters: string[];
+  recipeIds: string[];
+  recipesById: Map<string, RecipeListItem>;
+  additionalItems: AdditionalItem[];
+  onRemoveRecipe: (recipeId: string) => void;
+  onAddItemInChapter: (chapter: string | undefined) => void;
+  onUpdateItem: (idx: number, patch: Partial<AdditionalItem>) => void;
+  onRemoveItem: (idx: number) => void;
+  /**
+   * Persist a new chapter to the user's chapter library, then bring
+   * it into the menu (typically by seeding a placeholder item).
+   * Throws on validation / network errors so the inline form can
+   * surface them next to the input.
+   */
+  onCreateChapter: (name: string) => Promise<void>;
+}
+
+/**
+ * Unified menu — recipes and additional items grouped by chapter.
+ *
+ * For each chapter in the user's ordered chapter list, we collect
+ * every recipe whose `category` matches (case-insensitive) and every
+ * additional item whose `chapter` matches. Orphan content — recipes
+ * with a category the user doesn't have, or items with no chapter at
+ * all — falls into a final "Other" group so nothing gets hidden.
+ *
+ * Recipes render as the existing photo+title row; non-recipe items
+ * render as inline-editable rows (name + brought-by + remove). The
+ * "Add item" button on each chapter pre-fills that chapter so the
+ * new item lands in the section the user is looking at.
+ */
+function MenuSection({
+  chapters,
+  recipeIds,
+  recipesById,
+  additionalItems,
+  onRemoveRecipe,
+  onAddItemInChapter,
+  onUpdateItem,
+  onRemoveItem,
+  onCreateChapter,
+}: MenuSectionProps) {
+  // Inline "new chapter" form state. Kept local because it's pure
+  // chrome — the parent only sees the committed name.
+  const [isAddingChapter, setIsAddingChapter] = useState(false);
+  const [newChapterName, setNewChapterName] = useState("");
+  const [creatingChapter, setCreatingChapter] = useState(false);
+  const [chapterError, setChapterError] = useState<string | null>(null);
+
+  async function handleCreateChapter() {
+    const trimmed = newChapterName.trim();
+    if (!trimmed) return;
+    setCreatingChapter(true);
+    setChapterError(null);
+    try {
+      await onCreateChapter(trimmed);
+      setNewChapterName("");
+      setIsAddingChapter(false);
+    } catch (err) {
+      // Surface "Chapter X already exists" and similar — the addChapter
+      // helper throws Error with a user-readable message.
+      setChapterError(
+        err instanceof Error ? err.message : "Couldn't add chapter.",
+      );
+    } finally {
+      setCreatingChapter(false);
+    }
+  }
+
+  function cancelAddChapter() {
+    setIsAddingChapter(false);
+    setNewChapterName("");
+    setChapterError(null);
+  }
+  // Build the grouping. We track the original index of each
+  // additional item so update/remove callbacks can reach back into
+  // the parent state array. Recipes keep their own order from
+  // recipeIds.
+  //
+  // Chapter precedence:
+  //   1. Recipe categories that match a library chapter render in
+  //      that chapter's slot, in the user's chapter order.
+  //   2. Additional items can carry a `chapter` that ISN'T in the
+  //      library — those become plan-local headers. We track the
+  //      ORDER they first appear in `additionalItems` so headers
+  //      stay where the user put them.
+  //   3. Truly chapter-less items (and recipes whose category isn't
+  //      in the library OR mentioned by any item) fall into "Other"
+  //      at the very bottom.
+  const groups = useMemo(() => {
+    const map = new Map<
+      string,
+      { recipes: string[]; items: { item: AdditionalItem; idx: number }[] }
+    >();
+    const ensure = (key: string) => {
+      let g = map.get(key);
+      if (!g) {
+        g = { recipes: [], items: [] };
+        map.set(key, g);
+      }
+      return g;
+    };
+
+    const libraryChapters = new Set(chapters.map((c) => c.toLowerCase()));
+
+    // First pass: collect every chapter slug mentioned by an item,
+    // in the order it first shows up. These are the plan-local
+    // headers ("Dessert" when the user has no Dessert chapter, etc).
+    const planLocalOrder: string[] = [];
+    const planLocalSeen = new Set<string>();
+    for (const item of additionalItems) {
+      const key = item.chapter?.toLowerCase() ?? "";
+      if (!key) continue;
+      if (libraryChapters.has(key)) continue;
+      if (planLocalSeen.has(key)) continue;
+      planLocalSeen.add(key);
+      planLocalOrder.push(key);
+    }
+    const allKnownChapters = new Set<string>([
+      ...libraryChapters,
+      ...planLocalOrder,
+    ]);
+
+    for (const rid of recipeIds) {
+      const recipe = recipesById.get(rid);
+      const key = recipe?.category?.toLowerCase() ?? "";
+      const target = key && allKnownChapters.has(key) ? key : "__other__";
+      ensure(target).recipes.push(rid);
+    }
+    additionalItems.forEach((item, idx) => {
+      const key = item.chapter?.toLowerCase() ?? "";
+      const target = key && allKnownChapters.has(key) ? key : "__other__";
+      ensure(target).items.push({ item, idx });
+    });
+
+    const ordered: {
+      key: string;
+      // Display label — library chapters keep the user's preferred
+      // casing ("Entrée"), plan-local ones display as the slug the
+      // user typed (the slug IS the display name for those).
+      label: string;
+      // The exact chapter slug to pass back when the user adds an
+      // item in this group (undefined for the Other bucket so the
+      // item's chapter field stays empty rather than being pinned to
+      // a synthetic slug).
+      addChapter: string | undefined;
+      // True for plan-local headers — used by ChapterGroup to render
+      // a slightly muted heading so the user can tell at a glance
+      // which chapters belong to their library.
+      isLocal: boolean;
+      recipes: string[];
+      items: { item: AdditionalItem; idx: number }[];
+    }[] = [];
+
+    for (const c of chapters) {
+      const g = map.get(c.toLowerCase());
+      if (!g || (g.recipes.length === 0 && g.items.length === 0)) continue;
+      ordered.push({
+        key: c.toLowerCase(),
+        label: c,
+        addChapter: c,
+        isLocal: false,
+        recipes: g.recipes,
+        items: g.items,
+      });
+    }
+    for (const key of planLocalOrder) {
+      const g = map.get(key);
+      if (!g || (g.recipes.length === 0 && g.items.length === 0)) continue;
+      ordered.push({
+        key,
+        label: key,
+        addChapter: key,
+        isLocal: true,
+        recipes: g.recipes,
+        items: g.items,
+      });
+    }
+    const other = map.get("__other__");
+    if (other && (other.recipes.length > 0 || other.items.length > 0)) {
+      ordered.push({
+        key: "__other__",
+        label: "Other",
+        addChapter: undefined,
+        isLocal: false,
+        recipes: other.recipes,
+        items: other.items,
+      });
+    }
+    return ordered;
+  }, [chapters, recipeIds, recipesById, additionalItems]);
+
+  const isEmpty = groups.length === 0;
+
+  return (
+    <section className="menu-section">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h2 className="font-display text-xl font-medium text-ink-900 m-0">
+          Menu
+        </h2>
+        <div className="flex items-center gap-2 print:hidden">
+          <Button
+            type="button"
+            variant="secondary"
+            icon="plus"
+            size="sm"
+            onClick={() => {
+              setIsAddingChapter(true);
+              setNewChapterName("");
+              setChapterError(null);
+            }}
+            disabled={isAddingChapter}
+          >
+            <span className="hidden sm:inline">Add header</span>
+          </Button>
+          <Link to="/" className="no-underline">
+            <Button type="button" variant="secondary" size="sm" icon="plus">
+              <span className="hidden sm:inline">Browse recipes</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {isAddingChapter && (
+        <div className="mb-4 rounded-lg border border-[var(--border-faint)] bg-paper-50 p-3 print:hidden">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+            <Input
+              value={newChapterName}
+              autoFocus
+              onChange={(e) => setNewChapterName(e.target.value)}
+              placeholder="Dessert, drinks, kids' table…"
+              className="flex-1 min-w-[160px]"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleCreateChapter();
+                } else if (e.key === "Escape") {
+                  cancelAddChapter();
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleCreateChapter}
+              disabled={creatingChapter || !newChapterName.trim()}
+            >
+              {creatingChapter ? "Adding…" : "Add header"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={cancelAddChapter}
+              disabled={creatingChapter}
+            >
+              Cancel
+            </Button>
+          </div>
+          {chapterError && (
+            <p className="mt-2 font-sans text-xs text-tomato-700">
+              {chapterError}
+            </p>
+          )}
+          <p className="mt-2 font-sans text-xs text-ink-500">
+            Just for this plan — doesn&rsquo;t touch your chapter
+            library. A blank item appears under the new header,
+            ready to fill in.
+          </p>
+        </div>
+      )}
+
+      {isEmpty && !isAddingChapter ? (
+        <RecipesEmptyState />
+      ) : (
+        <div className="flex flex-col gap-5">
+          {groups.map((g) => (
+            <ChapterGroup
+              key={g.key}
+              label={g.label}
+              isOther={g.key === "__other__"}
+              isLocal={g.isLocal}
+              recipeIds={g.recipes}
+              recipesById={recipesById}
+              items={g.items}
+              onRemoveRecipe={onRemoveRecipe}
+              onAddItem={() => onAddItemInChapter(g.addChapter)}
+              onUpdateItem={onUpdateItem}
+              onRemoveItem={onRemoveItem}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+interface ChapterGroupProps {
+  label: string;
+  isOther: boolean;
+  /** True when this chapter is a plan-local header — the user typed
+   *  it via "+ Add header" and it isn't part of their library. We
+   *  use this to subtly tag it in the UI ("· in this plan") so the
+   *  user can tell at a glance which chapters are persistent vs
+   *  ad-hoc for this meal. */
+  isLocal: boolean;
+  recipeIds: string[];
+  recipesById: Map<string, RecipeListItem>;
+  items: { item: AdditionalItem; idx: number }[];
+  onRemoveRecipe: (recipeId: string) => void;
+  onAddItem: () => void;
+  onUpdateItem: (idx: number, patch: Partial<AdditionalItem>) => void;
+  onRemoveItem: (idx: number) => void;
+}
+
+/**
+ * One chapter heading + its recipes + its additional items + an
+ * "Add item" button. The chapter heading uses CSS capitalize for
+ * the same reason the home view does — chapter slugs are stored
+ * lowercase so "entree" prints as "Entree" without per-call casing.
+ */
+function ChapterGroup({
+  label,
+  isOther,
+  isLocal,
+  recipeIds,
+  recipesById,
+  items,
+  onRemoveRecipe,
+  onAddItem,
+  onUpdateItem,
+  onRemoveItem,
+}: ChapterGroupProps) {
+  const totalRows = recipeIds.length + items.length;
+  return (
+    <div className="menu-chapter">
+      <div className="flex items-baseline gap-2 border-b border-paper-300 pb-1.5 mb-2">
+        <h3
+          className={[
+            "font-display text-lg font-medium m-0 leading-tight",
+            isOther
+              ? "italic text-ink-500"
+              : "capitalize text-ink-900",
+          ].join(" ")}
+        >
+          {label}
+        </h3>
+        <span className="font-mono text-xs text-ink-300 [font-feature-settings:'tnum']">
+          {totalRows}
+        </span>
+        {isLocal && (
+          // Plan-local hint. Hidden on print since the printed plan
+          // shouldn't carry the "where does this section live"
+          // distinction — to a paper reader it's just a section.
+          <span className="font-sans text-[11px] text-ink-400 italic print:hidden">
+            · in this plan
+          </span>
+        )}
+        <span className="ml-auto print:hidden">
+          <button
+            type="button"
+            onClick={onAddItem}
+            className="inline-flex items-center gap-1 font-sans text-xs font-semibold text-tomato-600 hover:text-tomato-700"
+          >
+            <Icon name="plus" size={12} /> Add item
+          </button>
+        </span>
+      </div>
+      <ul className="list-none m-0 p-0 bg-white rounded-lg border border-[var(--border-faint)] shadow-xs overflow-hidden">
+        {recipeIds.map((rid, i) => {
+          const recipe = recipesById.get(rid);
+          const isLastRow = i === recipeIds.length - 1 && items.length === 0;
+          return (
+            <li
+              key={rid}
+              className={[
+                "flex items-center gap-3 px-3.5 py-3",
+                isLastRow ? "" : "border-b border-[var(--border-faint)]",
+              ].join(" ")}
+            >
+              {recipe ? (
+                <ResolvedRecipeRow
+                  recipe={recipe}
+                  onRemove={() => onRemoveRecipe(rid)}
+                />
+              ) : (
+                <UnresolvedRecipeRow
+                  onRemove={() => onRemoveRecipe(rid)}
+                />
+              )}
+            </li>
+          );
+        })}
+        {items.map(({ item, idx }, i) => {
+          const isLast = i === items.length - 1;
+          return (
+            <li
+              key={item.id}
+              className={[
+                "menu-item-row flex items-center gap-2 px-3.5 py-2.5",
+                isLast ? "" : "border-b border-[var(--border-faint)]",
+              ].join(" ")}
+            >
+              {/* Screen-only editor inputs. */}
+              <Input
+                value={item.name}
+                onChange={(e) =>
+                  onUpdateItem(idx, { name: e.target.value })
+                }
+                placeholder="Crudité, wine, dessert…"
+                className="flex-1 print:hidden"
+              />
+              <Input
+                value={item.broughtBy ?? ""}
+                onChange={(e) =>
+                  onUpdateItem(idx, {
+                    broughtBy: e.target.value || undefined,
+                  })
+                }
+                placeholder="Brought by…"
+                className="w-40 sm:w-48 shrink-0 print:hidden"
+              />
+              {/* Print-only flat string. */}
+              <span className="hidden print:inline font-sans">
+                {item.name || "(unnamed item)"}
+                {item.broughtBy && (
+                  <span className="text-ink-500">
+                    {" — brought by "}
+                    {item.broughtBy}
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => onRemoveItem(idx)}
+                aria-label={`Remove ${item.name || "additional item"}`}
+                title="Remove"
+                className="flex-none p-1.5 rounded text-ink-400 hover:text-tomato-700 hover:bg-tomato-50 transition-colors duration-100 print:hidden"
+              >
+                <Icon name="x" size={16} />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

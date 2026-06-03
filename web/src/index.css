@@ -562,16 +562,43 @@
     border-bottom: none !important;
   }
 
-  /* Prep notes — the rendered markdown preview prints as flat text.
-     Headings stay editorial; lists keep their disc / number markers;
-     task checkboxes print as solid-bordered squares (filled when
-     done). The preview always renders on print via a
-     `hidden print:block` wrapper in PrepNotesEditor, so even if the
-     user left the editor on the Write tab, the printed plan shows
-     the rendered version. */
+  /* Prep list always starts on a fresh page. The intended printed
+     layout is:
+       Page 1 — title, guest summary, menu by chapter
+       Page 2 — prep list (and notes trailing after)
+     The break is applied to the prep-list-wrapper (outer div) AND
+     the inner section so engines that ignore one still honor the
+     other. Both modern (`break-before: page`) and legacy
+     (`page-break-before`) spellings are emitted.
+     IMPORTANT: don't pair this with a `page-break-after` on the
+     preceding menu section — adjacent forced breaks should merge
+     per spec but in practice some engines emit BOTH, leaving a
+     blank page in between (sent prep list to page 3 instead of 2). */
+  .meal-plan-print .prep-list-wrapper,
+  .meal-plan-print .prep-list {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  /* Prep notes — the rendered markdown preview. The on-screen
+     editor has generous spacing for comfort; on paper we want a
+     dense, scannable checklist. Tight line-height (1.2) and tiny
+     vertical margins between list items collapse the printed
+     version to roughly two-thirds the on-screen height, so a long
+     prep list fits on a single page more often. No horizontal
+     dividers anywhere — the bullet markers themselves carry the
+     visual rhythm. */
+  /* Aggressive compactness: tight line-height, near-zero li
+     margin, smaller font. The Tailwind `leading-snug` / `my-1`
+     classes on list items in the renderer get overridden with
+     !important here so they don't reintroduce on-screen spacing on
+     paper. */
+  .meal-plan-print .prep-notes-preview,
+  .meal-plan-print .prep-notes-preview * {
+    line-height: 1.15 !important;
+  }
   .meal-plan-print .prep-notes-preview {
-    font-size: 11pt;
-    line-height: 1.45;
+    font-size: 10pt;
   }
   .meal-plan-print .prep-notes-preview h1,
   .meal-plan-print .prep-notes-preview h2,
@@ -580,24 +607,57 @@
   .meal-plan-print .prep-notes-preview h5,
   .meal-plan-print .prep-notes-preview h6 {
     page-break-after: avoid;
-    margin-top: 8pt !important;
+    margin-top: 4pt !important;
+    margin-bottom: 0 !important;
+    font-size: 12pt !important;
+    font-weight: 500;
+  }
+  .meal-plan-print .prep-notes-preview h1:first-child,
+  .meal-plan-print .prep-notes-preview h2:first-child,
+  .meal-plan-print .prep-notes-preview h3:first-child {
+    margin-top: 0 !important;
+  }
+  .meal-plan-print .prep-notes-preview p {
+    margin: 1pt 0 !important;
   }
   .meal-plan-print .prep-notes-preview ul,
   .meal-plan-print .prep-notes-preview ol {
-    margin: 4pt 0 !important;
-    padding-left: 16pt !important;
+    margin: 0 !important;
+    padding-left: 14pt !important;
   }
+  /* Nested lists tuck in tighter — the parent's left padding plus
+     this inner indent stack visually, and a smaller margin keeps
+     siblings hugged. */
+  .meal-plan-print .prep-notes-preview li ul,
+  .meal-plan-print .prep-notes-preview li ol,
+  .meal-plan-print .prep-notes-preview li > div > ul,
+  .meal-plan-print .prep-notes-preview li > div > ol {
+    margin: 0 !important;
+    padding-left: 12pt !important;
+  }
+  /* Override the Tailwind `my-1` / `my-1.5` margin classes the
+     renderer puts on each <li>. These were what kept the printed
+     list visibly spaced — the screen-space utility classes were
+     winning over the container line-height rule. */
   .meal-plan-print .prep-notes-preview li {
-    margin: 2pt 0;
+    margin: 0 !important;
+    padding: 0 !important;
     page-break-inside: avoid;
   }
+  /* Task rows use flex flex-col gap-1 on the <li>. Kill the gap
+     on print so the checkbox row and any nested children sit
+     flush. */
+  .meal-plan-print .prep-notes-preview li.flex {
+    gap: 0 !important;
+  }
   .meal-plan-print .prep-notes-preview [role="checkbox"] {
-    width: 10pt !important;
-    height: 10pt !important;
+    width: 9pt !important;
+    height: 9pt !important;
     border: 0.75pt solid var(--ink-700) !important;
     border-radius: 1pt !important;
     background: transparent !important;
     color: transparent !important;
+    margin-top: 1.5pt !important;
   }
   .meal-plan-print
     .prep-notes-preview
@@ -605,26 +665,63 @@
     background: var(--ink-700) !important;
     color: white !important;
   }
+  /* Task rows are flex-column to allow nested children below the
+     row; on paper we want each task on its own tight line. The
+     nested children indent via the `pl-6` wrapper in the JSX which
+     becomes ~14pt — that pairs with the list padding above. */
+  .meal-plan-print .prep-notes-preview [data-done] {
+    padding: 0 !important;
+  }
+  /* Done tasks: keep the strikethrough but mute the color slightly
+     so the active items pop. */
+  .meal-plan-print .prep-notes-preview [data-done="true"] .line-through {
+    color: var(--ink-500) !important;
+  }
 
-  /* Additional items — render the JSX print span (item name + an
-     optional "brought by X" tail) as a flat bulleted list. The
-     editor's two-input row is hidden via `print:hidden` classes on
-     the inputs themselves; we just need to dot-prefix each <li> and
-     strip the bordered card look. */
-  .meal-plan-print .additional-items ul {
+  /* Menu — chapter-grouped list of recipes + non-recipe items. On
+     paper we want one clean editorial column: chapter heading as
+     Newsreader 14pt, the row card chrome stripped, items rendered
+     as plain bullet lines (• Name — brought by X). The inline-input
+     rows have `print:hidden` on each <Input> already, so just the
+     print-only spans + this CSS produce the printed view. */
+  .meal-plan-print .menu-chapter {
+    page-break-inside: avoid;
+    margin-bottom: 12pt;
+  }
+  .meal-plan-print .menu-chapter h3 {
+    font-family: var(--font-display) !important;
+    font-size: 13pt !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.01em;
+    color: var(--ink-900) !important;
+    border-bottom: 0.5pt solid var(--ink-700) !important;
+    padding-bottom: 2pt !important;
+    margin-bottom: 4pt !important;
+  }
+  /* Hide the per-chapter count chip + the "Add item" button on paper. */
+  .meal-plan-print .menu-chapter h3 + span,
+  .meal-plan-print .menu-chapter .ml-auto {
+    display: none !important;
+  }
+  .meal-plan-print .menu-chapter ul {
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
   }
-  .meal-plan-print .additional-items li {
+  .meal-plan-print .menu-chapter ul li {
     border-bottom: none !important;
     padding: 2pt 0 !important;
     page-break-inside: avoid;
     font-size: 11pt;
     line-height: 1.4;
+  }
+  /* Non-recipe rows print as bullet lines via the inline print span
+     in the JSX. Dot-prefix only the menu-item-row variant; recipe
+     rows already carry their photo + title styling. */
+  .meal-plan-print .menu-item-row {
     list-style: none;
   }
-  .meal-plan-print .additional-items li::before {
+  .meal-plan-print .menu-item-row::before {
     content: "• ";
     color: var(--ink-700);
     margin-right: 4pt;

@@ -133,6 +133,13 @@ export const AdditionalItemSchema = z.object({
   id: z.string().min(1),
   name: z.string().max(200),
   broughtBy: z.string().max(100).optional(),
+  /**
+   * Chapter slug used to bucket the item alongside recipes in the
+   * unified Menu section. Free-form lowercase to match the
+   * `Recipe.category` convention. Optional for back-compat — items
+   * without a chapter render in the "Other" bucket at the end.
+   */
+  chapter: z.string().max(100).optional(),
 });
 export type AdditionalItem = z.infer<typeof AdditionalItemSchema>;
 

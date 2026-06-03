@@ -270,6 +270,28 @@ describe("AdditionalItemSchema", () => {
     ).not.toThrow();
   });
 
+  it("accepts an item with a chapter slug", () => {
+    expect(() =>
+      AdditionalItemSchema.parse({ ...valid, chapter: "appetizer" }),
+    ).not.toThrow();
+  });
+
+  it("accepts an item without a chapter (back-compat)", () => {
+    // Older additional items predate the chapter field. They still
+    // parse — the UI shows them in the "Other" group.
+    const parsed = AdditionalItemSchema.parse(valid);
+    expect(parsed.chapter).toBeUndefined();
+  });
+
+  it("rejects chapter over 100 characters", () => {
+    expect(() =>
+      AdditionalItemSchema.parse({
+        ...valid,
+        chapter: "a".repeat(101),
+      }),
+    ).toThrow();
+  });
+
   it("accepts an empty name (mid-edit state)", () => {
     // Same back-compat with the editor pattern as PrepItem — the
     // user can add a row and start typing without the doc rejecting.

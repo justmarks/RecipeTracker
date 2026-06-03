@@ -13,6 +13,17 @@ import { isSafeUrl } from "./inlineMarkdown";
  *   *italic*          → <em>
  *   [label](url)      → links (URL safety enforced via isSafeUrl)
  *
+ * Lists support arbitrary nesting via 2-space indentation:
+ *
+ *   - top level
+ *     - nested
+ *       - twice-nested
+ *   - back to top
+ *
+ * Each item can carry one child list of any kind, so you can mix
+ * bullets / numbers / tasks across levels — e.g. a checklist of
+ * tasks where each task expands into a numbered playbook.
+ *
  * Intentionally narrow vs. CommonMark — no horizontal rules, code
  * blocks, blockquotes, images. Those aren't on the prep-notes brief
  * and adding them would complicate the editor without payoff.
@@ -52,14 +63,15 @@ export function renderPrepMarkdown(
       continue;
     }
 
-    // List run (bullets, numbers, or tasks). collectList grabs every
-    // consecutive list line of the same shape.
-    const listKind = listKindFor(trimmed);
-    if (listKind) {
-      const { items, endIdx } = collectList(lines, i, listKind);
-      blocks.push(renderList(listKind, items, key++, onToggleTask));
-      i = endIdx;
-      continue;
+    // List run — parse the whole tree (including any nested levels)
+    // starting at this line.
+    if (listKindFor(trimmed)) {
+      const sub = parseListTree(lines, i, -1);
+      if (sub) {
+        blocks.push(renderListNode(sub.node, key++, onToggleTask));
+        i = sub.endIdx;
+        continue;
+      }
     }
 
     // Paragraph — collect contiguous non-special lines.
@@ -101,50 +113,122 @@ function listKindFor(trimmed: string): ListKind | null {
   return null;
 }
 
+/**
+ * Count the indent level of a list line. Spaces count one each, tabs
+ * count as two (typical visual width); we then divide by two so
+ * "level 1" is 2-space indent, "level 2" is 4-space, etc. This matches
+ * the standard markdown convention without forcing the user to
+ * memorize an exact space count.
+ */
+function listIndentLevel(raw: string): number {
+  let count = 0;
+  for (const c of raw) {
+    if (c === " ") count++;
+    else if (c === "\t") count += 2;
+    else break;
+  }
+  return Math.floor(count / 2);
+}
+
 interface ListItem {
-  /** The text after the marker — what gets rendered with inline markdown. */
+  /** Text after the marker — rendered through inline markdown. */
   text: string;
-  /** Source-line index (0-based). Used to toggle task state. */
+  /** Source-line index (0-based) — used to toggle task state. */
   srcIdx: number;
   /** For task items only — true when `[x]`. */
   done?: boolean;
+  /** Nested list directly under this item, if any. */
+  nested?: ListNode;
 }
 
-function collectList(
+interface ListNode {
+  kind: ListKind;
+  items: ListItem[];
+}
+
+function parseListItem(
+  trimmed: string,
+  kind: ListKind,
+  srcIdx: number,
+): ListItem | null {
+  if (kind === "task") {
+    const m = trimmed.match(/^[-*]\s\[([ xX])\]\s?(.*)$/);
+    if (!m) return null;
+    return {
+      text: m[2],
+      srcIdx,
+      done: m[1] === "x" || m[1] === "X",
+    };
+  }
+  if (kind === "ul") {
+    const m = trimmed.match(/^[-*]\s+(.*)$/);
+    if (!m) return null;
+    return { text: m[1], srcIdx };
+  }
+  const m = trimmed.match(/^\d+\.\s+(.*)$/);
+  if (!m) return null;
+  return { text: m[1], srcIdx };
+}
+
+/**
+ * Recursively parse a list (and any nested lists) starting at
+ * `lines[start]`. `parentIndent` is the indent of the enclosing
+ * item's marker; only lines with strictly greater indent are
+ * accepted into the returned node. Pass -1 for the top-level call so
+ * indent-0 lists count as children of "the document".
+ *
+ * Returns the parsed node + the line index immediately after the
+ * last consumed line, or null when there's nothing to parse.
+ */
+function parseListTree(
   lines: string[],
   start: number,
-  kind: ListKind,
-): { items: ListItem[]; endIdx: number } {
-  const items: ListItem[] = [];
+  parentIndent: number,
+): { node: ListNode; endIdx: number } | null {
+  if (start >= lines.length) return null;
+  const firstRaw = lines[start];
+  const firstTrim = firstRaw.trim();
+  const firstKind = listKindFor(firstTrim);
+  if (!firstKind) return null;
+  const indent = listIndentLevel(firstRaw);
+  if (indent <= parentIndent) return null;
+
+  const node: ListNode = { kind: firstKind, items: [] };
   let i = start;
 
   while (i < lines.length) {
     const raw = lines[i];
-    const t = raw.trim();
-    if (t === "") break;
-    if (listKindFor(t) !== kind) break;
+    const trimmed = raw.trim();
+    if (trimmed === "") break;
+    const itemKind = listKindFor(trimmed);
+    if (!itemKind) break;
+    const itemIndent = listIndentLevel(raw);
 
-    if (kind === "task") {
-      // Strip the bullet marker AND the [ ] / [x] prefix; record done.
-      const m = t.match(/^[-*]\s\[([ xX])\]\s?(.*)$/);
-      if (!m) break;
-      items.push({
-        text: m[2],
-        srcIdx: i,
-        done: m[1] === "x" || m[1] === "X",
-      });
-    } else if (kind === "ul") {
-      const m = t.match(/^[-*]\s+(.*)$/);
-      if (!m) break;
-      items.push({ text: m[1], srcIdx: i });
-    } else {
-      const m = t.match(/^\d+\.\s+(.*)$/);
-      if (!m) break;
-      items.push({ text: m[1], srcIdx: i });
+    // Bubble back out to a higher level — let the caller continue.
+    if (itemIndent < indent) break;
+
+    if (itemIndent === indent) {
+      // Sibling. A different kind at the same indent terminates this
+      // list so the caller can start a fresh one (or the document
+      // resumes).
+      if (itemKind !== node.kind) break;
+      const item = parseListItem(trimmed, node.kind, i);
+      if (!item) break;
+      node.items.push(item);
+      i++;
+      continue;
     }
-    i++;
+
+    // Deeper — recurse, attach to the last item.
+    const parent = node.items[node.items.length - 1];
+    if (!parent) break;
+    const sub = parseListTree(lines, i, indent);
+    if (!sub) break;
+    parent.nested = sub.node;
+    i = sub.endIdx;
   }
-  return { items, endIdx: i };
+
+  return { node, endIdx: i };
 }
 
 function renderHeading(level: number, text: string, key: number): ReactNode {
@@ -181,72 +265,87 @@ function renderHeading(level: number, text: string, key: number): ReactNode {
   }
 }
 
-function renderList(
-  kind: ListKind,
-  items: ListItem[],
-  key: number,
+function renderListNode(
+  node: ListNode,
+  key: number | string,
   onToggleTask?: (lineIndex: number) => void,
 ): ReactNode {
-  if (kind === "task") {
+  if (node.kind === "task") {
     return (
-      <ul key={key} className="list-none m-0 p-0 mt-2 first:mt-0">
-        {items.map((it) => (
+      <ul
+        key={key}
+        className="list-none m-0 p-0 mt-2 first:mt-0"
+      >
+        {node.items.map((it) => (
           <li
             key={it.srcIdx}
-            className="flex items-start gap-2 my-1.5"
+            className="flex flex-col gap-1 my-1.5"
             data-done={it.done ? "true" : "false"}
           >
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={!!it.done}
-              onClick={
-                onToggleTask
-                  ? () => onToggleTask(it.srcIdx)
-                  : undefined
-              }
-              disabled={!onToggleTask}
-              className={[
-                "flex-none mt-1 w-4 h-4 rounded border-2 flex items-center justify-center",
-                "transition-colors duration-100",
-                onToggleTask ? "cursor-pointer" : "cursor-default",
-                it.done
-                  ? "bg-tomato-500 border-tomato-500 text-white"
-                  : "bg-white border-paper-400 text-transparent",
-                "print:border-ink-700 print:text-ink-900",
-              ].join(" ")}
-              aria-label={it.done ? "Mark as not done" : "Mark as done"}
-            >
-              {/* Check glyph — solid filled on done, hidden via
-                  color-transparent otherwise so the square reads
-                  clearly. ASCII rather than icon imports keep this
-                  renderer self-contained. */}
-              <span aria-hidden="true" className="text-[10px] leading-none">
-                ✓
+            <div className="flex items-start gap-2">
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={!!it.done}
+                onClick={
+                  onToggleTask
+                    ? () => onToggleTask(it.srcIdx)
+                    : undefined
+                }
+                disabled={!onToggleTask}
+                className={[
+                  "flex-none mt-1 w-4 h-4 rounded border-2 flex items-center justify-center",
+                  "transition-colors duration-100",
+                  onToggleTask ? "cursor-pointer" : "cursor-default",
+                  it.done
+                    ? "bg-tomato-500 border-tomato-500 text-white"
+                    : "bg-white border-paper-400 text-transparent",
+                  "print:border-ink-700 print:text-ink-900",
+                ].join(" ")}
+                aria-label={it.done ? "Mark as not done" : "Mark as done"}
+              >
+                <span aria-hidden="true" className="text-[10px] leading-none">
+                  ✓
+                </span>
+              </button>
+              <span
+                className={[
+                  "flex-1 leading-snug",
+                  it.done ? "line-through text-ink-500" : "text-ink-900",
+                ].join(" ")}
+              >
+                {renderInline(it.text)}
               </span>
-            </button>
-            <span
-              className={[
-                "flex-1 leading-snug",
-                it.done ? "line-through text-ink-500" : "text-ink-900",
-              ].join(" ")}
-            >
-              {renderInline(it.text)}
-            </span>
+            </div>
+            {it.nested && (
+              <div className="pl-6">
+                {renderListNode(
+                  it.nested,
+                  `${it.srcIdx}-nested`,
+                  onToggleTask,
+                )}
+              </div>
+            )}
           </li>
         ))}
       </ul>
     );
   }
-  if (kind === "ul") {
+  if (node.kind === "ul") {
     return (
       <ul
         key={key}
         className="list-disc list-outside pl-6 m-0 mt-2 first:mt-0 marker:text-tomato-500"
       >
-        {items.map((it) => (
+        {node.items.map((it) => (
           <li key={it.srcIdx} className="my-1 text-ink-900 leading-snug">
             {renderInline(it.text)}
+            {it.nested &&
+              renderListNode(
+                it.nested,
+                `${it.srcIdx}-nested`,
+                onToggleTask,
+              )}
           </li>
         ))}
       </ul>
@@ -257,9 +356,15 @@ function renderList(
       key={key}
       className="list-decimal list-outside pl-6 m-0 mt-2 first:mt-0 marker:text-tomato-500 marker:font-medium"
     >
-      {items.map((it) => (
+      {node.items.map((it) => (
         <li key={it.srcIdx} className="my-1 text-ink-900 leading-snug">
           {renderInline(it.text)}
+          {it.nested &&
+            renderListNode(
+              it.nested,
+              `${it.srcIdx}-nested`,
+              onToggleTask,
+            )}
         </li>
       ))}
     </ol>
@@ -275,8 +380,6 @@ function renderInline(text: string): ReactNode[] {
   const out: ReactNode[] = [];
   let lastIdx = 0;
   let key = 0;
-  // Bold OR italic OR link. The bold pattern must precede italic in
-  // the alternation so the engine prefers the longer match.
   const pattern =
     /\*\*([^*\n]+?)\*\*|\*([^*\n]+?)\*|\[([^\]]+?)\]\(([^)]+?)\)/g;
   let m: RegExpExecArray | null;
@@ -315,10 +418,10 @@ function renderInline(text: string): ReactNode[] {
 
 /**
  * Toggle the checkbox on `lineIndex` of `source` between `[ ]` and
- * `[x]`. Returns the new source string. Used as the natural
+ * `[x]`. Returns the new source string. Preserves leading indent so
+ * nested tasks still nest after a toggle. Used as the natural
  * `onToggleTask` implementation by the prep-notes editor — passing
- * `source` plus this function keeps state ownership with the
- * caller.
+ * `source` plus this function keeps state ownership with the caller.
  */
 export function toggleTaskInSource(
   source: string,

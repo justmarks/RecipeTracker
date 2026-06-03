@@ -91,13 +91,16 @@ export function PrepNotesEditor({ value, onChange }: PrepNotesEditorProps) {
 const PLACEHOLDER = `## Day before
 - [ ] Brine the turkey
 - [ ] Make pie crust
+  - [ ] Roll out
+  - [ ] Blind bake
 
 ## Day of
 - [ ] Roast turkey at noon
 - [ ] Reheat sides
 - [ ] Set the table
 
-You can use **bold**, *italic*, and [links](https://example.com).`;
+Indent with two spaces for **nested** bullets. You can also use
+*italic* and [links](https://example.com).`;
 
 function TabButton({
   active,
