@@ -56,7 +56,7 @@ export function MealPlanDetail() {
   // intentionally don't persist this across reloads — the page is
   // short enough that the user's preference doesn't outweigh the
   // discovery benefit of arriving at a fully-laid-out plan.
-  const [guestsOpen, setGuestsOpen] = useState(true);
+  const [guestsOpen, setGuestsOpen] = useState(false);
   const [prepOpen, setPrepOpen] = useState(true);
 
   // Local guest state with debounced save — the dialog-style "save when
