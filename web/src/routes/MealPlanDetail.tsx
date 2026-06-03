@@ -702,7 +702,7 @@ function CountStepper({ label, value, onChange }: CountStepperProps) {
       >
         +
       </button>
-      <span className="font-sans text-xs text-ink-500 ml-0.5 hidden sm:inline">
+      <span className="font-sans text-xs text-ink-500 ml-0.5">
         {label}
       </span>
     </div>
@@ -1020,10 +1020,11 @@ function MenuSection({
             }}
             disabled={isAddingChapter}
           >
-            <span className="hidden sm:inline">Add header</span>
+            Add header
           </Button>
           <Link to="/" className="no-underline">
             <Button type="button" variant="secondary" size="sm" icon="plus">
+              <span className="sm:hidden">Recipes</span>
               <span className="hidden sm:inline">Browse recipes</span>
             </Button>
           </Link>
