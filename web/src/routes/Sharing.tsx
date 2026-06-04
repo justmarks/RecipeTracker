@@ -178,9 +178,9 @@ export function Sharing() {
         Sharing
       </h1>
       <p className="font-sans text-sm text-ink-700 m-0 mb-7 max-w-[480px]">
-        Auto-share gives someone access to every recipe in your cookbook —
-        current and future. For one-off shares, use the Share button on an
-        individual recipe.
+        Auto-share gives someone access to every recipe and meal plan in
+        your cookbook — current and future. For one-off shares, use the
+        Share button on an individual recipe or meal plan.
       </p>
 
       <section className="mb-8 bg-white rounded-lg px-6 py-5 shadow-sm border border-[var(--border-faint)]">
@@ -225,7 +225,7 @@ export function Sharing() {
 
       <section className="mb-8">
         <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-3 pb-2 border-b border-paper-300">
-          People who can see all your recipes
+          People who can see all your recipes and meal plans
           <span className="ml-2 font-mono text-xs font-normal text-ink-300 [font-feature-settings:'tnum']">
             {outgoing.length}
           </span>
@@ -301,7 +301,7 @@ export function Sharing() {
         title="Remove access?"
         message={
           confirmRevoke
-            ? `${confirmRevoke.granteeEmail} will no longer see your recipes. Per-recipe shares (the ones you set up individually) will stay.`
+            ? `${confirmRevoke.granteeEmail} will no longer see your recipes or meal plans. Per-recipe and per-plan shares (the ones you set up individually) will stay.`
             : ""
         }
         confirmLabel={revoking ? "Removing…" : "Remove"}

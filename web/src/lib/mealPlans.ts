@@ -14,7 +14,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import type { DocumentData } from "firebase/firestore";
+import type { DocumentData, Unsubscribe } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "./firebase";
 import type {
@@ -48,6 +48,17 @@ export type MealPlan = {
   additionalItems: AdditionalItem[];
   /** ISO date (YYYY-MM-DD) for the meal occasion. Optional on older plans. */
   date?: string;
+  /**
+   * UIDs the owner explicitly granted view access to. Always present;
+   * defaults to [] on read for back-compat with plans created before
+   * sharing shipped. Mirrors the recipe sharedWith pattern.
+   */
+  sharedWith: string[];
+  /**
+   * Denormalized {uid, email} mirror so the share dialog can render
+   * who has access without a separate Auth lookup per render.
+   */
+  sharedWithDetails: { uid: string; email: string }[];
   /** Cached grocery list from the last generation. Absent until the
    *  user generates one. Mirrored back to Firestore by the Cloud
    *  Function so a reload of the plan picks it up from the snapshot. */
@@ -58,6 +69,17 @@ export type MealPlan = {
   groceryListGeneratedAt?: Timestamp;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+  /**
+   * How this plan became visible to the current user:
+   *   "owned"   — the user is the plan's owner
+   *   "shared"  — owner added them to sharedWith
+   *   "auto"    — owner granted blanket access via autoShares
+   * Multiple sources can apply; we pick the strongest (owned >
+   * shared > auto) so the list UI can render a single badge.
+   * Only meaningful in list contexts (useMealPlans / useSharedPlans);
+   * single-doc reads via useMealPlan set this based on the snapshot.
+   */
+  access: "owned" | "shared" | "auto";
 };
 
 /**
@@ -90,7 +112,11 @@ function planSortKey(plan: MealPlan): number {
   return plan.createdAt?.toMillis() ?? Number.POSITIVE_INFINITY;
 }
 
-function fromDoc(id: string, data: DocumentData): MealPlan {
+function fromDoc(
+  id: string,
+  data: DocumentData,
+  access: MealPlan["access"],
+): MealPlan {
   // Pure parsing + back-compat lives in mealPlansCore so it can be
   // unit-tested without the firebase SDK. We re-attach the Firestore
   // Timestamp types on the way out — parseMealPlanDoc keeps timestamps
@@ -98,6 +124,7 @@ function fromDoc(id: string, data: DocumentData): MealPlan {
   const parsed = parseMealPlanDoc(id, data as Record<string, unknown>);
   return {
     ...parsed,
+    access,
     createdAt: parsed.createdAt as Timestamp | undefined,
     updatedAt: parsed.updatedAt as Timestamp | undefined,
     groceryListGeneratedAt: parsed.groceryListGeneratedAt as
@@ -116,41 +143,164 @@ export function useMealPlans(uid: string | undefined): {
   plans: MealPlan[];
   loading: boolean;
 } {
-  const [plans, setPlans] = useState<MealPlan[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Three independent maps so a snapshot from one query doesn't
+  // clobber the others (identical pattern to useRecipeList).
+  const [owned, setOwned] = useState<Map<string, MealPlan>>(new Map());
+  const [shared, setShared] = useState<Map<string, MealPlan>>(new Map());
+  const [auto, setAuto] = useState<Map<string, MealPlan>>(new Map());
+  const [ownedReady, setOwnedReady] = useState(false);
+  const [sharedReady, setSharedReady] = useState(false);
+  const [autoReady, setAutoReady] = useState(false);
 
+  // Owned + explicit-share subscriptions are stable for the lifetime
+  // of uid. We avoid `orderBy("createdAt")` here on purpose — pairing
+  // it with serverTimestamp() pending writes used to trip the
+  // IndexedDB-backed listener with an SDK assertion (`b815 / ve:-1`).
+  // Sort client-side via planSortKey instead.
   useEffect(() => {
     if (!uid) {
-      setPlans([]);
-      setLoading(false);
+      setOwned(new Map());
+      setShared(new Map());
+      setOwnedReady(false);
+      setSharedReady(false);
       return;
     }
-    setLoading(true);
-    // Filter server-side, sort CLIENT-side. Adding `orderBy("createdAt")`
-    // here interacts badly with the `serverTimestamp()` we stamp on
-    // create — the client sees a pending null for that field until the
-    // server acknowledges, and the IndexedDB-backed listener trips an
-    // SDK assertion (`b815 / ve:-1`) trying to position the pending
-    // doc against itself in the order. Sorting client-side dodges the
-    // race entirely; meal plans are low cardinality so the in-memory
-    // sort is free.
-    const unsub = onSnapshot(
+
+    const unsubOwned = onSnapshot(
       query(collection(db, "mealPlans"), where("ownerId", "==", uid)),
       (snap) => {
-        const next = snap.docs.map((d) => fromDoc(d.id, d.data()));
-        next.sort((a, b) => planSortKey(b) - planSortKey(a));
-        setPlans(next);
-        setLoading(false);
+        const m = new Map<string, MealPlan>();
+        for (const d of snap.docs) m.set(d.id, fromDoc(d.id, d.data(), "owned"));
+        setOwned(m);
+        setOwnedReady(true);
       },
       (err) => {
-        console.error("Meal plans snapshot:", err);
-        setLoading(false);
+        console.error("owned meal plans:", err);
+        setOwnedReady(true);
       },
     );
-    return unsub;
+
+    const unsubShared = onSnapshot(
+      query(
+        collection(db, "mealPlans"),
+        where("sharedWith", "array-contains", uid),
+      ),
+      (snap) => {
+        const m = new Map<string, MealPlan>();
+        for (const d of snap.docs) m.set(d.id, fromDoc(d.id, d.data(), "shared"));
+        setShared(m);
+        setSharedReady(true);
+      },
+      (err) => {
+        console.error("shared meal plans:", err);
+        setSharedReady(true);
+      },
+    );
+
+    return () => {
+      unsubOwned();
+      unsubShared();
+    };
   }, [uid]);
 
-  return { plans, loading };
+  // Auto-share fan-out: subscribe to the autoShares pointing at me,
+  // then for each one open a mealPlans-where-ownerId-equals
+  // subscription. Mirror of useRecipeList's auto-share fan-out so the
+  // single autoShare grant covers both surfaces — that's why the user
+  // wanted them unified.
+  useEffect(() => {
+    if (!uid) {
+      setAuto(new Map());
+      setAutoReady(false);
+      return;
+    }
+
+    const innerSubs = new Map<string, Unsubscribe>();
+    const perOwner = new Map<string, Map<string, MealPlan>>();
+
+    function recomputeAuto() {
+      const merged = new Map<string, MealPlan>();
+      for (const ownerMap of perOwner.values()) {
+        for (const [id, plan] of ownerMap) merged.set(id, plan);
+      }
+      setAuto(merged);
+    }
+
+    const unsubOuter = onSnapshot(
+      query(collection(db, "autoShares"), where("granteeUid", "==", uid)),
+      (snap) => {
+        const currentOwners = new Set<string>();
+        snap.docs.forEach((d) => {
+          const ownerId = (d.data() as { ownerId: string }).ownerId;
+          currentOwners.add(ownerId);
+          if (innerSubs.has(ownerId)) return;
+          const inner = onSnapshot(
+            query(
+              collection(db, "mealPlans"),
+              where("ownerId", "==", ownerId),
+            ),
+            (innerSnap) => {
+              const m = new Map<string, MealPlan>();
+              for (const d of innerSnap.docs) {
+                m.set(d.id, fromDoc(d.id, d.data(), "auto"));
+              }
+              perOwner.set(ownerId, m);
+              recomputeAuto();
+              setAutoReady(true);
+            },
+            (err) => {
+              console.error("auto-shared meal plans:", err);
+              setAutoReady(true);
+            },
+          );
+          innerSubs.set(ownerId, inner);
+        });
+        // Tear down subs for revoked autoShares.
+        for (const [ownerId, unsub] of innerSubs) {
+          if (!currentOwners.has(ownerId)) {
+            unsub();
+            innerSubs.delete(ownerId);
+            perOwner.delete(ownerId);
+          }
+        }
+        if (snap.size === 0) {
+          setAuto(new Map());
+          setAutoReady(true);
+        } else {
+          recomputeAuto();
+        }
+      },
+      (err) => {
+        console.error("autoShares list:", err);
+        setAutoReady(true);
+      },
+    );
+
+    return () => {
+      unsubOuter();
+      for (const unsub of innerSubs.values()) unsub();
+    };
+  }, [uid]);
+
+  // Merge owned > shared > auto so a plan that's both explicitly
+  // shared AND auto-shared shows as "shared" (the more specific
+  // signal). Sort by planSortKey at the end so the unified list is
+  // reverse-chronological by meal date.
+  const seen = new Set<string>();
+  const merged: MealPlan[] = [];
+  for (const map of [owned, shared, auto]) {
+    for (const item of map.values()) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      merged.push(item);
+    }
+  }
+  merged.sort((a, b) => planSortKey(b) - planSortKey(a));
+
+  return {
+    plans: merged,
+    loading: !(ownedReady && sharedReady && autoReady),
+  };
 }
 
 /**
@@ -178,7 +328,18 @@ export function useMealPlan(
       doc(db, "mealPlans", id),
       (snap) => {
         if (snap.exists()) {
-          setPlan(fromDoc(snap.id, snap.data()));
+          const data = snap.data();
+          // Derive access from the snapshot: owner if ownerId matches,
+          // shared if I'm in sharedWith, otherwise auto (the only
+          // remaining read path the rules allow). Pages that need to
+          // gate owner-only UI (Share/Edit/Delete buttons) read this.
+          const access: MealPlan["access"] =
+            data.ownerId === uid
+              ? "owned"
+              : Array.isArray(data.sharedWith) && data.sharedWith.includes(uid)
+                ? "shared"
+                : "auto";
+          setPlan(fromDoc(snap.id, data, access));
           setError(null);
         } else {
           setPlan(null);
@@ -219,6 +380,11 @@ export async function createMealPlan(
     name,
     guests: [],
     recipeIds: [],
+    // Seed share fields explicitly so the rule's
+    // `request.auth.uid in resource.data.sharedWith` check never
+    // trips on a missing field. New plans start owner-only.
+    sharedWith: [],
+    sharedWithDetails: [],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -315,6 +481,12 @@ export async function duplicateMealPlan(
     prepNotes: source.prepNotes,
     additionalItems: source.additionalItems.map((item) => ({ ...item })),
     // date intentionally omitted — see jsdoc above.
+    // Shares DON'T carry over either: a duplicate is a new plan for a
+    // new occasion. The original's collaborators don't automatically
+    // get access to the copy; the duplicating user re-shares if they
+    // want them on the new plan.
+    sharedWith: [],
+    sharedWithDetails: [],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

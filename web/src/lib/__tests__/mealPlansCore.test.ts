@@ -29,6 +29,54 @@ describe("parseMealPlanDoc", () => {
     expect(plan.recipeIds).toEqual([]);
   });
 
+  it("defaults missing sharedWith to an empty array (back-compat)", () => {
+    // Plans created before sharing shipped don't carry the field —
+    // they must parse cleanly as owner-only.
+    const plan = parseMealPlanDoc("p", minimal);
+    expect(plan.sharedWith).toEqual([]);
+    expect(plan.sharedWithDetails).toEqual([]);
+  });
+
+  it("hydrates sharedWith + sharedWithDetails when present", () => {
+    const plan = parseMealPlanDoc("p", {
+      ...minimal,
+      sharedWith: ["uid-a", "uid-b"],
+      sharedWithDetails: [
+        { uid: "uid-a", email: "a@example.com" },
+        { uid: "uid-b", email: "b@example.com" },
+      ],
+    });
+    expect(plan.sharedWith).toEqual(["uid-a", "uid-b"]);
+    expect(plan.sharedWithDetails).toHaveLength(2);
+    expect(plan.sharedWithDetails[0]).toEqual({
+      uid: "uid-a",
+      email: "a@example.com",
+    });
+  });
+
+  it("filters non-string entries out of sharedWith (defensive)", () => {
+    const plan = parseMealPlanDoc("p", {
+      ...minimal,
+      sharedWith: ["uid-a", 42, null, "uid-b"],
+    });
+    expect(plan.sharedWith).toEqual(["uid-a", "uid-b"]);
+  });
+
+  it("drops malformed entries from sharedWithDetails", () => {
+    const plan = parseMealPlanDoc("p", {
+      ...minimal,
+      sharedWithDetails: [
+        { uid: "uid-a", email: "ok@example.com" },
+        { uid: "missing-email" },
+        "junk",
+        null,
+      ],
+    });
+    expect(plan.sharedWithDetails).toEqual([
+      { uid: "uid-a", email: "ok@example.com" },
+    ]);
+  });
+
   it("defaults missing prep notes to an empty string (back-compat)", () => {
     // Plans created before the prep markdown shipped have neither
     // prepNotes nor prepSections; the parser must not crash on them.

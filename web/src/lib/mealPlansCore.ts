@@ -19,6 +19,8 @@ import type {
  * `unknown` at this layer — the consumer module attaches the Firestore
  * Timestamp type. Tests don't need to construct timestamps.
  */
+export type ParsedSharedWithDetail = { uid: string; email: string };
+
 export type ParsedMealPlan = {
   id: string;
   ownerId: string;
@@ -35,6 +37,20 @@ export type ParsedMealPlan = {
   additionalItems: AdditionalItem[];
   /** ISO date (YYYY-MM-DD) for the meal occasion. Absent on older plans. */
   date?: string;
+  /**
+   * UIDs the owner has explicitly granted view access to. Mirrors the
+   * recipe `sharedWith` array. Always present (defaults to `[]` for
+   * plans created before sharing shipped) so the security-rule check
+   * `request.auth.uid in resource.data.sharedWith` never trips on a
+   * missing field.
+   */
+  sharedWith: string[];
+  /**
+   * Denormalized {uid, email} mirror of sharedWith so the share dialog
+   * can render who has access without a separate Auth lookup per
+   * render. Optional for back-compat with pre-sharing plans.
+   */
+  sharedWithDetails: ParsedSharedWithDetail[];
   groceryList?: GroceryList;
   groceryListGeneratedAt?: unknown;
   createdAt?: unknown;
@@ -171,6 +187,21 @@ export function parseMealPlanDoc(
       typeof data.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.date)
         ? data.date
         : undefined,
+    sharedWith: Array.isArray(data.sharedWith)
+      ? (data.sharedWith as unknown[]).filter(
+          (v): v is string => typeof v === "string",
+        )
+      : [],
+    sharedWithDetails: Array.isArray(data.sharedWithDetails)
+      ? (data.sharedWithDetails as unknown[]).flatMap((v) => {
+          if (!v || typeof v !== "object") return [];
+          const rec = v as Record<string, unknown>;
+          if (typeof rec.uid !== "string" || typeof rec.email !== "string") {
+            return [];
+          }
+          return [{ uid: rec.uid, email: rec.email }];
+        })
+      : [],
     groceryList,
     groceryListGeneratedAt: data.groceryListGeneratedAt,
     createdAt: data.createdAt,

@@ -24,7 +24,8 @@ A personal recipe library — installable as a PWA on desktop, Android, and iOS 
 - **Tags** — Vegetarian, Gluten Free, and any others you add. Each tag carries a user-chosen color from a 10-color palette; the tag management page supports rename, delete, **merge two tags** (consolidates duplicates across every recipe), and per-tag color picking. Tag suggestions on the recipe form are autocomplete-driven with inline "create new tag" — typing isn't restricted to your existing tags
 
 **Meal plans**
-- Create / rename / delete meal plans for any occasion
+- Create / rename / delete meal plans for any occasion; assign an optional **event date** so the index sorts reverse-chronologically with future / upcoming plans on top
+- **Duplicate plan** — clone an existing plan under a new name. Recipes, additional items, prep list, and notes carry over; guests, date, grocery cache, and shares are cleared so each occasion starts fresh
 - **Guest list as families** — each row is a family group (e.g. *McMullen Family — 2 adults, 2 kids*); the cook gets adult/kid totals for portioning without listing every kid by name
 - **Add recipes from anywhere** — the recipe detail page has an "Add to plan" button; a dialog lists every plan, marks ones the recipe is already in, and offers an inline "Create new plan" shortcut
 - **Non-recipe items inline** — track things like crudité, wine, or store-bought desserts a guest is bringing. Each item carries a *brought-by* label and a chapter so it bucket alongside recipes in the menu
@@ -39,8 +40,9 @@ A personal recipe library — installable as a PWA on desktop, Android, and iOS 
 - View and edit existing recipes
 - **Favorites** — heart any recipe (from the detail page or directly from the list); a "Favorites" section appears at the top of the list view and a "Favorites" entry sits at the top of the sidebar chapter nav. Favorites are per-user, so two people sharing a recipe can each favorite it independently
 - **Export as PDF** — every recipe has a "PDF" action that opens the browser's native print → "Save as PDF" flow with a recipe-only print stylesheet (Newsreader typography preserved, app chrome stripped)
-- Share a single recipe with another user (by email)
-- **Auto-share**: grant a person blanket access to every recipe you own — applies to existing recipes and anything you add later, until you revoke it
+- Share a single **recipe** with another user (by email)
+- Share a single **meal plan** with another user (by email) — the grantee gets read-only access via a `Shared` chip on the meal-plan index; the owner keeps Edit / Duplicate / Delete to themselves
+- **Auto-share**: grant a person blanket access to every recipe **and meal plan** you own — applies to existing items and anything you add later, until you revoke it. One grant covers both surfaces
 
 **PWA niceties**
 - Installable to home screen / desktop with a full app icon set (including maskable variants)
@@ -84,6 +86,8 @@ recipe-tracker/
 │   │   ├── components/             # UI kit (Button, Icon, Tag, CollapsibleSection, …) + feature components
 │   │   │   ├── PrepNotesEditor.tsx # markdown editor with Write/Preview tabs + formatting toolbar
 │   │   │   ├── AddToMealPlanDialog.tsx
+│   │   │   ├── ShareDialog.tsx     # per-recipe share modal
+│   │   │   ├── ShareMealPlanDialog.tsx # per-plan share modal (mirror of ShareDialog)
 │   │   │   └── TagInput.tsx        # autocomplete chip input
 │   │   ├── lib/
 │   │   │   ├── firebase.ts
@@ -108,8 +112,9 @@ recipe-tracker/
 │       ├── importFromUrl.ts        # Claude URL extractor
 │       ├── importFromImage.ts      # Claude vision extractor
 │       ├── generateGroceryList.ts  # Claude meal-plan → categorized grocery list
-│       ├── shareRecipe.ts
-│       ├── autoShare.ts
+│       ├── shareRecipe.ts          # shareRecipe / unshareRecipe callables
+│       ├── shareMealPlan.ts        # shareMealPlan / unshareMealPlan callables
+│       ├── autoShare.ts            # grant/revoke auto-share (covers recipes + meal plans)
 │       └── photoCleanup.ts         # Storage cleanup on recipe delete/update
 ├── shared/                         # Shared types + Zod schemas
 │   └── src/
@@ -117,7 +122,7 @@ recipe-tracker/
 │       ├── mealPlan.ts             # GuestGroup, PrepItem/Section, AdditionalItem, GroceryItem, GROCERY_CATEGORIES
 │       └── searchTokens.ts
 ├── firebase.json
-├── firestore.rules                 # recipes / users / favorites / autoShares / mealPlans
+├── firestore.rules                 # recipes / users / favorites / autoShares / mealPlans — sharing rules mirror across recipes + mealPlans
 ├── firestore.indexes.json
 ├── storage.rules
 ├── pnpm-workspace.yaml             # workspace members: web, shared (NOT functions)
@@ -130,11 +135,11 @@ Single recipes collection plus a handful of small per-user collections:
 
 | Collection | Doc id | Notes |
 |---|---|---|
-| `recipes/{id}` | auto | `ownerId`, `title`, `ingredients[]`, `instructions[]`, `category`, `tags[]`, `sharedWith[]`, `searchTokens[]`, … |
+| `recipes/{id}` | auto | `ownerId`, `title`, `ingredients[]`, `instructions[]`, `category`, `tags[]`, `sharedWith[]`, `sharedWithDetails[]`, `searchTokens[]`, … |
 | `users/{uid}` | uid | `categories[]` (ordered chapter list) + `tagColors{}` (tag → palette tone) |
 | `favorites/{uid}_{recipeId}` | deterministic | Per-user favorites; O(1) toggle via `setDoc`/`deleteDoc` |
-| `autoShares/{ownerId}_{granteeUid}` | deterministic | Blanket recipe access; existence checked via `exists()` in security rules |
-| `mealPlans/{id}` | auto | `ownerId`, `name`, `guests[]` (family groups), `recipeIds[]`, `additionalItems[]` (with optional `chapter`), `prepNotes` (markdown), optional `groceryList{}` cache + `groceryListGeneratedAt`. Owner-scoped — no sharing in v1 |
+| `autoShares/{ownerId}_{granteeUid}` | deterministic | Blanket access to every recipe AND meal plan the owner has; existence checked via `exists()` in both `recipes/{id}` and `mealPlans/{id}` read rules. One grant covers both surfaces |
+| `mealPlans/{id}` | auto | `ownerId`, `name`, optional `date` (ISO YYYY-MM-DD), `guests[]` (family groups), `recipeIds[]`, `additionalItems[]` (with optional `chapter`), `prepNotes` (markdown), `notes`, `sharedWith[]`, `sharedWithDetails[]`, optional `groceryList{}` cache + `groceryListGeneratedAt`. Read access matches recipes (owner ∨ in sharedWith ∨ autoShare). Writes stay owner-only |
 
 See [CLAUDE.md](CLAUDE.md) for the full schema and reasoning.
 
@@ -210,9 +215,8 @@ Uses the Firebase Admin SDK; requires a service-account key.
 ## Roadmap
 
 Tracked here so they don't get lost:
-- **Grocery list generation** — multi-select recipes → consolidated list
 - **Unit conversion** — cups / tsp ↔ grams for common ingredients (flour, sugar, etc.)
-- **Meal plan sharing** — let the host invite co-cooks to view / edit a single plan (mirrors the recipe `sharedWith` pattern); v1 is owner-scoped
+- **Collaborative meal plans** — shared meal plans are currently read-only for grantees; let multiple co-cooks edit guests, prep list, and additional items together. Would require relaxing the owner-only `update` rule on `mealPlans/{id}` (probably with a per-field permission model so the menu's recipe references stay owner-curated)
 
 ## Known issues
 

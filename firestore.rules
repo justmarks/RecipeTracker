@@ -118,17 +118,30 @@ service cloud.firestore {
         // before the prep list shipped; when present it must be a list.
         && (!('prepSections' in data) || data.prepSections is list)
         && (!('additionalItems' in data) || data.additionalItems is list)
+        // sharedWith is required (matches the create + update paths in
+        // mealPlans.ts which seed it explicitly), but stay tolerant of
+        // legacy plans that predate the field via the `in` check —
+        // they read as ownerId-only and just don't allow shares until
+        // the next write upgrades them.
+        && (!('sharedWith' in data) || data.sharedWith is list)
+        && (!('sharedWithDetails' in data) || data.sharedWithDetails is list)
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
 
     match /mealPlans/{planId} {
-      // Owner-scoped — no sharing in v1. Lists, detail reads, and writes
-      // all go through this single ownerId check. If we later add
-      // collaborative meal plans we'd mirror the recipes `sharedWith` /
-      // autoShares pattern here.
-      allow read: if isSignedIn()
-        && resource.data.ownerId == request.auth.uid;
+      // Read access mirrors recipes:
+      //   - owner always
+      //   - anyone in `sharedWith` (explicit per-plan share)
+      //   - anyone with an autoShare from the owner (blanket grant)
+      // Writes (create / update / delete) stay owner-only so a
+      // collaborator can view but can't edit or delete the plan.
+      allow read: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid
+        || (resource.data.keys().hasAny(['sharedWith'])
+            && request.auth.uid in resource.data.sharedWith)
+        || autoShareExists(resource.data.ownerId)
+      );
 
       allow create: if isSignedIn()
         && request.resource.data.ownerId == request.auth.uid

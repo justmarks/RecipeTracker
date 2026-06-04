@@ -27,6 +27,7 @@ import {
   SprigDivider,
 } from "../components/ui";
 import { PrepNotesEditor } from "../components/PrepNotesEditor";
+import { ShareMealPlanDialog } from "../components/ShareMealPlanDialog";
 
 /**
  * Meal plan detail — the editorial page where a plan lives. Inline
@@ -57,6 +58,13 @@ export function MealPlanDetail() {
   const [duplicateName, setDuplicateName] = useState("");
   const [duplicating, setDuplicating] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  // Share-plan dialog state. The dialog reads + writes the plan's
+  // sharedWithDetails list via the callable; on success we
+  // optimistically reflect changes locally so the dialog re-renders
+  // immediately without waiting for the Firestore snapshot to round-trip.
+  const [shareOpen, setShareOpen] = useState(false);
+  const [optimisticSharedWithDetails, setOptimisticSharedWithDetails] =
+    useState<{ uid: string; email: string }[] | null>(null);
 
   // Collapsible section state. Default expanded so first-time users
   // see the affordances; click on the section header to collapse. We
@@ -110,7 +118,7 @@ export function MealPlanDetail() {
   // edit, so rapid typing only fires one Firestore write at the end.
   const guestsDirtyRef = useRef(false);
   useEffect(() => {
-    if (!plan || !id) return;
+    if (!plan || !id || plan.access !== "owned") return;
     if (!guestsHydratedRef.current) return;
     if (!guestsDirtyRef.current) return;
     const t = window.setTimeout(() => {
@@ -124,7 +132,7 @@ export function MealPlanDetail() {
 
   const notesDirtyRef = useRef(false);
   useEffect(() => {
-    if (!plan || !id) return;
+    if (!plan || !id || plan.access !== "owned") return;
     if (!notesHydratedRef.current) return;
     if (!notesDirtyRef.current) return;
     const t = window.setTimeout(() => {
@@ -138,7 +146,7 @@ export function MealPlanDetail() {
 
   const prepDirtyRef = useRef(false);
   useEffect(() => {
-    if (!plan || !id) return;
+    if (!plan || !id || plan.access !== "owned") return;
     if (!prepHydratedRef.current) return;
     if (!prepDirtyRef.current) return;
     const t = window.setTimeout(() => {
@@ -152,7 +160,7 @@ export function MealPlanDetail() {
 
   const additionalDirtyRef = useRef(false);
   useEffect(() => {
-    if (!plan || !id) return;
+    if (!plan || !id || plan.access !== "owned") return;
     if (!additionalHydratedRef.current) return;
     if (!additionalDirtyRef.current) return;
     const t = window.setTimeout(() => {
@@ -165,7 +173,7 @@ export function MealPlanDetail() {
   }, [additionalItems, id, plan, toast]);
 
   useEffect(() => {
-    if (!plan || !id) return;
+    if (!plan || !id || plan.access !== "owned") return;
     if (!dateHydratedRef.current) return;
     if (!dateDirtyRef.current) return;
     const t = window.setTimeout(() => {
@@ -206,6 +214,17 @@ export function MealPlanDetail() {
     );
   }
   if (!plan) return null;
+
+  // Owner gating for Edit / Share / Duplicate / Delete / inline rename.
+  // Non-owners see a read-only view: just the menu, prep list, and
+  // notes, with no chrome to mutate anything. Firestore rules already
+  // enforce this server-side; the UI gates are just for clarity.
+  const isOwner = plan.access === "owned";
+  // The dialog reads the optimistic snapshot if there's one (post-add
+  // / post-remove), otherwise falls back to whatever the live plan
+  // doc currently has — that's the source of truth for sharing state.
+  const sharedWithDetailsForDialog =
+    optimisticSharedWithDetails ?? plan.sharedWithDetails;
 
   // Aggregate across all families/groups so the summary chip + the
   // meta line under the title both show consistent totals.
@@ -381,22 +400,47 @@ export function MealPlanDetail() {
               <span className="hidden sm:inline">Grocery list</span>
             </Button>
           </Link>
-          <Button
-            type="button"
-            variant="secondary"
-            icon="copy"
-            size="sm"
-            onClick={() => {
-              // Pre-fill with "(copy)" so the user can either accept
-              // it or replace the whole name. Reset error state.
-              setDuplicateName(`${plan.name} (copy)`);
-              setDuplicateError(null);
-              setDuplicateOpen(true);
-            }}
-            aria-label="Duplicate"
-          >
-            <span className="hidden sm:inline">Duplicate</span>
-          </Button>
+          {/*
+            Share / Duplicate / Delete are owner-only. A grantee viewer
+            keeps Grocery list (their own derived view) and Print (a
+            personal action), but mutating actions disappear so the
+            page reads as a clean read-only surface. The server-side
+            firestore.rules enforces ownership too — this is just
+            front-end gating for a tidy UI.
+          */}
+          {isOwner && (
+            <Button
+              type="button"
+              variant="secondary"
+              icon="share-2"
+              size="sm"
+              onClick={() => {
+                setOptimisticSharedWithDetails(null);
+                setShareOpen(true);
+              }}
+              aria-label="Share"
+            >
+              <span className="hidden sm:inline">Share</span>
+            </Button>
+          )}
+          {isOwner && (
+            <Button
+              type="button"
+              variant="secondary"
+              icon="copy"
+              size="sm"
+              onClick={() => {
+                // Pre-fill with "(copy)" so the user can either accept
+                // it or replace the whole name. Reset error state.
+                setDuplicateName(`${plan.name} (copy)`);
+                setDuplicateError(null);
+                setDuplicateOpen(true);
+              }}
+              aria-label="Duplicate"
+            >
+              <span className="hidden sm:inline">Duplicate</span>
+            </Button>
+          )}
           <Button
             type="button"
             variant="secondary"
@@ -407,16 +451,18 @@ export function MealPlanDetail() {
           >
             <span className="hidden sm:inline">Print</span>
           </Button>
-          <Button
-            type="button"
-            variant="danger"
-            icon="trash"
-            size="sm"
-            onClick={() => setConfirmDelete(true)}
-            aria-label="Delete"
-          >
-            <span className="hidden sm:inline">Delete</span>
-          </Button>
+          {isOwner && (
+            <Button
+              type="button"
+              variant="danger"
+              icon="trash"
+              size="sm"
+              onClick={() => setConfirmDelete(true)}
+              aria-label="Delete"
+            >
+              <span className="hidden sm:inline">Delete</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -460,7 +506,7 @@ export function MealPlanDetail() {
             Cancel
           </Button>
         </div>
-      ) : (
+      ) : isOwner ? (
         <button
           type="button"
           onClick={() => {
@@ -478,6 +524,10 @@ export function MealPlanDetail() {
         >
           {plan.name}
         </button>
+      ) : (
+        <h1 className="mt-1 font-display text-2xl sm:text-3xl font-medium leading-[1.05] tracking-[-0.02em] text-ink-900 m-0">
+          {plan.name}
+        </h1>
       )}
 
       {/* Event date — auto-saves on change, clears on empty.
@@ -736,6 +786,17 @@ export function MealPlanDetail() {
         onCancel={() => setDuplicateOpen(false)}
         onConfirm={handleDuplicate}
       />
+
+      {isOwner && id && (
+        <ShareMealPlanDialog
+          open={shareOpen}
+          planId={id}
+          planName={plan.name}
+          sharedWithDetails={sharedWithDetailsForDialog}
+          onClose={() => setShareOpen(false)}
+          onChange={(next) => setOptimisticSharedWithDetails(next)}
+        />
+      )}
     </article>
   );
 }

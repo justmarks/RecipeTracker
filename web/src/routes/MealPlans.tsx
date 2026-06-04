@@ -189,8 +189,21 @@ function PlanRow({ plan }: { plan: MealPlan }) {
           <Icon name="utensils" size={18} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-display font-medium text-md text-ink-900 leading-tight truncate">
-            {plan.name}
+          <div className="font-display font-medium text-md text-ink-900 leading-tight truncate flex items-center gap-2">
+            <span className="truncate">{plan.name}</span>
+            {plan.access !== "owned" && (
+              <span
+                className="inline-flex items-center gap-1 font-sans text-[10px] font-semibold uppercase tracking-[0.08em] text-olive-700 bg-olive-100 px-1.5 py-0.5 rounded-sm shrink-0"
+                title={
+                  plan.access === "shared"
+                    ? "Shared directly with you"
+                    : "Auto-shared with you"
+                }
+              >
+                <Icon name="share-2" size={9} />
+                Shared
+              </span>
+            )}
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 font-sans text-xs text-ink-500 flex-wrap">
             <span>

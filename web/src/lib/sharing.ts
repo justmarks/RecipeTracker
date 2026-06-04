@@ -26,6 +26,16 @@ export const callUnshareRecipe = httpsCallable<
   { ok: true }
 >(functions, "unshareRecipe");
 
+export const callShareMealPlan = httpsCallable<
+  { planId: string; granteeEmail: string },
+  { grantee: ShareGrantee }
+>(functions, "shareMealPlan");
+
+export const callUnshareMealPlan = httpsCallable<
+  { planId: string; granteeUid: string },
+  { ok: true }
+>(functions, "unshareMealPlan");
+
 export const callGrantAutoShare = httpsCallable<
   { granteeEmail: string },
   { grantee: ShareGrantee; alreadyGranted: boolean }
