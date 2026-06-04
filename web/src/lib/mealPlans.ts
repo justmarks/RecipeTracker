@@ -5,6 +5,7 @@ import {
   arrayUnion,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   onSnapshot,
   query,
@@ -45,6 +46,8 @@ export type MealPlan = {
    *  guests, drinks. Always present; defaults to [] on old docs that
    *  predate the field. */
   additionalItems: AdditionalItem[];
+  /** ISO date (YYYY-MM-DD) for the meal occasion. Optional on older plans. */
+  date?: string;
   /** Cached grocery list from the last generation. Absent until the
    *  user generates one. Mirrored back to Firestore by the Cloud
    *  Function so a reload of the plan picks it up from the snapshot. */
@@ -218,6 +221,7 @@ export async function updateMealPlanMeta(
     guests?: GuestGroup[];
     prepNotes?: string;
     additionalItems?: AdditionalItem[];
+    date?: string;
   },
 ): Promise<void> {
   const update: Record<string, unknown> = {
@@ -235,6 +239,10 @@ export async function updateMealPlanMeta(
   }
   if (patch.additionalItems !== undefined) {
     update.additionalItems = patch.additionalItems;
+  }
+  if (patch.date !== undefined) {
+    // Empty string means the user cleared the date — remove the field.
+    update.date = patch.date || deleteField();
   }
   await updateDoc(doc(db, "mealPlans", id), update);
 }

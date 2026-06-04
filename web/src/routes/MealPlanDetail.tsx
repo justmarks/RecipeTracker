@@ -56,7 +56,7 @@ export function MealPlanDetail() {
   // intentionally don't persist this across reloads — the page is
   // short enough that the user's preference doesn't outweigh the
   // discovery benefit of arriving at a fully-laid-out plan.
-  const [guestsOpen, setGuestsOpen] = useState(true);
+  const [guestsOpen, setGuestsOpen] = useState(false);
   const [prepOpen, setPrepOpen] = useState(true);
 
   // Local guest state with debounced save — the dialog-style "save when
@@ -66,10 +66,13 @@ export function MealPlanDetail() {
   const [notes, setNotes] = useState("");
   const [prepNotes, setPrepNotes] = useState("");
   const [additionalItems, setAdditionalItems] = useState<AdditionalItem[]>([]);
+  const [date, setDate] = useState("");
   const guestsHydratedRef = useRef(false);
   const notesHydratedRef = useRef(false);
   const prepHydratedRef = useRef(false);
   const additionalHydratedRef = useRef(false);
+  const dateHydratedRef = useRef(false);
+  const dateDirtyRef = useRef(false);
 
   useEffect(() => {
     if (!plan) return;
@@ -88,6 +91,10 @@ export function MealPlanDetail() {
     if (!additionalHydratedRef.current) {
       setAdditionalItems(plan.additionalItems);
       additionalHydratedRef.current = true;
+    }
+    if (!dateHydratedRef.current) {
+      setDate(plan.date ?? "");
+      dateHydratedRef.current = true;
     }
   }, [plan]);
 
@@ -149,6 +156,19 @@ export function MealPlanDetail() {
     }, 600);
     return () => window.clearTimeout(t);
   }, [additionalItems, id, plan, toast]);
+
+  useEffect(() => {
+    if (!plan || !id) return;
+    if (!dateHydratedRef.current) return;
+    if (!dateDirtyRef.current) return;
+    const t = window.setTimeout(() => {
+      void updateMealPlanMeta(id, { date }).catch((err) => {
+        console.error("Save date:", err);
+        toast.show("Couldn't save date.");
+      });
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [date, id, plan, toast]);
 
   // Resolve recipe ids against the in-memory recipe stream (owned +
   // shared + auto). Preserves the plan's insertion order; unresolved
@@ -416,6 +436,37 @@ export function MealPlanDetail() {
         </button>
       )}
 
+      {/* Event date — auto-saves on change, clears on empty.
+          Styled like Select so it visually pairs with other dropdowns. */}
+      <div className="mt-2 relative w-full sm:max-w-xs print:hidden">
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => {
+            dateDirtyRef.current = true;
+            setDate(e.target.value);
+          }}
+          className={[
+            "w-full font-sans text-sm bg-white",
+            "border border-paper-400 rounded-md pl-3 pr-9 py-2.5",
+            "outline-none appearance-none transition-colors duration-100 cursor-pointer",
+            "focus:border-tomato-500 focus:shadow-[var(--shadow-focus)]",
+            date ? "text-ink-900" : "text-ink-400",
+          ].join(" ")}
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-500"
+        >
+          <Icon name="chevron-down" size={16} />
+        </span>
+      </div>
+      {date && (
+        <p className="hidden print:block font-sans text-sm text-ink-500 mt-1 mb-0">
+          {formatEventDate(date)}
+        </p>
+      )}
+
       <p className="mt-3 mb-0 font-sans text-sm text-ink-500">
         {guestCount === 0
           ? "No guests yet."
@@ -655,8 +706,18 @@ function countSummary(adults: number, children: number): string {
  * which avoids the confusing "Prep list Notes" double-label since
  * the page also has a top-level Notes section.
  */
+function formatEventDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  return d.toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 function prepMarkdownSummary(md: string): string {
-  if (!md.trim()) return "Empty";
+  if (!md.trim()) return "";
   const taskOpen = (md.match(/^[\s]*[-*]\s\[\s\]/gm) ?? []).length;
   const taskDone = (md.match(/^[\s]*[-*]\s\[[xX]\]/gm) ?? []).length;
   const total = taskOpen + taskDone;
@@ -702,7 +763,7 @@ function CountStepper({ label, value, onChange }: CountStepperProps) {
       >
         +
       </button>
-      <span className="font-sans text-xs text-ink-500 ml-0.5 hidden sm:inline">
+      <span className="font-sans text-xs text-ink-500 ml-0.5">
         {label}
       </span>
     </div>
@@ -1020,10 +1081,11 @@ function MenuSection({
             }}
             disabled={isAddingChapter}
           >
-            <span className="hidden sm:inline">Add header</span>
+            Add header
           </Button>
           <Link to="/" className="no-underline">
             <Button type="button" variant="secondary" size="sm" icon="plus">
+              <span className="sm:hidden">Recipes</span>
               <span className="hidden sm:inline">Browse recipes</span>
             </Button>
           </Link>
@@ -1089,7 +1151,6 @@ function MenuSection({
               key={g.key}
               label={g.label}
               isOther={g.key === "__other__"}
-              isLocal={g.isLocal}
               recipeIds={g.recipes}
               recipesById={recipesById}
               items={g.items}
@@ -1108,12 +1169,6 @@ function MenuSection({
 interface ChapterGroupProps {
   label: string;
   isOther: boolean;
-  /** True when this chapter is a plan-local header — the user typed
-   *  it via "+ Add header" and it isn't part of their library. We
-   *  use this to subtly tag it in the UI ("· in this plan") so the
-   *  user can tell at a glance which chapters are persistent vs
-   *  ad-hoc for this meal. */
-  isLocal: boolean;
   recipeIds: string[];
   recipesById: Map<string, RecipeListItem>;
   items: { item: AdditionalItem; idx: number }[];
@@ -1132,7 +1187,6 @@ interface ChapterGroupProps {
 function ChapterGroup({
   label,
   isOther,
-  isLocal,
   recipeIds,
   recipesById,
   items,
@@ -1158,14 +1212,6 @@ function ChapterGroup({
         <span className="font-mono text-xs text-ink-300 [font-feature-settings:'tnum']">
           {totalRows}
         </span>
-        {isLocal && (
-          // Plan-local hint. Hidden on print since the printed plan
-          // shouldn't carry the "where does this section live"
-          // distinction — to a paper reader it's just a section.
-          <span className="font-sans text-[11px] text-ink-400 italic print:hidden">
-            · in this plan
-          </span>
-        )}
         <span className="ml-auto print:hidden">
           <button
             type="button"
@@ -1211,27 +1257,29 @@ function ChapterGroup({
                 isLast ? "" : "border-b border-[var(--border-faint)]",
               ].join(" ")}
             >
-              {/* Screen-only editor inputs. */}
-              <Input
-                value={item.name}
-                onChange={(e) =>
-                  onUpdateItem(idx, { name: e.target.value })
-                }
-                placeholder="Crudité, wine, dessert…"
-                className="flex-1 print:hidden"
-              />
-              <Input
-                value={item.broughtBy ?? ""}
-                onChange={(e) =>
-                  onUpdateItem(idx, {
-                    broughtBy: e.target.value || undefined,
-                  })
-                }
-                placeholder="Brought by…"
-                className="w-40 sm:w-48 shrink-0 print:hidden"
-              />
+              {/* Screen-only editor inputs — stacked on mobile, inline on sm+. */}
+              <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2 print:hidden">
+                <Input
+                  value={item.name}
+                  onChange={(e) =>
+                    onUpdateItem(idx, { name: e.target.value })
+                  }
+                  placeholder="Crudité, wine, dessert…"
+                  className="flex-1"
+                />
+                <Input
+                  value={item.broughtBy ?? ""}
+                  onChange={(e) =>
+                    onUpdateItem(idx, {
+                      broughtBy: e.target.value || undefined,
+                    })
+                  }
+                  placeholder="Brought by…"
+                  className="sm:w-36 sm:shrink-0"
+                />
+              </div>
               {/* Print-only flat string. */}
-              <span className="hidden print:inline font-sans">
+              <span className="hidden print:inline font-sans flex-1">
                 {item.name || "(unnamed item)"}
                 {item.broughtBy && (
                   <span className="text-ink-500">

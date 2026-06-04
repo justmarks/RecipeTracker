@@ -33,6 +33,8 @@ export type ParsedMealPlan = {
    */
   prepNotes: string;
   additionalItems: AdditionalItem[];
+  /** ISO date (YYYY-MM-DD) for the meal occasion. Absent on older plans. */
+  date?: string;
   groceryList?: GroceryList;
   groceryListGeneratedAt?: unknown;
   createdAt?: unknown;
@@ -165,6 +167,10 @@ export function parseMealPlanDoc(
     additionalItems: Array.isArray(data.additionalItems)
       ? (data.additionalItems as AdditionalItem[])
       : [],
+    date:
+      typeof data.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.date)
+        ? data.date
+        : undefined,
     groceryList,
     groceryListGeneratedAt: data.groceryListGeneratedAt,
     createdAt: data.createdAt,
