@@ -14,6 +14,7 @@ import {
   callGrantAutoShare,
   callRevokeAutoShare,
 } from "../lib/sharing";
+import { trackEvent } from "../lib/analytics";
 import {
   Button,
   ConfirmDialog,
@@ -136,6 +137,7 @@ export function Sharing() {
       if (result.data.alreadyGranted) {
         toast.show(`${result.data.grantee.email} already had access.`);
       } else {
+        trackEvent("autoshare_granted");
         toast.show(`Shared your cookbook with ${result.data.grantee.email}.`);
       }
       setEmail("");

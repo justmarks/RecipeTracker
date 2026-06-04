@@ -13,6 +13,7 @@ import {
   useMealPlan,
 } from "../lib/mealPlans";
 import { useRecipeList } from "../lib/queryRecipes";
+import { trackEvent } from "../lib/analytics";
 import type { RecipeListItem } from "../lib/queryRecipes";
 import { useToast } from "../lib/useToast";
 import type { AdditionalItem, GuestGroup } from "shared";
@@ -274,6 +275,10 @@ export function MealPlanDetail() {
     setDuplicateError(null);
     try {
       const newId = await duplicateMealPlan(plan, duplicateName, user.uid);
+      trackEvent("meal_plan_duplicated", {
+        carried_recipes: plan.recipeIds.length,
+        carried_items: plan.additionalItems.length,
+      });
       setDuplicateOpen(false);
       setDuplicateName("");
       toast.show(`Created "${duplicateName.trim()}"`);
@@ -362,6 +367,10 @@ export function MealPlanDetail() {
   }
 
   function handlePrint() {
+    trackEvent("meal_plan_printed", {
+      recipe_count: plan?.recipeIds.length ?? 0,
+      additional_item_count: plan?.additionalItems.length ?? 0,
+    });
     const previousTitle = document.title;
     document.title = (plan?.name || "Meal plan")
       .replace(/[\\/:*?"<>|]/g, " ")

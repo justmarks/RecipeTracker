@@ -4,6 +4,7 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/useAuth";
 import { useToast } from "../lib/useToast";
+import { trackEvent } from "../lib/analytics";
 import { buildSearchTokens } from "shared";
 import type { RecipeInput } from "shared";
 import { RecipeForm } from "../components/RecipeForm";
@@ -42,6 +43,11 @@ export function NewRecipe() {
       searchTokens: buildSearchTokens(input),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+    });
+    trackEvent("recipe_created", {
+      source: "manual",
+      has_source: input.source !== undefined,
+      ingredient_sections: input.ingredients.length,
     });
     toast.show(`Saved "${input.title}"`);
     // replace so the browser Back button skips the form and goes to

@@ -6,6 +6,7 @@ import {
   useMealPlan,
 } from "../lib/mealPlans";
 import { useToast } from "../lib/useToast";
+import { trackEvent } from "../lib/analytics";
 import {
   GROCERY_CATEGORIES,
   GROCERY_CATEGORY_LABELS,
@@ -84,6 +85,13 @@ export function GroceryList() {
     setActionError(null);
     try {
       await runGenerate(id);
+      // Track AFTER success so failed runs don't inflate the metric.
+      // is_regeneration distinguishes the first build from later
+      // refreshes after the plan changed.
+      trackEvent("grocery_list_generated", {
+        recipe_count: plan?.recipeIds.length ?? 0,
+        is_regeneration: plan?.groceryList !== undefined,
+      });
       toast.show("Grocery list ready.");
     } catch (err) {
       console.error("Generate grocery list:", err);

@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from "react-router";
 import { useAuth } from "../lib/useAuth";
 import { createMealPlan, useMealPlans } from "../lib/mealPlans";
 import type { MealPlan } from "../lib/mealPlans";
+import { trackEvent } from "../lib/analytics";
 import { Button, Eyebrow, Icon, Input, SprigDivider } from "../components/ui";
 
 /**
@@ -45,6 +46,7 @@ export function MealPlans() {
     setError(null);
     try {
       const id = await createMealPlan(user.uid, newName);
+      trackEvent("meal_plan_created", { entry_point: "list" });
       setIsAdding(false);
       setNewName("");
       // Jump straight into the new plan so the user can flesh out

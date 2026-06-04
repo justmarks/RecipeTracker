@@ -9,17 +9,24 @@ import {
 } from "firebase/auth";
 import type { AuthProvider as FirebaseAuthProvider, User } from "firebase/auth";
 import { auth, googleProvider, microsoftProvider } from "./firebase";
+import { trackEvent } from "./analytics";
 
 // Popup works on the same origin (no cross-origin storage sync needed),
 // which is much more reliable during local development. Production sticks
 // with redirect because popup breaks in installed-PWA contexts on iOS.
 const useDevPopup = import.meta.env.DEV;
 
-async function signIn(provider: FirebaseAuthProvider) {
+async function signIn(provider: FirebaseAuthProvider, method: string) {
   if (useDevPopup) {
     await signInWithPopup(auth, provider);
+    // Track only on completed popup sign-in. For redirect we'd log on
+    // the next mount after getRedirectResult resolves, but the
+    // onAuthStateChanged subscription is more reliable for that path —
+    // see useEffect below.
+    trackEvent("login", { method });
   } else {
     await signInWithRedirect(auth, provider);
+    // No event here — sign-in completes after the redirect returns.
   }
 }
 
@@ -40,9 +47,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Resolve any pending redirect sign-in on app boot. Errors here are
     // surfaced to the console; the auth-state subscription below still drives UI.
-    getRedirectResult(auth).catch((err) => {
-      console.error("getRedirectResult:", err);
-    });
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          // Redirect sign-in just completed. Log the GA4 `login` event
+          // here so we don't miss it (popup path logs from signIn
+          // directly).
+          trackEvent("login", {
+            method: result.providerId ?? "unknown",
+          });
+        }
+      })
+      .catch((err) => {
+        console.error("getRedirectResult:", err);
+      });
 
     return onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -53,8 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthContextValue = {
     user,
     loading,
-    signInWithGoogle: () => signIn(googleProvider),
-    signInWithMicrosoft: () => signIn(microsoftProvider),
+    signInWithGoogle: () => signIn(googleProvider, "google.com"),
+    signInWithMicrosoft: () => signIn(microsoftProvider, "microsoft.com"),
     signOut: () => fbSignOut(auth),
   };
 

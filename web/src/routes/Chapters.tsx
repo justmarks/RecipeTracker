@@ -10,6 +10,7 @@ import {
   useChapters,
 } from "../lib/categories";
 import { Button, ConfirmDialog, Icon, Input } from "../components/ui";
+import { trackEvent } from "../lib/analytics";
 
 /**
  * Chapters management — list as a single card with paper-faint
@@ -161,6 +162,7 @@ export function Chapters() {
     const result = await withBusy(null, () => addChapter(user.uid, newName));
     setAdding(false);
     if (result !== null) {
+      trackEvent("chapter_created");
       // Close the inline add-row on success. If the user wants to add
       // another chapter, they click "Add chapter" again — clearer than
       // leaving an empty row sitting there.

@@ -6,6 +6,7 @@ import {
   useMealPlans,
 } from "../lib/mealPlans";
 import { Button, Icon, Input, Tag } from "./ui";
+import { trackEvent } from "../lib/analytics";
 
 interface AddToMealPlanDialogProps {
   open: boolean;
@@ -83,6 +84,7 @@ export function AddToMealPlanDialog({
     setError(null);
     try {
       await addRecipeToMealPlan(planId, recipeId);
+      trackEvent("recipe_added_to_plan", { entry_point: "existing_plan" });
       const plan = plans.find((p) => p.id === planId);
       onMessage?.(`Added to "${plan?.name ?? "meal plan"}".`);
     } catch (err) {
@@ -100,6 +102,11 @@ export function AddToMealPlanDialog({
     try {
       const id = await createMealPlan(user.uid, newName);
       await addRecipeToMealPlan(id, recipeId);
+      // Created the plan inline THEN added — log both events so the
+      // create funnel reflects this entry-point too. Different
+      // entry_point dimension distinguishes from the "list page" flow.
+      trackEvent("meal_plan_created", { entry_point: "from_recipe" });
+      trackEvent("recipe_added_to_plan", { entry_point: "new_plan" });
       onMessage?.(`Created "${newName.trim()}" and added recipe.`);
       setShowCreate(false);
       setNewName("");

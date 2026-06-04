@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { Button, Icon, Input } from "./ui";
 import { callShareMealPlan, callUnshareMealPlan } from "../lib/sharing";
+import { trackEvent } from "../lib/analytics";
 
 interface ShareMealPlanDialogProps {
   open: boolean;
@@ -74,6 +75,7 @@ export function ShareMealPlanDialog({
       });
       const grantee = result.data.grantee;
       const exists = sharedWithDetails.some((d) => d.uid === grantee.uid);
+      if (!exists) trackEvent("meal_plan_shared");
       onChange(exists ? sharedWithDetails : [...sharedWithDetails, grantee]);
       setEmail("");
     } catch (err) {

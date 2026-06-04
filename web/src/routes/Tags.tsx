@@ -11,6 +11,7 @@ import {
   useTags,
 } from "../lib/tags";
 import type { TagSummary } from "../lib/tags";
+import { trackEvent } from "../lib/analytics";
 import {
   Button,
   ConfirmDialog,
@@ -135,6 +136,7 @@ export function Tags() {
     setSwatchOpenFor(null);
     if (!user) return;
     await withBusy(tag, () => setTagColor(user.uid, tag, tone));
+    trackEvent("tag_color_changed", { tone });
   }
 
   return (
@@ -399,6 +401,7 @@ export function Tags() {
           if (!user || !mergeFrom) return;
           const source = mergeFrom;
           await withBusy(source, () => mergeTags(user.uid, source, target));
+          trackEvent("tag_merged");
           setMergeFrom(null);
         }}
       />

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { Button, Icon, Input } from "./ui";
 import { callShareRecipe, callUnshareRecipe } from "../lib/sharing";
+import { trackEvent } from "../lib/analytics";
 
 interface ShareDialogProps {
   open: boolean;
@@ -70,6 +71,7 @@ export function ShareDialog({
       const grantee = result.data.grantee;
       // Skip duplicate if the function reported an already-shared user.
       const exists = sharedWithDetails.some((d) => d.uid === grantee.uid);
+      if (!exists) trackEvent("recipe_shared");
       onChange(exists ? sharedWithDetails : [...sharedWithDetails, grantee]);
       setEmail("");
     } catch (err) {

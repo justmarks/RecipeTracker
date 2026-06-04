@@ -16,6 +16,10 @@ const config = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  // Optional. When present, lib/analytics.ts will lazy-init GA4 on
+  // the first event. When absent, analytics is a silent no-op so dev
+  // setups without a measurement id keep working unchanged.
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 export const app = initializeApp(config);

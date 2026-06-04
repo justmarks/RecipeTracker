@@ -7,6 +7,7 @@ import { useAuth } from "../lib/useAuth";
 import { useFavorites } from "../lib/favorites";
 import { useTagPalette } from "../lib/tags";
 import { useToast } from "../lib/useToast";
+import { trackEvent } from "../lib/analytics";
 import { renderInlineMarkdown, renderMarkdownBlock } from "../lib/inlineMarkdown";
 import type { RecipeSource, Section } from "shared";
 import {
@@ -130,6 +131,7 @@ export function RecipeDetail() {
    */
   function handlePrint() {
     if (!recipe) return;
+    trackEvent("recipe_pdf_exported");
     const previousTitle = document.title;
     document.title = (recipe.title || "Recipe").replace(/[\\/:*?"<>|]/g, " ").trim();
     const restore = () => {
@@ -193,6 +195,11 @@ export function RecipeDetail() {
           iconFilled={isFavorited}
           size="sm"
           onClick={() => {
+            // Track the desired NEW state (the toggle) so the GA4
+            // dashboard splits favorite vs unfavorite cleanly.
+            trackEvent(
+              isFavorited ? "recipe_unfavorited" : "recipe_favorited",
+            );
             void toggleFavorite(id).catch((err) => {
               toast.show(
                 err instanceof Error

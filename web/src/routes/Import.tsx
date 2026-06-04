@@ -9,6 +9,7 @@ import { buildSearchTokens } from "shared";
 import type { RecipeInput } from "shared";
 import { parseMarkdown } from "../lib/importMarkdown";
 import { prepareImageForImport } from "../lib/importImage";
+import { trackEvent } from "../lib/analytics";
 import { consumeSharedFile } from "../lib/shareTarget";
 import { RecipeForm } from "../components/RecipeForm";
 import { Button, Eyebrow, Icon, Input, Textarea } from "../components/ui";
@@ -68,6 +69,12 @@ export function Import() {
 
   const [markdownText, setMarkdownText] = useState("");
   const [parsed, setParsed] = useState<Partial<RecipeInput> | null>(null);
+  // Which import lane the user took. Set alongside `parsed` at each
+  // import site; read in onSubmit so the recipe_imported event carries
+  // an accurate `source` dimension for GA4.
+  const [importSource, setImportSource] = useState<
+    "url" | "image" | "markdown_text" | "markdown_file" | null
+  >(null);
   const [parseError, setParseError] = useState<string | null>(null);
 
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -158,6 +165,7 @@ export function Import() {
     try {
       const result = await callImportFromUrl({ url });
       setParsed(result.data.recipe);
+      setImportSource("url");
     } catch (err) {
       console.error("importFromUrl:", err);
       const message = err instanceof Error ? err.message : String(err);
@@ -194,6 +202,7 @@ export function Import() {
         mimeType: prepared.mimeType,
       });
       setParsed(result.data.recipe);
+      setImportSource("image");
     } catch (err) {
       console.error("importFromImage:", err);
       setPhotoError(err instanceof Error ? err.message : String(err));
@@ -209,6 +218,7 @@ export function Import() {
       const text = await file.text();
       setMarkdownText(text);
       setParsed(parseMarkdown(text));
+      setImportSource("markdown_file");
       setParseError(null);
     } catch (err) {
       console.error("File read:", err);
@@ -219,6 +229,7 @@ export function Import() {
   function handleParseMarkdown() {
     try {
       setParsed(parseMarkdown(markdownText));
+      setImportSource("markdown_text");
       setParseError(null);
     } catch (err) {
       console.error("Parse markdown:", err);
@@ -235,6 +246,17 @@ export function Import() {
       searchTokens: buildSearchTokens(input),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+    });
+    // Track both the high-level import (with source) and the
+    // create event. recipe_imported tells us which import lane is
+    // popular; recipe_created with source: "imported" keeps the
+    // total-creates metric aligned with manual creates.
+    trackEvent("recipe_imported", {
+      source: importSource ?? "unknown",
+    });
+    trackEvent("recipe_created", {
+      source: "imported",
+      import_source: importSource ?? "unknown",
     });
     toast.show(`Saved "${input.title}"`);
     // replace so Back skips the import form and goes home.
