@@ -549,6 +549,25 @@ export function MealPlanDetail() {
             dateDirtyRef.current = true;
             setDate(e.target.value);
           }}
+          onClick={(e) => {
+            // `appearance-none` (above) hides the browser's native
+            // calendar indicator so our custom chevron can sit on
+            // top. The side effect: once a date is set, the user's
+            // click lands on a date SEGMENT for editing (the year /
+            // month / day) instead of opening the picker. There's
+            // then no visible affordance to re-open the picker.
+            //
+            // `showPicker()` (HTMLInputElement, baseline since 2022)
+            // forces the picker open from the click handler. Wrapped
+            // in try/catch because Firefox throws if the input isn't
+            // focused yet, in which case the native click handling
+            // takes over and the picker opens anyway.
+            try {
+              (e.currentTarget as HTMLInputElement).showPicker?.();
+            } catch {
+              // No-op — native behavior handles the click.
+            }
+          }}
           className={[
             "w-full font-sans text-sm bg-white",
             "border border-paper-400 rounded-md pl-3 pr-9 py-2.5",
