@@ -27,7 +27,16 @@ type Mode = "write" | "preview";
  * the parent's debounced save effect — same path as text edits.
  */
 export function PrepNotesEditor({ value, onChange }: PrepNotesEditorProps) {
-  const [mode, setMode] = useState<Mode>(value.trim() ? "preview" : "write");
+  // Always start in Preview. For a populated buffer the user usually
+  // wants to read what's there (and check off tasks); for an empty
+  // buffer Preview shows a friendly "switch to Write to start"
+  // hint, so either way Preview is a sensible landing tab.
+  //
+  // `useState` initializer runs exactly once on mount, so this is the
+  // INITIAL mode only — once the user clicks Write and starts typing,
+  // the mode stays put. We never call `setMode` from a value-derived
+  // effect, so typing can't surprise-switch the tab mid-keystroke.
+  const [mode, setMode] = useState<Mode>("preview");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Run a textarea-modifying action; the action returns the new value
