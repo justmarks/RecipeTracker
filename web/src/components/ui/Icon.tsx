@@ -45,6 +45,7 @@ export type IconName =
   | "list"
   | "list-ordered"
   | "list-checks"
+  | "copy"
   | "image";
 
 const ICON_PATHS: Record<IconName, ReactElement> = {
@@ -278,6 +279,14 @@ const ICON_PATHS: Record<IconName, ReactElement> = {
       <line x1="13" y1="6" x2="21" y2="6" />
       <line x1="13" y1="12" x2="21" y2="12" />
       <line x1="13" y1="18" x2="21" y2="18" />
+    </>
+  ),
+  // Lucide `copy` — two overlapping rectangles, the duplicate-page
+  // metaphor. Used by the meal-plan "Duplicate" button.
+  copy: (
+    <>
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15 H4 a2 2 0 0 1-2-2 V4 a2 2 0 0 1 2-2 h9 a2 2 0 0 1 2 2 v1" />
     </>
   ),
 };

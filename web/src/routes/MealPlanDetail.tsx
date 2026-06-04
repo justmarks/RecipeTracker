@@ -4,6 +4,7 @@ import { useAuth } from "../lib/useAuth";
 import { useChapters } from "../lib/categories";
 import {
   deleteMealPlan,
+  duplicateMealPlan,
   newGuestId,
   newPrepId,
   removeRecipeFromMealPlan,
@@ -50,6 +51,12 @@ export function MealPlanDetail() {
   const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
+  // Duplicate-plan dialog state. Open is controlled here; name +
+  // error live alongside so the inline form keeps its own scratch.
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [duplicateName, setDuplicateName] = useState("");
+  const [duplicating, setDuplicating] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   // Collapsible section state. Default expanded so first-time users
   // see the affordances; click on the section header to collapse. We
@@ -241,6 +248,27 @@ export function MealPlanDetail() {
     }
   }
 
+  async function handleDuplicate() {
+    if (!plan || !user) return;
+    if (!duplicateName.trim()) return;
+    setDuplicating(true);
+    setDuplicateError(null);
+    try {
+      const newId = await duplicateMealPlan(plan, duplicateName, user.uid);
+      setDuplicateOpen(false);
+      setDuplicateName("");
+      toast.show(`Created "${duplicateName.trim()}"`);
+      navigate(`/meal-plans/${newId}`, { replace: false });
+    } catch (err) {
+      console.error("Duplicate meal plan:", err);
+      setDuplicateError(
+        err instanceof Error ? err.message : "Couldn't duplicate plan.",
+      );
+    } finally {
+      setDuplicating(false);
+    }
+  }
+
   async function handleRemoveRecipe(recipeId: string) {
     if (!id) return;
     try {
@@ -353,6 +381,22 @@ export function MealPlanDetail() {
               <span className="hidden sm:inline">Grocery list</span>
             </Button>
           </Link>
+          <Button
+            type="button"
+            variant="secondary"
+            icon="copy"
+            size="sm"
+            onClick={() => {
+              // Pre-fill with "(copy)" so the user can either accept
+              // it or replace the whole name. Reset error state.
+              setDuplicateName(`${plan.name} (copy)`);
+              setDuplicateError(null);
+              setDuplicateOpen(true);
+            }}
+            aria-label="Duplicate"
+          >
+            <span className="hidden sm:inline">Duplicate</span>
+          </Button>
           <Button
             type="button"
             variant="secondary"
@@ -681,7 +725,124 @@ export function MealPlanDetail() {
         onCancel={() => setConfirmDelete(false)}
         onConfirm={handleDelete}
       />
+
+      <DuplicatePlanDialog
+        open={duplicateOpen}
+        sourceName={plan.name}
+        name={duplicateName}
+        onNameChange={setDuplicateName}
+        error={duplicateError}
+        busy={duplicating}
+        onCancel={() => setDuplicateOpen(false)}
+        onConfirm={handleDuplicate}
+      />
     </article>
+  );
+}
+
+interface DuplicatePlanDialogProps {
+  open: boolean;
+  sourceName: string;
+  name: string;
+  onNameChange: (next: string) => void;
+  error: string | null;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+/**
+ * Native <dialog> for naming the duplicate. Same focus-trap / Esc-dismiss
+ * machinery as ConfirmDialog and ShareDialog, but with an input + a
+ * helper line that calls out what carries over and what gets cleared so
+ * the user isn't surprised when their new plan opens empty of guests.
+ *
+ * The form uses method="dialog" + a submit-typed primary button so
+ * Enter inside the input commits without us wiring a keydown handler,
+ * and the autoFocus on the confirm button matches the pattern from the
+ * Tag merge dialog (so Enter from any focused control still fires the
+ * primary action).
+ */
+function DuplicatePlanDialog({
+  open,
+  sourceName,
+  name,
+  onNameChange,
+  error,
+  busy,
+  onCancel,
+  onConfirm,
+}: DuplicatePlanDialogProps) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    else if (!open && d.open) d.close();
+  }, [open]);
+
+  return (
+    <dialog
+      ref={ref}
+      onClose={onCancel}
+      onCancel={(e) => {
+        e.preventDefault();
+        onCancel();
+      }}
+      onClick={(e) => {
+        if (e.target === ref.current) onCancel();
+      }}
+      className={[
+        "m-auto p-0 bg-transparent border-0",
+        "backdrop:bg-ink-900/50",
+      ].join(" ")}
+    >
+      <form
+        method="dialog"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim() || busy) return;
+          onConfirm();
+        }}
+        className="bg-white rounded-xl shadow-lg p-6 max-w-[440px] w-[92vw]"
+      >
+        <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-2 leading-snug">
+          Duplicate meal plan
+        </h2>
+        <p className="font-sans text-sm leading-relaxed text-ink-700 m-0 mb-4">
+          Make a copy of <strong>{sourceName}</strong> to start a new
+          plan for a different occasion.
+        </p>
+        <label className="block font-sans text-sm font-semibold text-ink-700 mb-1.5">
+          New plan name
+        </label>
+        <Input
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          placeholder="Thanksgiving 2026"
+        />
+        <p className="mt-3 font-sans text-xs text-ink-500 leading-relaxed">
+          Recipes, additional items, prep list, and notes carry over.
+          Guests and date are cleared so each occasion starts fresh.
+        </p>
+        {error && (
+          <p className="mt-2 font-sans text-xs text-tomato-700">{error}</p>
+        )}
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            autoFocus
+            disabled={busy || !name.trim()}
+          >
+            {busy ? "Duplicating…" : "Duplicate"}
+          </Button>
+        </div>
+      </form>
+    </dialog>
   );
 }
 

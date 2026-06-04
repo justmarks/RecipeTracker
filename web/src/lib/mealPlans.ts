@@ -60,6 +60,36 @@ export type MealPlan = {
   updatedAt?: Timestamp;
 };
 
+/**
+ * Reverse-chronological sort key for a plan in the index list.
+ *
+ * Returns an epoch-millis number, larger = sort earlier (newest first):
+ *
+ *   1. If the plan has a meal `date` ("YYYY-MM-DD"), use that. A
+ *      future Thanksgiving 2026 plan ranks above last week's random
+ *      Tuesday dinner; a past Thanksgiving 2020 plan ranks below
+ *      anything happening more recently.
+ *   2. Otherwise fall back to `createdAt`. Plans the user never put a
+ *      date on still slot in by when they were created.
+ *   3. Pending writes (no resolved `createdAt`) get `+Infinity` so a
+ *      brand-new plan jumps to the top while the server stamps the
+ *      timestamp.
+ *
+ * ISO dates are parsed at UTC midnight — the absolute epoch doesn't
+ * matter for sort comparisons; consistency does, and UTC avoids DST
+ * weirdness on the boundary days.
+ */
+function planSortKey(plan: MealPlan): number {
+  if (plan.date) {
+    const parts = plan.date.split("-").map(Number);
+    if (parts.length === 3 && parts.every((n) => Number.isFinite(n))) {
+      const [y, m, d] = parts;
+      return Date.UTC(y, m - 1, d);
+    }
+  }
+  return plan.createdAt?.toMillis() ?? Number.POSITIVE_INFINITY;
+}
+
 function fromDoc(id: string, data: DocumentData): MealPlan {
   // Pure parsing + back-compat lives in mealPlansCore so it can be
   // unit-tested without the firebase SDK. We re-attach the Firestore
@@ -77,7 +107,10 @@ function fromDoc(id: string, data: DocumentData): MealPlan {
 }
 
 /**
- * Live list of every meal plan owned by `uid`, newest first.
+ * Live list of every meal plan owned by `uid`, sorted reverse-
+ * chronologically by meal date (with createdAt as a fallback for
+ * plans that don't have a date set). See {@link planSortKey} for
+ * the exact ordering rule.
  */
 export function useMealPlans(uid: string | undefined): {
   plans: MealPlan[];
@@ -105,13 +138,7 @@ export function useMealPlans(uid: string | undefined): {
       query(collection(db, "mealPlans"), where("ownerId", "==", uid)),
       (snap) => {
         const next = snap.docs.map((d) => fromDoc(d.id, d.data()));
-        next.sort((a, b) => {
-          // Docs without a resolved createdAt (write-in-flight) sort
-          // to the top — they're the newest by definition.
-          const aMs = a.createdAt?.toMillis() ?? Number.POSITIVE_INFINITY;
-          const bMs = b.createdAt?.toMillis() ?? Number.POSITIVE_INFINITY;
-          return bMs - aMs;
-        });
+        next.sort((a, b) => planSortKey(b) - planSortKey(a));
         setPlans(next);
         setLoading(false);
       },
@@ -249,6 +276,49 @@ export async function updateMealPlanMeta(
 
 export async function deleteMealPlan(id: string): Promise<void> {
   await deleteDoc(doc(db, "mealPlans", id));
+}
+
+/**
+ * Clone a meal plan into a new doc owned by `uid` under a new name.
+ *
+ * What carries over from the source:
+ *   - recipeIds, additionalItems, prepNotes, notes — the menu and
+ *     planning structure the user wants to reuse for a similar
+ *     occasion.
+ *
+ * What gets cleared (so each occasion starts fresh):
+ *   - guests — every party has its own headcount
+ *   - date — the duplicate is for a different day by definition
+ *   - groceryList / groceryListGeneratedAt — derived from recipes; we
+ *     don't carry over the cached version because the user will edit
+ *     the plan before they need it. Next click of "Generate" rebuilds.
+ *
+ * Returns the new doc id so the caller can route the user straight
+ * into editing the duplicate.
+ */
+export async function duplicateMealPlan(
+  source: MealPlan,
+  newName: string,
+  uid: string,
+): Promise<string> {
+  const name = trimOrEmpty(newName, 200, "Meal plan name");
+  // Firestore's `ignoreUndefinedProperties` setting on the client
+  // (see lib/firebase.ts) drops undefined fields cleanly, so we can
+  // pass `undefined` for optional carry-overs without polluting the
+  // doc with nulls.
+  const ref = await addDoc(collection(db, "mealPlans"), {
+    ownerId: uid,
+    name,
+    notes: source.notes,
+    guests: [],
+    recipeIds: [...source.recipeIds],
+    prepNotes: source.prepNotes,
+    additionalItems: source.additionalItems.map((item) => ({ ...item })),
+    // date intentionally omitted — see jsdoc above.
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return ref.id;
 }
 
 /**
