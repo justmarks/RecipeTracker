@@ -14,6 +14,7 @@ import {
   type GroceryItem,
 } from "shared";
 import { Button, Eyebrow, Icon, SprigDivider } from "../components/ui";
+import { sendToGrocery } from "../lib/sendToGrocery";
 
 /**
  * Grocery list — categorized shopping list generated from every recipe
@@ -103,6 +104,16 @@ export function GroceryList() {
     }
   }
 
+  function handleSendToGrocery() {
+    if (!plan?.groceryList || plan.groceryList.items.length === 0) return;
+    sendToGrocery({
+      mealPlanId: plan.id,
+      mealPlanName: plan.name,
+      items: plan.groceryList.items,
+    });
+    toast.show("Opening Grocery…");
+  }
+
   function handlePrint() {
     const previousTitle = document.title;
     document.title = `Grocery list — ${plan?.name || "Meal plan"}`.replace(
@@ -132,6 +143,17 @@ export function GroceryList() {
           Back to plan
         </Button>
         <div className="flex items-center gap-2 shrink-0">
+          <Button
+            type="button"
+            variant="secondary"
+            icon="share-2"
+            size="sm"
+            onClick={handleSendToGrocery}
+            disabled={!hasList}
+            aria-label="Send to Grocery"
+          >
+            <span className="hidden sm:inline">Send to Grocery</span>
+          </Button>
           <Button
             type="button"
             variant="secondary"

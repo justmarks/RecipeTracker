@@ -8,6 +8,14 @@
  * is typed correctly without an explicit cast.
  */
 declare global {
+  /**
+   * Base URL of the sibling Grocery app, for the "Send to Grocery"
+   * deep link. Defaults to the production host when unset.
+   */
+  interface ImportMetaEnv {
+    readonly VITE_GROCERY_APP_URL?: string;
+  }
+
   interface BeforeInstallPromptEvent extends Event {
     readonly platforms: string[];
     readonly userChoice: Promise<{
