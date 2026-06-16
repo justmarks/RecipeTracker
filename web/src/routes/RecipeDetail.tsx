@@ -9,6 +9,7 @@ import { useTagPalette } from "../lib/tags";
 import { useToast } from "../lib/useToast";
 import { trackEvent } from "../lib/analytics";
 import { renderInlineMarkdown, renderMarkdownBlock } from "../lib/inlineMarkdown";
+import { readKeepAwake } from "../lib/keepAwake";
 import type { RecipeSource, Section } from "shared";
 import {
   Button,
@@ -84,6 +85,7 @@ export function RecipeDetail() {
   const [addToPlanOpen, setAddToPlanOpen] = useState(false);
 
   useEffect(() => {
+    if (!readKeepAwake()) return;
     if (!('wakeLock' in navigator)) return;
     let sentinel: WakeLockSentinel | null = null;
 
