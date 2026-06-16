@@ -9,6 +9,7 @@ import { useTagPalette } from "../lib/tags";
 import { useToast } from "../lib/useToast";
 import { trackEvent } from "../lib/analytics";
 import { renderInlineMarkdown, renderMarkdownBlock } from "../lib/inlineMarkdown";
+import { readKeepAwake } from "../lib/keepAwake";
 import type { RecipeSource, Section } from "shared";
 import {
   Button,
@@ -82,6 +83,31 @@ export function RecipeDetail() {
   const [deleting, setDeleting] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [addToPlanOpen, setAddToPlanOpen] = useState(false);
+
+  useEffect(() => {
+    if (!readKeepAwake()) return;
+    if (!('wakeLock' in navigator)) return;
+    let sentinel: WakeLockSentinel | null = null;
+
+    async function acquire() {
+      try {
+        sentinel = await navigator.wakeLock.request('screen');
+      } catch {
+        // Denied (e.g. battery saver mode) — silently ignore
+      }
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible') void acquire();
+    }
+
+    void acquire();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      sentinel?.release().catch(() => {});
+    };
+  }, []);
 
   useEffect(() => {
     if (!user || !id) return;

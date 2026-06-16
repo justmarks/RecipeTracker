@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useId, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import { useAuth } from "../lib/useAuth";
+import { readKeepAwake, writeKeepAwake } from "../lib/keepAwake";
 import { Icon } from "../components/ui";
 import type { IconName } from "../components/ui";
 
@@ -20,6 +21,7 @@ import type { IconName } from "../components/ui";
 export function Account() {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const [keepAwake, setKeepAwake] = useState(() => readKeepAwake());
 
   // Initial letter for the avatar circle — first name → first email
   // letter → "?" fallback so we never render an empty disc.
@@ -92,6 +94,20 @@ export function Account() {
           iconBg="bg-olive-100"
           iconFg="text-olive-700"
           label="Sharing settings"
+        />
+      </SettingsSection>
+
+      <SettingsSection label="Display">
+        <SettingsToggleRow
+          icon="sun"
+          iconBg="bg-saffron-100"
+          iconFg="text-saffron-700"
+          label="Keep screen awake while cooking"
+          checked={keepAwake}
+          onChange={(next) => {
+            setKeepAwake(next);
+            writeKeepAwake(next);
+          }}
         />
       </SettingsSection>
 
@@ -205,5 +221,60 @@ function SettingsRow({
     <button type="button" onClick={onClick} className={rowClasses}>
       {inner}
     </button>
+  );
+}
+
+function SettingsToggleRow({
+  icon,
+  iconBg,
+  iconFg,
+  label,
+  checked,
+  onChange,
+}: {
+  icon: IconName;
+  iconBg: string;
+  iconFg: string;
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  const id = useId();
+  return (
+    <label
+      htmlFor={id}
+      className="flex items-center gap-3 px-4 py-3 min-h-[52px] cursor-pointer hover:bg-paper-100 transition-colors duration-100 w-full"
+    >
+      <div
+        aria-hidden="true"
+        className={["w-8 h-8 rounded-md flex items-center justify-center shrink-0", iconBg, iconFg].join(" ")}
+      >
+        <Icon name={icon} size={16} />
+      </div>
+      <span className="flex-1 min-w-0 font-sans text-md truncate text-ink-900">
+        {label}
+      </span>
+      <div className="relative shrink-0" aria-hidden="true">
+        <div
+          className={[
+            "w-10 h-6 rounded-full transition-colors duration-200",
+            checked ? "bg-tomato-500" : "bg-ink-300",
+          ].join(" ")}
+        />
+        <div
+          className={[
+            "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200",
+            checked ? "translate-x-4" : "translate-x-0",
+          ].join(" ")}
+        />
+      </div>
+      <input
+        id={id}
+        type="checkbox"
+        className="sr-only"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+    </label>
   );
 }
