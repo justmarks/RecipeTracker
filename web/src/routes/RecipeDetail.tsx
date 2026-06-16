@@ -84,6 +84,30 @@ export function RecipeDetail() {
   const [addToPlanOpen, setAddToPlanOpen] = useState(false);
 
   useEffect(() => {
+    if (!('wakeLock' in navigator)) return;
+    let sentinel: WakeLockSentinel | null = null;
+
+    async function acquire() {
+      try {
+        sentinel = await navigator.wakeLock.request('screen');
+      } catch {
+        // Denied (e.g. battery saver mode) — silently ignore
+      }
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible') void acquire();
+    }
+
+    void acquire();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      sentinel?.release().catch(() => {});
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user || !id) return;
     // Live subscription instead of one-shot getDoc so the page
     // reflects edits the moment they save (especially important when
