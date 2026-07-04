@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link, Navigate } from "react-router";
 import { doc, onSnapshot, deleteDoc } from "firebase/firestore";
 import type { DocumentData } from "firebase/firestore";
@@ -10,6 +10,7 @@ import { useToast } from "../lib/useToast";
 import { trackEvent } from "../lib/analytics";
 import { renderInlineMarkdown, renderMarkdownBlock } from "../lib/inlineMarkdown";
 import { readKeepAwake } from "../lib/keepAwake";
+import { usePersonalNote } from "../lib/userRecipeNotes";
 import type { RecipeSource, Section } from "shared";
 import {
   Button,
@@ -21,6 +22,7 @@ import {
   SprigDivider,
   StarRating,
   Tag,
+  Textarea,
   tagToneFor,
 } from "../components/ui";
 import { ShareDialog } from "../components/ShareDialog";
@@ -470,6 +472,14 @@ export function RecipeDetail() {
         </>
       )}
 
+      <SprigDivider className="print:hidden" />
+      <section className="print:hidden">
+        <h2 className="font-display text-xl font-medium text-ink-900 m-0 mb-3.5">
+          My notes
+        </h2>
+        <PersonalNoteEditor recipeId={id} uid={user.uid} />
+      </section>
+
       <ConfirmDialog
         open={showDeleteConfirm}
         title="Delete this recipe?"
@@ -514,6 +524,46 @@ export function RecipeDetail() {
         />
       )}
     </article>
+  );
+}
+
+function PersonalNoteEditor({
+  recipeId,
+  uid,
+}: {
+  recipeId: string | undefined;
+  uid: string;
+}) {
+  const { notes, saving, save } = usePersonalNote(recipeId, uid);
+  const [draft, setDraft] = useState("");
+  const initialized = useRef(false);
+
+  // Populate draft from Firestore once on load; don't overwrite in-progress edits.
+  useEffect(() => {
+    if (notes !== null && !initialized.current) {
+      setDraft(notes);
+      initialized.current = true;
+    }
+  }, [notes]);
+
+  if (notes === null) return null;
+
+  return (
+    <div>
+      <Textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          if (draft !== notes) void save(draft);
+        }}
+        placeholder="Add your own tips, variations, or memories…"
+        rows={4}
+        aria-label="My personal notes for this recipe"
+      />
+      {saving && (
+        <p className="mt-1.5 font-sans text-sm text-ink-500">Saving…</p>
+      )}
+    </div>
   );
 }
 
