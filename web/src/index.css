@@ -325,6 +325,9 @@
     background: var(--bg-page);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Prevent iOS PWA rubber-band bounce and horizontal drift on scroll */
+    overscroll-behavior: none;
+    overflow-x: hidden;
   }
 
   h1, .h1 {

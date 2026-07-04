@@ -442,10 +442,6 @@ export function Import() {
                   ref={photoFileRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf"
-                  // On mobile this prefers the rear camera and opens it
-                  // directly; desktop browsers ignore the attribute and
-                  // fall back to a normal file picker.
-                  capture="environment"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) void processPhoto(file);
