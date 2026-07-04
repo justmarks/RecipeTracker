@@ -325,9 +325,11 @@
     background: var(--bg-page);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    /* Prevent iOS PWA rubber-band bounce and horizontal drift on scroll */
+    /* Prevent iOS PWA rubber-band bounce and horizontal drift on scroll.
+       overflow-x: clip (not hidden) avoids an Android Chrome bug where
+       hidden on body creates a scroll container that blocks vertical scroll. */
     overscroll-behavior: none;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   h1, .h1 {
