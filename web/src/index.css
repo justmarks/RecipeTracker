@@ -434,6 +434,16 @@
     color: var(--ink-900);
   }
 
+  /* Prevent iOS Safari from auto-zooming when an input is focused.
+     Safari zooms whenever a focused field has font-size < 16px.
+     @supports (-webkit-touch-callout: none) matches iOS only, so
+     desktop stays at the design-system's text-sm (14px). */
+  @supports (-webkit-touch-callout: none) {
+    input, select, textarea {
+      font-size: 16px;
+    }
+  }
+
   /* Suppress WebKit's built-in search clear button — we render our own
      × inside the input via an absolutely-positioned button, and having
      both visible is confusing (two adjacent X icons that do the same
