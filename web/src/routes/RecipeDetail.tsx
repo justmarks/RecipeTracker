@@ -27,6 +27,7 @@ import {
 } from "../components/ui";
 import { ShareDialog } from "../components/ShareDialog";
 import { AddToMealPlanDialog } from "../components/AddToMealPlanDialog";
+import { MadeItDialog } from "../components/MadeItDialog";
 
 type SharedWithDetail = { uid: string; email: string };
 
@@ -85,6 +86,7 @@ export function RecipeDetail() {
   const [deleting, setDeleting] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [addToPlanOpen, setAddToPlanOpen] = useState(false);
+  const [madeItOpen, setMadeItOpen] = useState(false);
 
   useEffect(() => {
     if (!readKeepAwake()) return;
@@ -255,6 +257,18 @@ export function RecipeDetail() {
       >
         <span className="hidden sm:inline">Add to plan</span>
       </Button>
+      {isOwner && (
+        <Button
+          type="button"
+          variant="secondary"
+          icon="list-checks"
+          size="sm"
+          onClick={() => setMadeItOpen(true)}
+          aria-label="Mark as made"
+        >
+          <span className="hidden sm:inline">Made it</span>
+        </Button>
+      )}
       {isOwner && (
         <Link to={`/recipes/${id}/edit`} className="no-underline">
           <Button variant="secondary" icon="pencil" size="sm" type="button" aria-label="Edit">
@@ -521,6 +535,22 @@ export function RecipeDetail() {
           recipeTitle={recipe.title}
           onClose={() => setAddToPlanOpen(false)}
           onMessage={(msg) => toast.show(msg)}
+        />
+      )}
+
+      {isOwner && id && (
+        <MadeItDialog
+          open={madeItOpen}
+          recipeId={id}
+          existingRating={recipe.rating}
+          existingDate={recipe.lastMadeDate}
+          onClose={() => setMadeItOpen(false)}
+          onSaved={(date, savedRating) => {
+            setRecipe((prev) =>
+              prev ? { ...prev, lastMadeDate: date, rating: savedRating } : prev,
+            );
+            toast.show("Saved!");
+          }}
         />
       )}
     </article>
