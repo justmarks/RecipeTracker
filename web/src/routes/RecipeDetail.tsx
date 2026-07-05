@@ -194,8 +194,8 @@ export function RecipeDetail() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-[720px] px-6 py-8 lg:px-10 lg:py-10">
-        <Button variant="ghost" icon="arrow-left" onClick={goBack} className="px-0">
+      <div className="mx-auto max-w-[720px] px-6 pt-3 pb-8 lg:px-10 lg:py-10">
+        <Button variant="ghost" icon="arrow-left" onClick={goBack} className="!px-0">
           Back
         </Button>
         <p className="mt-6 font-sans text-tomato-700">{error}</p>
@@ -314,13 +314,13 @@ export function RecipeDetail() {
   );
 
   return (
-    <article className="mx-auto max-w-[720px] px-6 py-8 lg:px-10 lg:py-10">
-      <div className="flex items-center justify-between gap-3 mb-4 print:hidden">
+    <article className="mx-auto max-w-[720px] px-6 pt-3 pb-8 lg:px-10 lg:py-10">
+      <div className="flex items-center justify-between gap-3 mb-3 print:hidden">
         <Button
           variant="ghost"
           icon="arrow-left"
           onClick={goBack}
-          className="px-0"
+          className="!px-0"
         >
           Back
         </Button>
