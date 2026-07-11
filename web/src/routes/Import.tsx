@@ -57,7 +57,16 @@ export function Import() {
   const navigate = useNavigate();
   const toast = useToast();
   const [params] = useSearchParams();
-  const sharedUrl = params.get("url") ?? params.get("text") ?? "";
+  // Android Chrome's share sheet puts "Page Title https://url" in the
+  // text param and leaves url empty. Extract the first https URL from
+  // text as a fallback so the user doesn't see the raw "Title URL" string.
+  const sharedUrl = (() => {
+    const urlParam = params.get("url") ?? "";
+    if (/^https?:\/\//i.test(urlParam)) return urlParam;
+    const textParam = params.get("text") ?? "";
+    const match = textParam.match(/https?:\/\/\S+/i);
+    return match ? match[0] : textParam;
+  })();
   // Set by the service-worker share-target handler when the system share
   // sheet handed us a photo (Android only — see CLAUDE.md re: iOS).
   const sharedPhotoPending = params.get("via") === "share-photo";
