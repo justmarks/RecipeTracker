@@ -3,6 +3,7 @@ import {defineSecret} from "firebase-functions/params";
 import {initializeApp, getApps} from "firebase-admin/app";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import Anthropic from "@anthropic-ai/sdk";
+import {waitForInstrumentation} from "./instrumentation";
 
 if (getApps().length === 0) initializeApp();
 
@@ -261,6 +262,7 @@ export const generateGroceryList = onCall<{planId?: string}>(
       ),
     ].join("\n\n");
 
+    await waitForInstrumentation();
     const client = new Anthropic({apiKey: anthropicApiKey.value()});
     const message = await client.messages.create({
       model: "claude-haiku-4-5",
