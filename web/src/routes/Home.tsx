@@ -186,8 +186,12 @@ export function Home() {
       // requestAnimationFrame so React has flushed the recipe list to the
       // DOM before we measure / scroll. Without this the scrollY may
       // exceed the document height and silently get clamped to 0.
+      // Double-rAF: outer frame lets React paint, inner frame lets the
+      // browser finish layout so scrollHeight is correct before we scroll.
       requestAnimationFrame(() => {
-        window.scrollTo(0, parseInt(saved, 10));
+        requestAnimationFrame(() => {
+          window.scrollTo(0, parseInt(saved, 10));
+        });
       });
     }
     restoredScrollRef.current = true;
