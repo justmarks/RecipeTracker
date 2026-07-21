@@ -1,5 +1,7 @@
+import {startInstrumentation} from "./instrumentation";
 import {setGlobalOptions} from "firebase-functions";
 
+startInstrumentation();
 setGlobalOptions({maxInstances: 10});
 
 export {importFromUrl} from "./importFromUrl";

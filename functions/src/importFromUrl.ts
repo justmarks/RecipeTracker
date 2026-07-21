@@ -1,6 +1,7 @@
 import {onCall, HttpsError} from "firebase-functions/https";
 import {defineSecret} from "firebase-functions/params";
 import Anthropic from "@anthropic-ai/sdk";
+import {waitForInstrumentation} from "./instrumentation";
 
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 
@@ -204,6 +205,7 @@ export const importFromUrl = onCall(
         "Extract the recipe from the raw HTML below if it's there; if it's not, follow the anti-fabrication rule and say so.\n\n" +
         `HTML:\n${html}`;
 
+    await waitForInstrumentation();
     const client = new Anthropic({apiKey: anthropicApiKey.value()});
 
     const message = await client.messages.create({

@@ -1,6 +1,7 @@
 import {onCall, HttpsError} from "firebase-functions/https";
 import {defineSecret} from "firebase-functions/params";
 import Anthropic from "@anthropic-ai/sdk";
+import {waitForInstrumentation} from "./instrumentation";
 
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 
@@ -154,6 +155,7 @@ export const importFromImage = onCall(
       );
     }
 
+    await waitForInstrumentation();
     const client = new Anthropic({apiKey: anthropicApiKey.value()});
 
     // PDFs use Claude's `document` content block (multi-page native);
