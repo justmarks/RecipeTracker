@@ -699,6 +699,15 @@
      as plain bullet lines (• Name — brought by X). The inline-input
      rows have `print:hidden` on each <Input> already, so just the
      print-only spans + this CSS produce the printed view. */
+  /* The whole Menu is one <section>, which the global
+     `section { break-inside: avoid }` rule would treat as unbreakable —
+     pushing the entire menu to page 2 and leaving page 1 with only the
+     title. Allow the section itself to split; individual chapters
+     (below) still stay together. */
+  .meal-plan-print .menu-section {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
   .meal-plan-print .menu-chapter {
     page-break-inside: avoid;
     margin-bottom: 12pt;
