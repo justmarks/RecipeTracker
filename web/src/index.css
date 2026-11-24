@@ -805,6 +805,35 @@
     margin-top: 2pt !important;
   }
 
+  /* Plain black-on-white: a shopping list gets printed on a home
+     printer, so no cream page background and no warm-tinted ink. The
+     page background lives on an ancestor wrapper (Layout's bg-paper-100),
+     so use :has() to whiten every ancestor of the article, then strip
+     backgrounds / color inside it and let the browser skip backgrounds
+     (economy) instead of forcing them like the global rule above. */
+  *:has(.grocery-print) {
+    background: #fff !important;
+  }
+  .grocery-print,
+  .grocery-print * {
+    background: transparent !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: economy !important;
+    print-color-adjust: economy !important;
+  }
+  .grocery-print {
+    filter: grayscale(1);
+  }
+  .grocery-print .grocery-category h2,
+  .grocery-print .grocery-items li span:first-child {
+    border-color: #000 !important;
+  }
+  /* Decorative sprig divider is green/red artwork — not useful on a
+     printed checklist. */
+  .grocery-print svg {
+    display: none !important;
+  }
+
   /* Suppress the page header chrome (back button, action buttons,
      stale-warning banner) on the grocery print so the document opens
      straight at the plan title. */
