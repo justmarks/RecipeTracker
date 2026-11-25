@@ -576,7 +576,10 @@
     -webkit-print-color-adjust: economy !important;
     print-color-adjust: economy !important;
   }
-  .meal-plan-print {
+  /* Grayscale the photos only. Never put `filter` on a container here:
+     Chrome rasterizes everything under a filtered element into the PDF
+     (text included), which blew a one-page plan up to ~60MB. */
+  .meal-plan-print img {
     filter: grayscale(1);
   }
   .meal-plan-print svg {
@@ -842,9 +845,6 @@
     color: #000 !important;
     -webkit-print-color-adjust: economy !important;
     print-color-adjust: economy !important;
-  }
-  .grocery-print {
-    filter: grayscale(1);
   }
   .grocery-print .grocery-category h2,
   .grocery-print .grocery-items li span:first-child {

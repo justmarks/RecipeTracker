@@ -138,12 +138,12 @@ export function PrepNotesEditor({ value, onChange }: PrepNotesEditorProps) {
           />
         </>
       ) : value.trim() === "" ? (
-        <p className="font-sans text-sm text-ink-500 m-0">
+        <p className="font-sans text-sm text-ink-500 m-0 print:hidden">
           Nothing here yet. Switch to <strong>Write</strong> and start
           typing — use the toolbar for headers, lists, tasks, and links.
         </p>
       ) : (
-        <div className="prep-notes-preview">
+        <div className="prep-notes-preview print:hidden">
           {renderPrepMarkdown(value, (lineIdx) =>
             onChange(toggleTaskInSource(value, lineIdx)),
           )}
@@ -151,8 +151,9 @@ export function PrepNotesEditor({ value, onChange }: PrepNotesEditorProps) {
       )}
 
       {/* Print fallback — always render the preview on paper, even
-          if the user left the editor on the Write tab. The textarea
-          itself is print:hidden so we don't double-print. */}
+          if the user left the editor on the Write tab. Every
+          on-screen variant above (textarea, preview, empty hint) is
+          print:hidden so the prep list isn't printed twice. */}
       <div className="hidden print:block prep-notes-preview">
         {renderPrepMarkdown(value)}
       </div>
