@@ -561,6 +561,28 @@
     color: transparent !important;
   }
 
+  /* Plain black-on-white, same as the grocery list: no cream page
+     background (it lives on Layout's wrapper, so whiten every ancestor
+     via :has()), no tinted ink, no forced color printing, photos in
+     grayscale. More-specific rules below (e.g. checked prep-list
+     checkboxes) still win over these because of their longer selectors. */
+  *:has(.meal-plan-print) {
+    background: #fff !important;
+  }
+  .meal-plan-print,
+  .meal-plan-print * {
+    background: transparent !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: economy !important;
+    print-color-adjust: economy !important;
+  }
+  .meal-plan-print {
+    filter: grayscale(1);
+  }
+  .meal-plan-print svg {
+    display: none !important;
+  }
+
   /* Strip the bordered card backgrounds for guest + recipe lists so
      the printed list reads as a single flowing column instead of a
      bordered web component. */
