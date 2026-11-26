@@ -1503,54 +1503,134 @@ function ChapterGroup({
             <li
               key={item.id}
               className={[
-                "menu-item-row flex items-center gap-2 px-3.5 py-2.5",
+                "menu-item-row flex items-center gap-3 px-3.5 py-3",
                 isLast ? "" : "border-b border-[var(--border-faint)]",
               ].join(" ")}
             >
-              {/* Screen-only editor inputs — stacked on mobile, inline on sm+. */}
-              <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2 print:hidden">
-                <Input
-                  value={item.name}
-                  onChange={(e) =>
-                    onUpdateItem(idx, { name: e.target.value })
-                  }
-                  placeholder="Crudité, wine, dessert…"
-                  className="flex-1"
-                />
-                <Input
-                  value={item.broughtBy ?? ""}
-                  onChange={(e) =>
-                    onUpdateItem(idx, {
-                      broughtBy: e.target.value || undefined,
-                    })
-                  }
-                  placeholder="Brought by…"
-                  className="sm:w-36 sm:shrink-0"
-                />
-              </div>
-              {/* Print-only flat string. */}
-              <span className="hidden print:inline font-sans flex-1">
-                {item.name || "(unnamed item)"}
-                {item.broughtBy && (
-                  <span className="text-ink-500">
-                    {" — brought by "}
-                    {item.broughtBy}
-                  </span>
-                )}
-              </span>
-              <button
-                type="button"
-                onClick={() => onRemoveItem(idx)}
-                aria-label={`Remove ${item.name || "additional item"}`}
-                title="Remove"
-                className="flex-none p-1.5 rounded text-ink-400 hover:text-tomato-700 hover:bg-tomato-50 transition-colors duration-100 print:hidden"
-              >
-                <Icon name="x" size={16} />
-              </button>
+              <AdditionalItemRow
+                item={item}
+                onChange={(patch) => onUpdateItem(idx, patch)}
+                onRemove={() => onRemoveItem(idx)}
+              />
             </li>
           );
         })}
       </ul>
     </div>
+  );
+}
+
+/**
+ * A manually-added item. Reads like a recipe row (tile + title +
+ * subtitle) so the list stays calm; the two text boxes only appear
+ * while editing — automatically for a brand-new blank item, or after
+ * tapping the pencil / the row text.
+ */
+function AdditionalItemRow({
+  item,
+  onChange,
+  onRemove,
+}: {
+  item: AdditionalItem;
+  onChange: (patch: Partial<AdditionalItem>) => void;
+  onRemove: () => void;
+}) {
+  // Blank items are freshly added: open straight into edit mode.
+  const [editing, setEditing] = useState(item.name.trim() === "");
+
+  const removeButton = (
+    <button
+      type="button"
+      onClick={onRemove}
+      aria-label={`Remove ${item.name || "additional item"}`}
+      title="Remove"
+      className="flex-none p-1.5 rounded text-ink-400 hover:text-tomato-700 hover:bg-tomato-50 transition-colors duration-100 print:hidden"
+    >
+      <Icon name="x" size={16} />
+    </button>
+  );
+
+  if (editing) {
+    return (
+      <>
+        <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2 print:hidden">
+          <Input
+            value={item.name}
+            autoFocus
+            onChange={(e) => onChange({ name: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && item.name.trim()) setEditing(false);
+            }}
+            placeholder="Crudité, wine, dessert…"
+            className="flex-1"
+          />
+          <Input
+            value={item.broughtBy ?? ""}
+            onChange={(e) =>
+              onChange({ broughtBy: e.target.value || undefined })
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && item.name.trim()) setEditing(false);
+            }}
+            placeholder="Brought by…"
+            className="sm:w-36 sm:shrink-0"
+          />
+        </div>
+        {/* Print never shows the editor, but keep the flat text. */}
+        <span className="hidden print:inline font-sans flex-1">
+          {item.name || "(unnamed item)"}
+          {item.broughtBy && (
+            <span className="text-ink-500">
+              {" — brought by "}
+              {item.broughtBy}
+            </span>
+          )}
+        </span>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          disabled={!item.name.trim()}
+          aria-label="Done editing"
+          title="Done"
+          className="flex-none p-1.5 rounded text-ink-400 hover:text-olive-700 hover:bg-paper-200 disabled:opacity-40 transition-colors duration-100 print:hidden"
+        >
+          <Icon name="check" size={16} />
+        </button>
+        {removeButton}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex-none w-12 h-12 print:w-10 print:h-10 rounded-sm bg-paper-200 flex items-center justify-center text-ink-400">
+        <Icon name="utensils" size={18} />
+      </div>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        title="Edit"
+        className="min-w-0 flex-1 text-left bg-transparent border-0 p-0 cursor-text print:cursor-auto"
+      >
+        <span className="font-display font-medium text-md text-ink-900 leading-tight block truncate">
+          {item.name}
+        </span>
+        {item.broughtBy && (
+          <span className="mt-0.5 font-sans text-xs text-ink-500 block truncate">
+            Brought by {item.broughtBy}
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        aria-label={`Edit ${item.name}`}
+        title="Edit"
+        className="flex-none p-1.5 rounded text-ink-400 hover:text-ink-700 hover:bg-paper-200 transition-colors duration-100 print:hidden"
+      >
+        <Icon name="pencil" size={16} />
+      </button>
+      {removeButton}
+    </>
   );
 }
