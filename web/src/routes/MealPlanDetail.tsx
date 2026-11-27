@@ -1307,7 +1307,19 @@ function MenuSection({
         items: other.items,
       });
     }
-    return ordered;
+    // Menu convention: dessert is always second to last and beverages
+    // last, regardless of where those chapters sit in the library
+    // order. Stable partition keeps everything else where it was.
+    const tailRank = (key: string) => {
+      const k = key.trim().toLowerCase();
+      if (k === "dessert" || k === "desserts") return 1;
+      if (k === "beverage" || k === "beverages") return 2;
+      return 0;
+    };
+    return ordered
+      .map((g, i) => ({ g, i, rank: tailRank(g.key) }))
+      .sort((a, b) => a.rank - b.rank || a.i - b.i)
+      .map(({ g }) => g);
   }, [chapters, recipeIds, recipesById, additionalItems]);
 
   const isEmpty = groups.length === 0;
